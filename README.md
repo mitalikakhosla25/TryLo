@@ -1,3 +1,4 @@
+
 # TryLo — Beta Testing Marketplace
 
 > **V1 Quality Assurance & Production Readiness Architecture Guide**  
@@ -221,3 +222,8 @@ cd backend
 - **Frontend Quality:**
   - `oxlint`: **0 errors, 0 warnings** across 52 files and 116 rules.
   - Production build: **Zero oversized chunks**; initial bundle footprint reduced by 65% via dynamic code-splitting.
+
+# TryLo
+A startup beta-testing marketplace connecting founders with real users for structured product feedback.
+
+a27548b5e79840b93149e6bfb054fc0adbf841ba
