@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+@theme {
+  --color-canvas: #F6F5ED;
+  --color-canvas-subtle: #EFEFE5;
+  --color-surface: #FFFFFF;
+  --color-surface-muted: #FDFCFA;
+
+  --color-teal-primary: #087C80;
+  --color-teal-deep: #07545A;
+  --color-teal-light: #D7EFEB;
+  --color-teal-faint: #EBF7F5;
+
+  --color-ink-primary: #102A35;
+  --color-ink-muted: #52656B;
+  --color-ink-faint: #7E939B;
+
+  --color-border-subtle: #DCE7E3;
+  --color-border-faint: #E8EFE8;
+
+  --color-status-success: #0E7C57;
+  --color-status-success-bg: #E6F7F0;
+  --color-status-warning: #9A4200;
+  --color-status-warning-bg: #FEF3C7;
+  --color-status-danger: #B91C1C;
+  --color-status-danger-bg: #FEE2E2;
+
+  --font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: #F6F5ED;
+  color: #102A35;
+  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #F6F5ED;
+  color: #102A35;
+}
+
+@keyframes float-slow {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(0.5deg);
+  }
+}
+
+@keyframes float-reverse {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(10px) rotate(-0.5deg);
+  }
+}
+
+@keyframes pulse-soft {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(1.04);
+  }
+}
+
+.animate-float-slow {
+  animation: float-slow 7s ease-in-out infinite;
+}
+
+.animate-float-reverse {
+  animation: float-reverse 9s ease-in-out infinite;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-float-slow,
+  .animate-float-reverse,
+  .animate-pulse-soft {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+
