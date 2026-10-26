@@ -100,4 +100,26 @@ body {
   }
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F6F5ED;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #DCE7E3;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #087C80;
+}
+
 

@@ -16,10 +16,10 @@ export const WorkspaceGuard: React.FC<WorkspaceGuardProps> = ({
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center min-h-[50vh] p-8 text-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500 mb-4" />
-        <p className="text-sm text-slate-300 font-medium">Verifying profile status...</p>
-        <p className="text-xs text-slate-500 mt-1">Checking onboarding completion</p>
+      <div className="flex-1 flex flex-col items-center justify-center min-h-[50vh] p-8 text-center space-y-3">
+        <Loader2 className="h-8 w-8 animate-spin text-[#087C80] mb-2" />
+        <p className="text-sm text-[#102A35] font-semibold">Verifying profile status...</p>
+        <p className="text-xs text-[#52656B]">Checking onboarding completion</p>
       </div>
     );
   }
@@ -28,18 +28,18 @@ export const WorkspaceGuard: React.FC<WorkspaceGuardProps> = ({
   if (isError) {
     return (
       <div className="flex-1 flex items-center justify-center p-8 text-center">
-        <div className="max-w-md w-full bg-slate-900/90 border border-amber-500/30 rounded-2xl p-8 space-y-4 shadow-xl">
-          <div className="h-12 w-12 mx-auto rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+        <div className="max-w-md w-full bg-white border border-[#DCE7E3] rounded-3xl p-8 space-y-4 shadow-xl">
+          <div className="h-12 w-12 mx-auto rounded-full bg-[#FEF3C7] border border-[#FDE68A] flex items-center justify-center text-[#9A4200]">
             <AlertCircle className="h-6 w-6" />
           </div>
-          <h2 className="text-lg font-bold text-white">Profile Verification Unavailable</h2>
-          <p className="text-xs text-slate-400 leading-relaxed">
+          <h2 className="text-lg font-bold text-[#102A35]">Profile Verification Unavailable</h2>
+          <p className="text-xs text-[#52656B] leading-relaxed">
             {error instanceof Error ? error.message : 'Unable to connect to the profile service.'}
           </p>
           <div className="pt-2 flex justify-center">
             <button
               onClick={() => refetch()}
-              className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-500 transition-colors shadow-md shadow-indigo-600/20"
+              className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-full text-xs font-bold bg-[#07545A] text-white hover:bg-[#087C80] transition-colors shadow-sm cursor-pointer"
             >
               <RefreshCw className="h-3.5 w-3.5" />
               <span>Retry Connection</span>

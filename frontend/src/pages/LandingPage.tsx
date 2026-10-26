@@ -5,26 +5,20 @@ import {
   ShieldCheck,
   Sparkles,
   ArrowRight,
-  Users,
-  ListTodo,
-  Bug,
-  RefreshCw,
-  Compass,
-  FileCheck,
-  Award,
   Building2,
   MapPin,
   Calendar,
   Coins,
   Gift,
+  CheckCircle2,
 } from 'lucide-react';
 import { Container } from '../components/ui/Container';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
-import { SectionHeading } from '../components/ui/SectionHeading';
 import { HeroSection } from '../components/home/HeroSection';
 import { IndiaStartupMap } from '../components/map/IndiaStartupMap';
+import { ServicesSection } from '../components/home/ServicesSection';
 import { HowItWorksSection } from '../components/home/HowItWorksSection';
 import { usePublicCampaigns } from '../context/useCampaigns';
 import { usePublicStartups } from '../context/useStartups';
@@ -33,7 +27,7 @@ export const LandingPage: React.FC = () => {
   const {
     data: campaignsData,
     isLoading: campaignsLoading,
-  } = usePublicCampaigns();
+  } = usePublicCampaigns({ page_size: 6 });
 
   const {
     data: startupsData,
@@ -44,39 +38,189 @@ export const LandingPage: React.FC = () => {
   const featuredStartups = startupsData?.items || [];
 
   return (
-    <div className="flex-1 flex flex-col space-y-20 sm:space-y-28 pb-12 sm:pb-20 overflow-hidden">
+    <div className="flex-1 flex flex-col space-y-20 sm:space-y-28 pb-16 sm:pb-24 overflow-hidden">
       {/* =========================================================================
-          SECTION A: Interactive Hero & Campaign Carousel
+          SECTION 1: HERO & PERSPECTIVE STARTUP DECK
           ========================================================================= */}
       <HeroSection />
 
       {/* =========================================================================
-          SECTION B: Interactive India Startup Map (Geographically Accurate)
+          SECTION 2: PAN INDIA COMMUNITY MAP
           ========================================================================= */}
-      <section className="relative scroll-mt-20" id="startup-map">
-        <Container size="xl" className="space-y-8">
-          <SectionHeading
-            badge="Interactive Geographic Directory"
-            title="Explore Startups Across India"
-            subtitle="Discover emerging technology companies testing their products across Indian states and Union Territories. Click any region or use the selector to filter."
-            align="center"
-          />
-
+      <section className="relative scroll-mt-24" id="startup-map">
+        <Container size="xl">
           <IndiaStartupMap />
         </Container>
       </section>
 
       {/* =========================================================================
-          SECTION C: Featured Campaigns
+          SECTION 3: BUILT FOR BUILDERS AND BELIEVERS (SERVICES)
+          ========================================================================= */}
+      <div id="for-startups" className="scroll-mt-24">
+        <div id="for-testers" className="scroll-mt-24">
+          <ServicesSection />
+        </div>
+      </div>
+
+      {/* =========================================================================
+          SECTION 4: STARTUP DISCOVERY (REAL BACKEND STARTUP DIRECTORY)
+          ========================================================================= */}
+      <section className="relative scroll-mt-24" id="discover-startups">
+        <Container size="xl" className="space-y-10">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div className="space-y-2 max-w-2xl">
+              <div className="inline-flex items-center">
+                <span className="text-[11px] font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-[#D7EFEB] text-[#07545A] border border-[#BCE1DA] shadow-2xs">
+                  VENTURE DISCOVERY
+                </span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-[#102A35] tracking-tight">
+                Discover Startups Building{' '}
+                <span className="text-[#087C80]">What's Next</span>
+              </h2>
+              <p className="text-sm sm:text-base text-[#52656B] leading-relaxed">
+                Connect with visionary founders and discover breakthrough products actively recruiting beta testers.
+              </p>
+            </div>
+
+            <Link
+              to="/register?role=founder"
+              className="inline-flex items-center space-x-1.5 text-sm font-semibold text-[#087C80] hover:text-[#07545A] transition-colors shrink-0"
+            >
+              <span>List Your Startup</span>
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+
+          {startupsLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((n) => (
+                <div
+                  key={n}
+                  className="h-52 rounded-3xl bg-white border border-[#DCE7E3] animate-pulse p-6"
+                />
+              ))}
+            </div>
+          ) : featuredStartups.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featuredStartups.map((st) => {
+                const location = [st.city, st.state].filter(Boolean).join(', ');
+                return (
+                  <Card
+                    key={st.id}
+                    variant="interactive"
+                    className="p-6 flex flex-col justify-between space-y-4 rounded-3xl border-[#DCE7E3] hover:border-[#087C80]/40 hover:shadow-lg transition-all"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3.5">
+                        {st.logo_url ? (
+                          <img
+                            src={st.logo_url}
+                            alt={`${st.name} logo`}
+                            className="h-12 w-12 rounded-xl object-cover border border-[#DCE7E3] bg-white shrink-0"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#D7EFEB] to-[#A5E1D8] text-[#087C80] font-bold text-base flex items-center justify-center border border-[#BCE1DA] shrink-0">
+                            {st.name.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <Link
+                            to={`/startups/${st.slug}`}
+                            className="text-base font-bold text-[#102A35] hover:text-[#087C80] transition-colors block truncate"
+                          >
+                            {st.name}
+                          </Link>
+                          {st.industry && (
+                            <span className="text-[11px] font-semibold text-[#087C80] block truncate">
+                              {st.industry}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {st.tagline ? (
+                        <p className="text-xs sm:text-sm text-[#52656B] line-clamp-2 leading-relaxed">
+                          {st.tagline}
+                        </p>
+                      ) : (
+                        <p className="text-xs sm:text-sm text-[#52656B] italic">
+                          Innovating in {st.industry || 'technology'}.
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="pt-3 border-t border-[#DCE7E3] flex items-center justify-between text-xs">
+                      {location ? (
+                        <span className="inline-flex items-center space-x-1 text-[#52656B] truncate max-w-[170px]">
+                          <MapPin className="h-3 w-3 text-[#087C80] shrink-0" />
+                          <span className="truncate">{location}</span>
+                        </span>
+                      ) : (
+                        <span className="text-[#52656B]">Pan-India</span>
+                      )}
+
+                      <Link
+                        to={`/startups/${st.slug}`}
+                        className="inline-flex items-center space-x-1 font-semibold text-[#087C80] hover:text-[#07545A] transition-colors"
+                      >
+                        <span>View Startup</span>
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </Link>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            /* Graceful Empty State */
+            <div className="rounded-3xl border border-[#DCE7E3] bg-white p-8 sm:p-12 text-center max-w-lg mx-auto space-y-4 shadow-xs">
+              <div className="mx-auto h-12 w-12 rounded-2xl bg-[#D7EFEB] border border-[#BCE1DA] flex items-center justify-center text-[#087C80]">
+                <Building2 className="h-6 w-6" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base sm:text-lg font-bold text-[#102A35]">
+                  Startups Registering Daily
+                </h3>
+                <p className="text-xs sm:text-sm text-[#52656B] leading-relaxed">
+                  Be among the pioneering wave of founders listing their product profile and recruiting community beta testers.
+                </p>
+              </div>
+              <div className="pt-2">
+                <Link to="/register?role=founder">
+                  <Button variant="primary" size="md">
+                    Register Your Startup
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
+        </Container>
+      </section>
+
+      {/* =========================================================================
+          SECTION 5: FEATURED CAMPAIGNS (TESTING OPPORTUNITIES)
           ========================================================================= */}
       <section className="relative">
         <Container size="xl" className="space-y-10">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-            <SectionHeading
-              badge="Discover Campaigns"
-              title="Featured Testing Opportunities"
-              subtitle="Apply to hands-on testing programs launched by verified founders."
-            />
+            <div className="space-y-2 max-w-2xl">
+              <div className="inline-flex items-center">
+                <span className="text-[11px] font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-[#D7EFEB] text-[#07545A] border border-[#BCE1DA] shadow-2xs">
+                  HANDS-ON TESTING
+                </span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-[#102A35] tracking-tight">
+                Featured Beta <span className="text-[#087C80]">Campaigns</span>
+              </h2>
+              <p className="text-sm sm:text-base text-[#52656B] leading-relaxed">
+                Test unreleased software, complete guided tasks, and share actionable feedback directly with founding teams.
+              </p>
+            </div>
+
             <Link
               to="/tester/discover"
               className="inline-flex items-center space-x-1.5 text-sm font-semibold text-[#087C80] hover:text-[#07545A] transition-colors shrink-0"
@@ -107,11 +251,11 @@ export const LandingPage: React.FC = () => {
                   <Card
                     key={camp.id}
                     variant="interactive"
-                    className="p-6 flex flex-col justify-between space-y-4"
+                    className="p-6 flex flex-col justify-between space-y-4 rounded-3xl border-[#DCE7E3] hover:border-[#087C80]/40 hover:shadow-lg transition-all"
                   >
                     <div className="space-y-3">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-semibold text-[#087C80] uppercase tracking-wider">
+                        <span className="text-xs font-bold text-[#087C80] uppercase tracking-wider">
                           {camp.product_type || 'Software Beta'}
                         </span>
                         {camp.reward_type === 'monetary' && camp.reward_amount ? (
@@ -125,7 +269,7 @@ export const LandingPage: React.FC = () => {
                         ) : camp.reward_type === 'perk' ? (
                           <Badge variant="aqua" size="sm">
                             <Gift className="h-3 w-3 mr-1" />
-                            <span>{camp.reward_description || 'Perk'}</span>
+                            <span>{camp.reward_description || 'Perk & License'}</span>
                           </Badge>
                         ) : null}
                       </div>
@@ -169,7 +313,7 @@ export const LandingPage: React.FC = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="w-full"
+                          className="w-full rounded-xl"
                           rightIcon={<ArrowRight className="h-3.5 w-3.5" />}
                         >
                           View Campaign
@@ -181,324 +325,146 @@ export const LandingPage: React.FC = () => {
               })}
             </div>
           ) : (
-            <Card variant="surface" className="p-8 text-center max-w-lg mx-auto space-y-4">
+            <div className="rounded-3xl border border-[#DCE7E3] bg-white p-8 sm:p-12 text-center max-w-lg mx-auto space-y-4 shadow-xs">
               <div className="mx-auto h-12 w-12 rounded-2xl bg-[#D7EFEB] border border-[#BCE1DA] flex items-center justify-center text-[#087C80]">
                 <Sparkles className="h-6 w-6" />
               </div>
-              <h3 className="text-base font-bold text-[#102A35]">No Public Campaigns Yet</h3>
-              <p className="text-xs text-[#52656B]">
-                Founders are actively preparing new beta test programs. Launch the first campaign or check back soon!
-              </p>
+              <div className="space-y-1">
+                <h3 className="text-base sm:text-lg font-bold text-[#102A35]">
+                  No Public Campaigns Active Yet
+                </h3>
+                <p className="text-xs sm:text-sm text-[#52656B] leading-relaxed">
+                  Founders are actively preparing new beta test programs. Launch the first campaign or check back soon!
+                </p>
+              </div>
               <div className="pt-2">
                 <Link to="/register?role=founder">
-                  <Button variant="primary" size="sm">
+                  <Button variant="primary" size="md">
                     Launch a Campaign
                   </Button>
                 </Link>
               </div>
-            </Card>
+            </div>
           )}
         </Container>
       </section>
 
       {/* =========================================================================
-          SECTION D: Featured Startups
-          ========================================================================= */}
-      <section className="relative">
-        <Container size="xl" className="space-y-10">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-            <SectionHeading
-              badge="Startup Directory"
-              title="Emerging Ventures on TryLo"
-              subtitle="Learn about the visionary companies developing the next wave of products."
-            />
-            <a
-              href="#startup-map"
-              className="inline-flex items-center space-x-1.5 text-sm font-semibold text-[#087C80] hover:text-[#07545A] transition-colors shrink-0"
-            >
-              <span>Explore State Directory</span>
-              <ArrowRight className="h-4 w-4" />
-            </a>
-          </div>
-
-          {startupsLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3].map((n) => (
-                <div
-                  key={n}
-                  className="h-48 rounded-3xl bg-white border border-[#DCE7E3] animate-pulse p-6"
-                />
-              ))}
-            </div>
-          ) : featuredStartups.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {featuredStartups.map((st) => {
-                const location = [st.city, st.state].filter(Boolean).join(', ');
-                return (
-                  <Card
-                    key={st.id}
-                    variant="interactive"
-                    className="p-6 flex flex-col justify-between space-y-4"
-                  >
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-3.5">
-                        {st.logo_url ? (
-                          <img
-                            src={st.logo_url}
-                            alt={`${st.name} logo`}
-                            className="h-12 w-12 rounded-xl object-cover border border-[#DCE7E3] bg-white shrink-0"
-                            onError={(e) => {
-                              (e.target as HTMLElement).style.display = 'none';
-                            }}
-                          />
-                        ) : (
-                          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#D7EFEB] to-[#A5E1D8] text-[#087C80] font-bold text-base flex items-center justify-center border border-[#BCE1DA] shrink-0">
-                            {st.name.slice(0, 2).toUpperCase()}
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <Link
-                            to={`/startups/${st.slug}`}
-                            className="text-base font-bold text-[#102A35] hover:text-[#087C80] transition-colors block truncate"
-                          >
-                            {st.name}
-                          </Link>
-                          {st.industry && (
-                            <span className="text-[11px] font-semibold text-[#087C80] block truncate">
-                              {st.industry}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {st.tagline ? (
-                        <p className="text-xs text-[#52656B] line-clamp-2 leading-relaxed">
-                          {st.tagline}
-                        </p>
-                      ) : (
-                        <p className="text-xs text-[#52656B] italic">
-                          Innovating in {st.industry || 'technology'}.
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="pt-3 border-t border-[#DCE7E3] flex items-center justify-between text-xs">
-                      {location ? (
-                        <span className="inline-flex items-center space-x-1 text-[#52656B] truncate max-w-[160px]">
-                          <MapPin className="h-3 w-3 text-[#087C80] shrink-0" />
-                          <span className="truncate">{location}</span>
-                        </span>
-                      ) : (
-                        <span className="text-[#52656B]">India</span>
-                      )}
-
-                      <Link
-                        to={`/startups/${st.slug}`}
-                        className="inline-flex items-center space-x-1 font-semibold text-[#087C80] hover:text-[#07545A] transition-colors"
-                      >
-                        <span>Profile</span>
-                        <ArrowRight className="h-3.5 w-3.5" />
-                      </Link>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          ) : (
-            <Card variant="surface" className="p-8 text-center max-w-lg mx-auto space-y-4">
-              <div className="mx-auto h-12 w-12 rounded-2xl bg-[#D7EFEB] border border-[#BCE1DA] flex items-center justify-center text-[#087C80]">
-                <Building2 className="h-6 w-6" />
-              </div>
-              <h3 className="text-base font-bold text-[#102A35]">Startups Registering Daily</h3>
-              <p className="text-xs text-[#52656B]">
-                Be among the early wave of founders launching their product profiles and recruiting community testers.
-              </p>
-              <div className="pt-2">
-                <Link to="/register?role=founder">
-                  <Button variant="primary" size="sm">
-                    Register Your Startup
-                  </Button>
-                </Link>
-              </div>
-            </Card>
-          )}
-        </Container>
-      </section>
-
-      {/* =========================================================================
-          SECTION E: For Founders
-          ========================================================================= */}
-      <section className="relative" id="for-founders">
-        <Container size="xl" className="space-y-10">
-          <SectionHeading
-            badge="For Founders"
-            title="Recruit Early Adopters. Ship With Certainty."
-            subtitle="Eliminate product guesswork. Run targeted beta testing programs with real users before your public launch."
-          />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card variant="surface" className="p-6 space-y-3.5">
-              <div className="h-11 w-11 rounded-2xl bg-[#D7EFEB] border border-[#BCE1DA] flex items-center justify-center text-[#087C80]">
-                <Users className="h-5 w-5" />
-              </div>
-              <h3 className="text-base font-bold text-[#102A35]">
-                Targeted Tester Recruitment
-              </h3>
-              <p className="text-xs text-[#52656B] leading-relaxed">
-                Filter applicants by experience level, devices, industry background, and custom screening questions to find your ideal user archetype.
-              </p>
-            </Card>
-
-            <Card variant="surface" className="p-6 space-y-3.5">
-              <div className="h-11 w-11 rounded-2xl bg-[#D7EFEB] border border-[#BCE1DA] flex items-center justify-center text-[#087C80]">
-                <ListTodo className="h-5 w-5" />
-              </div>
-              <h3 className="text-base font-bold text-[#102A35]">
-                Task-Based Test Campaigns
-              </h3>
-              <p className="text-xs text-[#52656B] leading-relaxed">
-                Create structured testing scenarios and user journeys so testers know exactly what features, flows, and integrations to evaluate.
-              </p>
-            </Card>
-
-            <Card variant="surface" className="p-6 space-y-3.5">
-              <div className="h-11 w-11 rounded-2xl bg-[#D7EFEB] border border-[#BCE1DA] flex items-center justify-center text-[#087C80]">
-                <Bug className="h-5 w-5" />
-              </div>
-              <h3 className="text-base font-bold text-[#102A35]">
-                Structured Bug Reports
-              </h3>
-              <p className="text-xs text-[#52656B] leading-relaxed">
-                Receive standardized bug submissions complete with reproduction steps, severity categorization, expected outcomes, and browser details.
-              </p>
-            </Card>
-
-            <Card variant="surface" className="p-6 space-y-3.5">
-              <div className="h-11 w-11 rounded-2xl bg-[#D7EFEB] border border-[#BCE1DA] flex items-center justify-center text-[#087C80]">
-                <RefreshCw className="h-5 w-5" />
-              </div>
-              <h3 className="text-base font-bold text-[#102A35]">
-                Retest & Issue Verification
-              </h3>
-              <p className="text-xs text-[#52656B] leading-relaxed">
-                Close the loop with testers: request retesting once bugs are fixed and verify resolutions before rolling features out to general users.
-              </p>
-            </Card>
-          </div>
-
-          <div className="pt-2 flex items-center">
-            <Link to="/register?role=founder">
-              <Button size="md" variant="primary" rightIcon={<ArrowRight className="h-4 w-4" />}>
-                Launch Your First Campaign
-              </Button>
-            </Link>
-          </div>
-        </Container>
-      </section>
-
-      {/* =========================================================================
-          SECTION F: For Testers
-          ========================================================================= */}
-      <section className="relative" id="for-testers">
-        <Container size="xl" className="space-y-10">
-          <SectionHeading
-            badge="For Testers"
-            title="Discover Tomorrow's Tech Today."
-            subtitle="Join a passionate community of early adopters, test unreleased products, and help shape software roadmaps."
-          />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card variant="surface" className="p-6 space-y-3.5">
-              <div className="h-11 w-11 rounded-2xl bg-[#D7EFEB] border border-[#BCE1DA] flex items-center justify-center text-[#087C80]">
-                <Compass className="h-5 w-5" />
-              </div>
-              <h3 className="text-base font-bold text-[#102A35]">
-                Discover Products Early
-              </h3>
-              <p className="text-xs text-[#52656B] leading-relaxed">
-                Get hands-on access to emerging developer tools, SaaS applications, productivity apps, and consumer software before launch.
-              </p>
-            </Card>
-
-            <Card variant="surface" className="p-6 space-y-3.5">
-              <div className="h-11 w-11 rounded-2xl bg-[#D7EFEB] border border-[#BCE1DA] flex items-center justify-center text-[#087C80]">
-                <FileCheck className="h-5 w-5" />
-              </div>
-              <h3 className="text-base font-bold text-[#102A35]">
-                Seamless Campaign Applications
-              </h3>
-              <p className="text-xs text-[#52656B] leading-relaxed">
-                Apply with one click using your testing profile, hardware specifications, and custom answers tailored to the founder's requirements.
-              </p>
-            </Card>
-
-            <Card variant="surface" className="p-6 space-y-3.5">
-              <div className="h-11 w-11 rounded-2xl bg-[#D7EFEB] border border-[#BCE1DA] flex items-center justify-center text-[#087C80]">
-                <ListTodo className="h-5 w-5" />
-              </div>
-              <h3 className="text-base font-bold text-[#102A35]">
-                Guided Testing Tasks
-              </h3>
-              <p className="text-xs text-[#52656B] leading-relaxed">
-                Follow clear, task-oriented test objectives to exercise key product features, edge scenarios, and usability touchpoints.
-              </p>
-            </Card>
-
-            <Card variant="surface" className="p-6 space-y-3.5">
-              <div className="h-11 w-11 rounded-2xl bg-[#D7EFEB] border border-[#BCE1DA] flex items-center justify-center text-[#087C80]">
-                <Award className="h-5 w-5" />
-              </div>
-              <h3 className="text-base font-bold text-[#102A35]">
-                Build Your Reputation
-              </h3>
-              <p className="text-xs text-[#52656B] leading-relaxed">
-                Earn recognition for high-quality bug reports, unlock exclusive rewards and perks, and become a trusted beta specialist.
-              </p>
-            </Card>
-          </div>
-
-          <div className="pt-2 flex items-center">
-            <Link to="/tester/discover">
-              <Button size="md" variant="primary" rightIcon={<ArrowRight className="h-4 w-4" />}>
-                Explore Active Campaigns
-              </Button>
-            </Link>
-          </div>
-        </Container>
-      </section>
-
-      {/* =========================================================================
-          SECTION G: How TryLo Works (Illustrated Visual Storytelling)
+          SECTION 6: HOW TRYLO WORKS (STEP BY STEP WORKFLOW)
           ========================================================================= */}
       <HowItWorksSection />
 
       {/* =========================================================================
-          SECTION H: Final Call to Action
+          SECTION 7: ABOUT US SECTION
+          ========================================================================= */}
+      <section className="relative scroll-mt-24" id="about">
+        <Container size="xl">
+          <div className="rounded-3xl border border-[#DCE7E3] bg-gradient-to-br from-white via-white to-[#D7EFEB]/30 p-8 sm:p-14 shadow-sm relative overflow-hidden">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+              <div className="lg:col-span-7 space-y-5">
+                <div className="inline-flex items-center">
+                  <span className="text-[11px] font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-[#D7EFEB] text-[#07545A] border border-[#BCE1DA] shadow-2xs">
+                    ABOUT TRYLO
+                  </span>
+                </div>
+
+                <h2 className="text-3xl sm:text-4xl font-extrabold text-[#102A35] tracking-tight">
+                  Bridging the Gap Between{' '}
+                  <span className="text-[#087C80]">Builders</span> &amp; Early Adopters
+                </h2>
+
+                <p className="text-sm sm:text-base text-[#52656B] leading-relaxed">
+                  TryLo was built on a simple conviction: the greatest software products are forged
+                  through genuine dialogue between visionary founders and inquisitive users. We provide
+                  startups across India and beyond with an accessible, high-signal beta testing marketplace.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 text-xs">
+                  <div className="p-3.5 rounded-2xl bg-white border border-[#DCE7E3] space-y-1">
+                    <span className="font-bold text-[#102A35] block">Genuine Feedback</span>
+                    <span className="text-[#52656B] leading-tight block">
+                      Screened testers with reproducible bug reports.
+                    </span>
+                  </div>
+                  <div className="p-3.5 rounded-2xl bg-white border border-[#DCE7E3] space-y-1">
+                    <span className="font-bold text-[#102A35] block">Pan-India Reach</span>
+                    <span className="text-[#52656B] leading-tight block">
+                      Ecosystem hubs from Mumbai to Bengaluru and beyond.
+                    </span>
+                  </div>
+                  <div className="p-3.5 rounded-2xl bg-white border border-[#DCE7E3] space-y-1">
+                    <span className="font-bold text-[#102A35] block">Iterate with Speed</span>
+                    <span className="text-[#52656B] leading-tight block">
+                      Validate UX flows, squash blockers, and launch confidently.
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="lg:col-span-5 relative flex justify-center">
+                <div className="relative p-6 rounded-3xl bg-white border border-[#DCE7E3] shadow-lg max-w-sm w-full space-y-4">
+                  <div className="flex items-center space-x-3 pb-3 border-b border-[#DCE7E3]">
+                    <div className="h-10 w-10 rounded-xl bg-[#087C80] text-white flex items-center justify-center font-bold text-sm">
+                      TL
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm text-[#102A35]">TryLo Marketplace</h4>
+                      <p className="text-xs text-[#087C80] font-medium">Pan-India Beta Network</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 text-xs text-[#52656B]">
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle2 className="h-4 w-4 text-[#087C80] shrink-0" />
+                      <span>Task-guided beta testing cycles</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle2 className="h-4 w-4 text-[#087C80] shrink-0" />
+                      <span>Closed-loop retesting verification</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle2 className="h-4 w-4 text-[#087C80] shrink-0" />
+                      <span>Reputation badges &amp; tester perks</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <Link to="/register" className="block">
+                      <Button size="sm" variant="primary" className="w-full rounded-xl">
+                        Join the Community
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Container>
+      </section>
+
+      {/* =========================================================================
+          SECTION 8: FINAL CALL TO ACTION
           ========================================================================= */}
       <section className="relative">
         <Container size="xl">
-          <Card
-            variant="surface"
-            className="p-8 sm:p-14 relative overflow-hidden bg-gradient-to-br from-white via-white to-[#D7EFEB]/40 border-[#BCE1DA] shadow-xl text-center space-y-6"
-          >
+          <div className="rounded-3xl p-8 sm:p-14 relative overflow-hidden bg-gradient-to-br from-white via-white to-[#D7EFEB]/40 border border-[#BCE1DA] shadow-xl text-center space-y-6">
             <div className="inline-flex items-center mx-auto">
-              <Badge variant="aqua" size="md">
-                <Sparkles className="h-3.5 w-3.5 mr-1 text-[#087C80]" />
-                <span>Join TryLo Today</span>
-              </Badge>
+              <span className="text-[11px] font-bold uppercase tracking-widest px-3.5 py-1.5 rounded-full bg-[#D7EFEB] text-[#07545A] border border-[#BCE1DA] shadow-2xs">
+                JOIN TRYLO TODAY
+              </span>
             </div>
 
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#102A35] tracking-tight max-w-2xl mx-auto">
-              Ready to Build or Test What's Next?
+              Ready to Build or Test <span className="text-[#087C80]">What's Next?</span>
             </h2>
 
             <p className="text-sm sm:text-base text-[#52656B] max-w-xl mx-auto leading-relaxed">
               Whether you are a founder looking for mission-critical feedback before launch or a passionate tester eager to evaluate novel products, TryLo is built for you.
             </p>
 
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3.5">
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link to="/register?role=founder">
-                <Button size="lg" variant="primary" rightIcon={<Rocket className="h-4 w-4" />}>
+                <Button size="lg" variant="primary" className="rounded-full px-7" rightIcon={<Rocket className="h-4 w-4" />}>
                   Join as a Founder
                 </Button>
               </Link>
@@ -506,6 +472,7 @@ export const LandingPage: React.FC = () => {
                 <Button
                   size="lg"
                   variant="outline"
+                  className="rounded-full px-7"
                   rightIcon={<ShieldCheck className="h-4 w-4 text-[#087C80]" />}
                 >
                   Join as a Tester
@@ -521,7 +488,7 @@ export const LandingPage: React.FC = () => {
                 Already have an account? <span className="underline underline-offset-2">Sign In to Workspace</span>
               </Link>
             </div>
-          </Card>
+          </div>
         </Container>
       </section>
     </div>

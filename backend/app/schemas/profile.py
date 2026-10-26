@@ -19,6 +19,10 @@ def validate_web_url(v: Optional[str], field_name: str = "URL") -> Optional[str]
     if len(trimmed) > 500:
         raise ValueError(f"{field_name} must not exceed 500 characters.")
 
+    import re
+    # Auto-repair accidental single slash after protocol: https:/example.com -> https://example.com
+    trimmed = re.sub(r"^(https?):/([^/])", r"\1://\2", trimmed)
+
     parsed = urlparse(trimmed)
     if parsed.scheme not in ("http", "https") or not parsed.netloc:
         raise ValueError(f"{field_name} must be a valid URL starting with http:// or https://")

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
+import { BrandIcon } from './ui/BrandLogo';
 import {
   Menu,
   X,
@@ -49,54 +50,31 @@ export const Header: React.FC = () => {
     <header className="border-b border-[#DCE7E3] bg-white/90 backdrop-blur-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
         {/* Brand Logo & Wordmark */}
-        <div className="flex items-center space-x-8">
+        <div className="flex items-center space-x-6 lg:space-x-10">
           <Link
             to="/"
-            className="flex items-center space-x-3 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#087C80] rounded-xl p-1"
+            className="flex items-center space-x-2.5 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#087C80] rounded-xl p-1"
             aria-label="TryLo Home"
           >
-            <div className="h-10 w-10 rounded-xl bg-[#087C80] flex items-center justify-center shadow-sm group-hover:bg-[#07545A] transition-colors">
-              <svg
-                className="h-5 w-5 text-white"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <polygon points="12 2 2 7 12 12 22 7 12 2" />
-                <polyline points="2 17 12 22 22 17" />
-                <polyline points="2 12 12 17 22 12" />
-              </svg>
+            <div className="shrink-0 group-hover:scale-105 transition-transform duration-300">
+              <BrandIcon className="h-8 w-8" />
             </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="font-extrabold text-xl tracking-tight text-[#102A35]">
-                  TryLo
-                </span>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#D7EFEB] text-[#07545A] border border-[#BCE1DA]">
-                  Marketplace
-                </span>
-              </div>
-              <p className="text-[11px] text-[#52656B] hidden lg:block leading-none mt-0.5">
-                Beta-Testing for Modern Startups
-              </p>
-            </div>
+            <span className="font-extrabold text-2xl tracking-tight text-[#102A35]">
+              TryLo
+            </span>
           </Link>
 
-          {/* Desktop Public Navigation (When Unauthenticated) */}
+          {/* Desktop Public Navigation Pill (When Unauthenticated) */}
           {!user && (
             <nav
               aria-label="Main Navigation"
-              className="hidden md:flex items-center space-x-1 lg:space-x-2 text-xs lg:text-sm font-medium text-[#52656B]"
+              className="hidden md:flex items-center space-x-1 bg-white/70 backdrop-blur-md px-2 py-1.5 rounded-full border border-[#DCE7E3] text-xs lg:text-sm font-medium text-[#52656B] shadow-2xs"
             >
               <Link
                 to="/"
-                className={`px-3 py-1.5 rounded-lg transition-colors ${
+                className={`px-4 py-1.5 rounded-full transition-all duration-200 ${
                   location.pathname === '/' && !location.hash
-                    ? 'text-[#087C80] font-semibold bg-[#D7EFEB]/50'
+                    ? 'text-[#07545A] font-bold bg-[#D7EFEB] shadow-2xs'
                     : 'hover:text-[#102A35] hover:bg-[#F6F5ED]'
                 }`}
               >
@@ -104,30 +82,31 @@ export const Header: React.FC = () => {
               </Link>
               <a
                 href="/#for-startups"
-                className="px-3 py-1.5 rounded-lg hover:text-[#102A35] hover:bg-[#F6F5ED] transition-colors"
+                className="px-4 py-1.5 rounded-full hover:text-[#102A35] hover:bg-[#F6F5ED] transition-colors"
               >
                 For Startups
               </a>
               <a
                 href="/#for-testers"
-                className="px-3 py-1.5 rounded-lg hover:text-[#102A35] hover:bg-[#F6F5ED] transition-colors"
+                className="px-4 py-1.5 rounded-full hover:text-[#102A35] hover:bg-[#F6F5ED] transition-colors"
               >
                 For Testers
               </a>
               <a
                 href="/#how-it-works"
-                className="px-3 py-1.5 rounded-lg hover:text-[#102A35] hover:bg-[#F6F5ED] transition-colors"
+                className="px-4 py-1.5 rounded-full hover:text-[#102A35] hover:bg-[#F6F5ED] transition-colors"
               >
                 How It Works
               </a>
               <a
                 href="/#about"
-                className="px-3 py-1.5 rounded-lg hover:text-[#102A35] hover:bg-[#F6F5ED] transition-colors"
+                className="px-4 py-1.5 rounded-full hover:text-[#102A35] hover:bg-[#F6F5ED] transition-colors"
               >
                 About Us
               </a>
             </nav>
           )}
+
 
           {/* Desktop Role-Specific Navigation (When Authenticated) */}
           {user && (
@@ -269,20 +248,20 @@ export const Header: React.FC = () => {
             </div>
           ) : (
             /* Unauthenticated Visitor Actions */
-            <div className="flex items-center space-x-2 sm:space-x-3">
+            <div className="flex items-center space-x-2.5 sm:space-x-3">
               <Link
                 to="/login"
-                className="text-xs sm:text-sm font-semibold text-[#102A35] hover:text-[#087C80] px-3.5 py-2 rounded-xl transition-colors hover:bg-[#F6F5ED]"
+                className="text-xs sm:text-sm font-semibold text-[#102A35] hover:text-[#087C80] px-5 py-2.5 rounded-full border border-[#DCE7E3] bg-white hover:bg-[#F6F5ED] transition-colors shadow-2xs"
               >
-                Sign In
+                Login
               </Link>
 
               <Link
                 to="/register"
-                className="inline-flex items-center space-x-1.5 text-xs sm:text-sm font-semibold px-4 py-2 rounded-xl bg-[#087C80] text-white hover:bg-[#07545A] shadow-sm transition-all hover:shadow-md hover:shadow-[#087C80]/15"
+                className="inline-flex items-center space-x-2 text-xs sm:text-sm font-semibold px-5 py-2.5 rounded-full bg-[#07545A] hover:bg-[#087C80] text-white shadow-sm transition-all hover:shadow-md hover:shadow-[#087C80]/20"
               >
                 <span>Get Started</span>
-                <ArrowRight className="h-3.5 w-3.5" />
+                <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
           )}

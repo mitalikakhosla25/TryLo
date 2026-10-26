@@ -21,6 +21,7 @@ import {
   Coins,
   Gift,
 } from 'lucide-react';
+import { StartupAvatar } from '../components/ui/StartupAvatar';
 
 export const PublicStartupPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -72,7 +73,7 @@ export const PublicStartupPage: React.FC = () => {
   const locationText = [startup.city, startup.state, startup.country].filter(Boolean).join(', ');
 
   return (
-    <div className="flex-1 py-10 sm:py-14 space-y-10">
+    <div className="min-h-[calc(100vh-140px)] bg-[#F6F5ED] py-10 sm:py-14 space-y-10">
       <Container size="xl" className="space-y-8">
         {/* Navigation Breadcrumb */}
         <div className="flex items-center space-x-2 text-xs text-[#52656B]">
@@ -88,20 +89,13 @@ export const PublicStartupPage: React.FC = () => {
         <Card variant="surface" className="p-6 sm:p-10 relative overflow-hidden">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
             {/* Logo or Monogram */}
-            {startup.logo_url ? (
-              <img
-                src={startup.logo_url}
-                alt={`${startup.name} logo`}
-                className="h-20 w-20 rounded-2xl object-cover border border-[#DCE7E3] bg-white shadow-sm shrink-0"
-                onError={(e) => {
-                  (e.target as HTMLElement).style.display = 'none';
-                }}
-              />
-            ) : (
-              <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-[#D7EFEB] to-[#BCE1DA] text-[#087C80] font-black text-2xl flex items-center justify-center border border-[#BCE1DA] shadow-sm shrink-0">
-                {startup.name.slice(0, 2).toUpperCase()}
-              </div>
-            )}
+            <StartupAvatar
+              name={startup.name}
+              logoUrl={startup.logo_url}
+              category={startup.industry}
+              size="xl"
+              shape="rounded"
+            />
 
             {/* Meta */}
             <div className="flex-1 space-y-2">

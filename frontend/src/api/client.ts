@@ -82,14 +82,39 @@ export async function apiClient<T>(
     }
 
     if (!response.ok) {
-      const errorMessage =
-        (typeof data === 'object' && data !== null && 'error' in data
-          ? String((data as { error: string }).error)
-          : null) ||
-        (typeof data === 'object' && data !== null && 'detail' in data
-          ? String((data as { detail: string }).detail)
-          : null) ||
-        `Request failed with status ${response.status}`;
+      let errorMessage: string | null = null;
+
+      if (typeof data === 'object' && data !== null) {
+        const errorObj = data as Record<string, unknown>;
+        if (typeof errorObj.error === 'string' && errorObj.error.trim()) {
+          errorMessage = errorObj.error.trim();
+        } else if (errorObj.detail) {
+          if (Array.isArray(errorObj.detail)) {
+            errorMessage = errorObj.detail
+              .map((item: unknown) => {
+                if (typeof item === 'string') return item;
+                if (item && typeof item === 'object') {
+                  const detailItem = item as Record<string, unknown>;
+                  const loc = Array.isArray(detailItem.loc)
+                    ? detailItem.loc.filter((part) => part !== 'body').join('.')
+                    : '';
+                  const msg = detailItem.msg || JSON.stringify(item);
+                  return loc ? `${loc}: ${msg}` : String(msg);
+                }
+                return String(item);
+              })
+              .join('; ');
+          } else if (typeof errorObj.detail === 'object') {
+            errorMessage = JSON.stringify(errorObj.detail);
+          } else {
+            errorMessage = String(errorObj.detail);
+          }
+        }
+      }
+
+      if (!errorMessage) {
+        errorMessage = `Request failed with status ${response.status}`;
+      }
 
       throw new ApiError(errorMessage, response.status, data);
     }

@@ -5,3 +5,4 @@ export * from './SectionHeading';
 export * from './Container';
 export * from './EmptyState';
 export * from './FeedbackStates';
+export * from './BrandLogo';

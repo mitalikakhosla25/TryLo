@@ -8,7 +8,7 @@ import {
   type FounderProfile,
 } from '../api/profile';
 import {
-  Building,
+  Building2,
   Globe,
   MapPin,
   ArrowRight,
@@ -126,353 +126,355 @@ const FounderOnboardingWizard: React.FC<FounderOnboardingWizardProps> = ({ initi
   };
 
   return (
-    <div className="flex-1 py-12 px-4 sm:px-6 lg:px-8 max-w-2xl mx-auto w-full space-y-8 animate-in fade-in duration-300">
-      {/* Header */}
-      <div className="text-center space-y-2">
-        <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-          <Sparkles className="h-3.5 w-3.5" />
-          <span>Founder Onboarding</span>
+    <div className="min-h-[calc(100vh-140px)] bg-[#F6F5ED] py-10 sm:py-14 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-2xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-300">
+        {/* Header */}
+        <div className="text-center space-y-2.5">
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-semibold bg-[#D7EFEB] text-[#07545A] border border-[#BCE1DA]">
+            <Sparkles className="h-3.5 w-3.5 text-[#087C80]" />
+            <span>Founder Setup</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#102A35] tracking-tight">
+            Tell Us About Your Startup
+          </h1>
+          <p className="text-xs sm:text-sm text-[#52656B] max-w-lg mx-auto">
+            Set up your founder profile to unlock TryLo’s beta tester community and recruit targeted testers across India.
+          </p>
         </div>
-        <h1 className="text-3xl font-extrabold text-white tracking-tight">
-          Tell Us About Your Startup
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-400 max-w-lg mx-auto">
-          Set up your founder profile to unlock the TryLo beta testing community and recruit targeted testers.
-        </p>
-      </div>
 
-      {/* Multi-step progress bar */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4">
-        <div className="flex items-center justify-between mb-3 text-xs font-semibold">
-          <span className={step >= 1 ? 'text-indigo-400' : 'text-slate-500'}>
-            1. Startup Basics
-          </span>
-          <span className={step >= 2 ? 'text-indigo-400' : 'text-slate-500'}>
-            2. Product Details
-          </span>
-          <span className={step >= 3 ? 'text-indigo-400' : 'text-slate-500'}>
-            3. Location
-          </span>
-        </div>
-        <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-          <div
-            className="bg-gradient-to-r from-indigo-500 to-violet-500 h-full transition-all duration-300"
-            style={{ width: `${(step / 3) * 100}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Error alert */}
-      {generalError && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-start space-x-3 text-rose-300 text-xs animate-in fade-in">
-          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-          <span>{generalError}</span>
-        </div>
-      )}
-
-      {/* Success alert */}
-      {saveSuccess && (
-        <div className="p-5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center space-x-3 text-emerald-300 text-sm animate-in fade-in">
-          <CheckCircle2 className="h-6 w-6 text-emerald-400 shrink-0" />
-          <div>
-            <p className="font-semibold text-white">Profile Saved Successfully!</p>
-            <p className="text-xs text-emerald-300/80">Redirecting to your Founder Workspace...</p>
+        {/* Multi-step progress bar */}
+        <div className="bg-white border border-[#DCE7E3] rounded-2xl p-4 sm:p-5 shadow-xs">
+          <div className="flex items-center justify-between mb-3 text-xs font-semibold">
+            <span className={step >= 1 ? 'text-[#087C80] font-bold' : 'text-[#52656B]'}>
+              1. Startup Basics
+            </span>
+            <span className={step >= 2 ? 'text-[#087C80] font-bold' : 'text-[#52656B]'}>
+              2. Product Details
+            </span>
+            <span className={step >= 3 ? 'text-[#087C80] font-bold' : 'text-[#52656B]'}>
+              3. Location &amp; Review
+            </span>
+          </div>
+          <div className="w-full bg-[#EFEFE5] h-2 rounded-full overflow-hidden">
+            <div
+              className="bg-gradient-to-r from-[#087C80] to-[#07545A] h-full transition-all duration-300"
+              style={{ width: `${(step / 3) * 100}%` }}
+            />
           </div>
         </div>
-      )}
 
-      {/* Form Container */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl space-y-6">
-        {/* Step 1: About you and your startup */}
-        {step === 1 && (
-          <div className="space-y-5 animate-in fade-in duration-200">
-            <div className="flex items-center space-x-2 text-indigo-400 pb-2 border-b border-slate-800">
-              <Building className="h-5 w-5" />
-              <h2 className="text-base font-bold text-white">Step 1: About You &amp; Your Startup</h2>
-            </div>
+        {/* Error alert */}
+        {generalError && (
+          <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 flex items-start space-x-3 text-rose-800 text-xs sm:text-sm animate-in fade-in">
+            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-rose-600" />
+            <span>{generalError}</span>
+          </div>
+        )}
 
-            {/* Startup Name (Required) */}
-            <div className="space-y-1.5">
-              <label htmlFor="startupName" className="block text-xs font-semibold text-slate-200">
-                Startup / Product Name <span className="text-rose-400">*</span>
-              </label>
-              <input
-                id="startupName"
-                type="text"
-                value={startupName}
-                onChange={(e) => {
-                  setStartupName(e.target.value);
-                  if (errors.startupName) setErrors({ ...errors, startupName: '' });
-                }}
-                placeholder="e.g. Acme AI, FluxCloud"
-                maxLength={200}
-                className={`w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-950/70 border ${
-                  errors.startupName ? 'border-rose-500 focus:border-rose-400' : 'border-slate-800 focus:border-indigo-500'
-                } text-white focus:outline-none transition-colors`}
-              />
-              {errors.startupName ? (
-                <p className="text-xs text-rose-400 flex items-center space-x-1">
-                  <AlertCircle className="h-3 w-3" />
-                  <span>{errors.startupName}</span>
-                </p>
-              ) : (
-                <p className="text-[11px] text-slate-500">
-                  Required to complete your founder profile.
-                </p>
-              )}
-            </div>
-
-            {/* Professional Title (Optional) */}
-            <div className="space-y-1.5">
-              <label htmlFor="professionalTitle" className="block text-xs font-semibold text-slate-200">
-                Professional Title <span className="text-slate-500 font-normal">(Optional)</span>
-              </label>
-              <input
-                id="professionalTitle"
-                type="text"
-                value={professionalTitle}
-                onChange={(e) => setProfessionalTitle(e.target.value)}
-                placeholder="e.g. Founder &amp; CEO, Co-founder &amp; CTO"
-                maxLength={100}
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-950/70 border border-slate-800 focus:border-indigo-500 text-white focus:outline-none transition-colors"
-              />
-            </div>
-
-            {/* Industry (Optional) */}
-            <div className="space-y-1.5">
-              <label htmlFor="industry" className="block text-xs font-semibold text-slate-200">
-                Industry Domain <span className="text-slate-500 font-normal">(Optional)</span>
-              </label>
-              <input
-                id="industry"
-                type="text"
-                value={industry}
-                onChange={(e) => setIndustry(e.target.value)}
-                placeholder="e.g. B2B SaaS, HealthTech, Developer Tools"
-                maxLength={100}
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-950/70 border border-slate-800 focus:border-indigo-500 text-white focus:outline-none transition-colors"
-              />
+        {/* Success alert */}
+        {saveSuccess && (
+          <div className="p-5 rounded-2xl bg-[#E6F7F0] border border-[#B6EDD5] flex items-center space-x-3 text-[#0E7C57] text-sm animate-in fade-in">
+            <CheckCircle2 className="h-6 w-6 text-[#0E7C57] shrink-0" />
+            <div>
+              <p className="font-bold text-[#102A35]">Profile Saved Successfully!</p>
+              <p className="text-xs text-[#52656B]">Redirecting to your Founder Workspace...</p>
             </div>
           </div>
         )}
 
-        {/* Step 2: Startup Details */}
-        {step === 2 && (
-          <div className="space-y-5 animate-in fade-in duration-200">
-            <div className="flex items-center space-x-2 text-indigo-400 pb-2 border-b border-slate-800">
-              <Globe className="h-5 w-5" />
-              <h2 className="text-base font-bold text-white">Step 2: Startup Details</h2>
-            </div>
-
-            {/* Company Stage */}
-            <div className="space-y-2">
-              <label className="block text-xs font-semibold text-slate-200">
-                Company Stage <span className="text-slate-500 font-normal">(Optional)</span>
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {COMPANY_STAGES.map((stg) => (
-                  <button
-                    key={stg}
-                    type="button"
-                    onClick={() => setCompanyStage(stg)}
-                    className={`px-3 py-2 rounded-xl text-xs font-medium border text-center transition-all ${
-                      companyStage === stg
-                        ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-sm shadow-indigo-500/20 font-semibold'
-                        : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-                    }`}
-                  >
-                    {stg}
-                  </button>
-                ))}
+        {/* Form Container */}
+        <div className="bg-white border border-[#DCE7E3] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+          {/* Step 1: About you and your startup */}
+          {step === 1 && (
+            <div className="space-y-5 animate-in fade-in duration-200">
+              <div className="flex items-center space-x-2 text-[#087C80] pb-3 border-b border-[#DCE7E3]">
+                <Building2 className="h-5 w-5" />
+                <h2 className="text-base font-bold text-[#102A35]">Step 1: About You &amp; Your Startup</h2>
               </div>
-            </div>
 
-            {/* Startup Description */}
-            <div className="space-y-1.5">
-              <label htmlFor="startupDescription" className="block text-xs font-semibold text-slate-200">
-                Short Description <span className="text-slate-500 font-normal">(Optional)</span>
-              </label>
-              <textarea
-                id="startupDescription"
-                rows={3}
-                value={startupDescription}
-                onChange={(e) => setStartupDescription(e.target.value)}
-                placeholder="What problem does your product solve?"
-                maxLength={2000}
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-950/70 border border-slate-800 focus:border-indigo-500 text-white focus:outline-none transition-colors"
-              />
-            </div>
-
-            {/* Website URL */}
-            <div className="space-y-1.5">
-              <label htmlFor="websiteUrl" className="block text-xs font-semibold text-slate-200">
-                Website URL <span className="text-slate-500 font-normal">(Optional)</span>
-              </label>
-              <input
-                id="websiteUrl"
-                type="url"
-                value={websiteUrl}
-                onChange={(e) => {
-                  setWebsiteUrl(e.target.value);
-                  if (errors.websiteUrl) setErrors({ ...errors, websiteUrl: '' });
-                }}
-                placeholder="https://example.com"
-                maxLength={500}
-                className={`w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-950/70 border ${
-                  errors.websiteUrl ? 'border-rose-500 focus:border-rose-400' : 'border-slate-800 focus:border-indigo-500'
-                } text-white focus:outline-none transition-colors`}
-              />
-              {errors.websiteUrl && (
-                <p className="text-xs text-rose-400">{errors.websiteUrl}</p>
-              )}
-            </div>
-
-            {/* LinkedIn Profile */}
-            <div className="space-y-1.5">
-              <label htmlFor="linkedinUrl" className="block text-xs font-semibold text-slate-200">
-                LinkedIn Profile URL <span className="text-slate-500 font-normal">(Optional)</span>
-              </label>
-              <input
-                id="linkedinUrl"
-                type="url"
-                value={linkedinUrl}
-                onChange={(e) => {
-                  setLinkedinUrl(e.target.value);
-                  if (errors.linkedinUrl) setErrors({ ...errors, linkedinUrl: '' });
-                }}
-                placeholder="https://linkedin.com/in/yourprofile"
-                maxLength={500}
-                className={`w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-950/70 border ${
-                  errors.linkedinUrl ? 'border-rose-500 focus:border-rose-400' : 'border-slate-800 focus:border-indigo-500'
-                } text-white focus:outline-none transition-colors`}
-              />
-              {errors.linkedinUrl && (
-                <p className="text-xs text-rose-400">{errors.linkedinUrl}</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Location */}
-        {step === 3 && (
-          <div className="space-y-5 animate-in fade-in duration-200">
-            <div className="flex items-center space-x-2 text-indigo-400 pb-2 border-b border-slate-800">
-              <MapPin className="h-5 w-5" />
-              <h2 className="text-base font-bold text-white">Step 3: Location</h2>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Startup Name (Required) */}
               <div className="space-y-1.5">
-                <label htmlFor="city" className="block text-xs font-semibold text-slate-200">
-                  City <span className="text-slate-500 font-normal">(Optional)</span>
+                <label htmlFor="startupName" className="block text-xs font-semibold text-[#102A35]">
+                  Startup / Product Name <span className="text-rose-500">*</span>
                 </label>
                 <input
-                  id="city"
+                  id="startupName"
                   type="text"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="e.g. San Francisco"
+                  value={startupName}
+                  onChange={(e) => {
+                    setStartupName(e.target.value);
+                    if (errors.startupName) setErrors({ ...errors, startupName: '' });
+                  }}
+                  placeholder="e.g. NutriBox, Kraftly, Bloomly"
+                  maxLength={200}
+                  className={`w-full px-3.5 py-2.5 rounded-xl text-sm bg-white border ${
+                    errors.startupName ? 'border-rose-400 focus:border-rose-500' : 'border-[#DCE7E3] focus:border-[#087C80]'
+                  } text-[#102A35] placeholder-[#52656B]/60 focus:outline-none focus:ring-2 focus:ring-[#087C80]/15 transition-all`}
+                />
+                {errors.startupName ? (
+                  <p className="text-xs text-rose-600 flex items-center space-x-1">
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    <span>{errors.startupName}</span>
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-[#52656B]">
+                    Required to complete your founder profile.
+                  </p>
+                )}
+              </div>
+
+              {/* Professional Title (Optional) */}
+              <div className="space-y-1.5">
+                <label htmlFor="professionalTitle" className="block text-xs font-semibold text-[#102A35]">
+                  Professional Title <span className="text-[#52656B] font-normal">(Optional)</span>
+                </label>
+                <input
+                  id="professionalTitle"
+                  type="text"
+                  value={professionalTitle}
+                  onChange={(e) => setProfessionalTitle(e.target.value)}
+                  placeholder="e.g. Founder &amp; CEO, Co-founder &amp; CTO"
                   maxLength={100}
-                  className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-950/70 border border-slate-800 focus:border-indigo-500 text-white focus:outline-none transition-colors"
+                  className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-white border border-[#DCE7E3] focus:border-[#087C80] text-[#102A35] placeholder-[#52656B]/60 focus:outline-none focus:ring-2 focus:ring-[#087C80]/15 transition-all"
                 />
               </div>
 
+              {/* Industry (Optional) */}
               <div className="space-y-1.5">
-                <label htmlFor="country" className="block text-xs font-semibold text-slate-200">
-                  Country <span className="text-slate-500 font-normal">(Optional)</span>
+                <label htmlFor="industry" className="block text-xs font-semibold text-[#102A35]">
+                  Industry Domain <span className="text-[#52656B] font-normal">(Optional)</span>
                 </label>
                 <input
-                  id="country"
+                  id="industry"
                   type="text"
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                  placeholder="e.g. United States"
+                  value={industry}
+                  onChange={(e) => setIndustry(e.target.value)}
+                  placeholder="e.g. B2B SaaS, HealthTech, D2C, Developer Tools"
                   maxLength={100}
-                  className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-950/70 border border-slate-800 focus:border-indigo-500 text-white focus:outline-none transition-colors"
+                  className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-white border border-[#DCE7E3] focus:border-[#087C80] text-[#102A35] placeholder-[#52656B]/60 focus:outline-none focus:ring-2 focus:ring-[#087C80]/15 transition-all"
                 />
               </div>
             </div>
-
-            {/* Summary card before saving */}
-            <div className="mt-4 p-4 rounded-xl bg-slate-950/50 border border-slate-800/80 space-y-2">
-              <div className="text-xs font-semibold text-slate-300">Profile Summary Preview:</div>
-              <div className="text-xs text-slate-400 space-y-1">
-                <p>
-                  <span className="text-slate-500">Startup:</span>{' '}
-                  <span className="text-white font-medium">{startupName || '(Not specified)'}</span>
-                </p>
-                {professionalTitle && (
-                  <p>
-                    <span className="text-slate-500">Title:</span> {professionalTitle}
-                  </p>
-                )}
-                {companyStage && (
-                  <p>
-                    <span className="text-slate-500">Stage:</span> {companyStage}
-                  </p>
-                )}
-                {(city || country) && (
-                  <p>
-                    <span className="text-slate-500">Location:</span>{' '}
-                    {[city, country].filter(Boolean).join(', ')}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="pt-4 border-t border-slate-800 flex items-center justify-between gap-3">
-          {step > 1 ? (
-            <button
-              type="button"
-              onClick={handlePrevStep}
-              disabled={isUpdating || saveSuccess}
-              className="inline-flex items-center space-x-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-950 border border-slate-800 hover:border-slate-700 transition-all disabled:opacity-50"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              <span>Back</span>
-            </button>
-          ) : (
-            <Link
-              to="/founder"
-              className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
-            >
-              Cancel
-            </Link>
           )}
 
-          <div className="flex items-center space-x-3">
-            {step < 3 ? (
+          {/* Step 2: Startup Details */}
+          {step === 2 && (
+            <div className="space-y-5 animate-in fade-in duration-200">
+              <div className="flex items-center space-x-2 text-[#087C80] pb-3 border-b border-[#DCE7E3]">
+                <Globe className="h-5 w-5" />
+                <h2 className="text-base font-bold text-[#102A35]">Step 2: Startup Details</h2>
+              </div>
+
+              {/* Company Stage */}
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-[#102A35]">
+                  Company Stage <span className="text-[#52656B] font-normal">(Optional)</span>
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {COMPANY_STAGES.map((stg) => (
+                    <button
+                      key={stg}
+                      type="button"
+                      onClick={() => setCompanyStage(stg)}
+                      className={`px-3 py-2.5 rounded-xl text-xs font-medium border text-center transition-all ${
+                        companyStage === stg
+                          ? 'bg-[#087C80] border-[#087C80] text-white shadow-xs font-semibold'
+                          : 'bg-[#F6F5ED] border-[#DCE7E3] text-[#52656B] hover:text-[#102A35] hover:border-[#087C80]/40'
+                      }`}
+                    >
+                      {stg}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Startup Description */}
+              <div className="space-y-1.5">
+                <label htmlFor="startupDescription" className="block text-xs font-semibold text-[#102A35]">
+                  Short Description <span className="text-[#52656B] font-normal">(Optional)</span>
+                </label>
+                <textarea
+                  id="startupDescription"
+                  rows={3}
+                  value={startupDescription}
+                  onChange={(e) => setStartupDescription(e.target.value)}
+                  placeholder="What problem does your product solve?"
+                  maxLength={2000}
+                  className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-white border border-[#DCE7E3] focus:border-[#087C80] text-[#102A35] placeholder-[#52656B]/60 focus:outline-none focus:ring-2 focus:ring-[#087C80]/15 transition-all"
+                />
+              </div>
+
+              {/* Website URL */}
+              <div className="space-y-1.5">
+                <label htmlFor="websiteUrl" className="block text-xs font-semibold text-[#102A35]">
+                  Website URL <span className="text-[#52656B] font-normal">(Optional)</span>
+                </label>
+                <input
+                  id="websiteUrl"
+                  type="url"
+                  value={websiteUrl}
+                  onChange={(e) => {
+                    setWebsiteUrl(e.target.value);
+                    if (errors.websiteUrl) setErrors({ ...errors, websiteUrl: '' });
+                  }}
+                  placeholder="https://example.com"
+                  maxLength={500}
+                  className={`w-full px-3.5 py-2.5 rounded-xl text-sm bg-white border ${
+                    errors.websiteUrl ? 'border-rose-400 focus:border-rose-500' : 'border-[#DCE7E3] focus:border-[#087C80]'
+                  } text-[#102A35] placeholder-[#52656B]/60 focus:outline-none focus:ring-2 focus:ring-[#087C80]/15 transition-all`}
+                />
+                {errors.websiteUrl && (
+                  <p className="text-xs text-rose-600">{errors.websiteUrl}</p>
+                )}
+              </div>
+
+              {/* LinkedIn Profile */}
+              <div className="space-y-1.5">
+                <label htmlFor="linkedinUrl" className="block text-xs font-semibold text-[#102A35]">
+                  LinkedIn Profile URL <span className="text-[#52656B] font-normal">(Optional)</span>
+                </label>
+                <input
+                  id="linkedinUrl"
+                  type="url"
+                  value={linkedinUrl}
+                  onChange={(e) => {
+                    setLinkedinUrl(e.target.value);
+                    if (errors.linkedinUrl) setErrors({ ...errors, linkedinUrl: '' });
+                  }}
+                  placeholder="https://linkedin.com/in/yourprofile"
+                  maxLength={500}
+                  className={`w-full px-3.5 py-2.5 rounded-xl text-sm bg-white border ${
+                    errors.linkedinUrl ? 'border-rose-400 focus:border-rose-500' : 'border-[#DCE7E3] focus:border-[#087C80]'
+                  } text-[#102A35] placeholder-[#52656B]/60 focus:outline-none focus:ring-2 focus:ring-[#087C80]/15 transition-all`}
+                />
+                {errors.linkedinUrl && (
+                  <p className="text-xs text-rose-600">{errors.linkedinUrl}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Location */}
+          {step === 3 && (
+            <div className="space-y-5 animate-in fade-in duration-200">
+              <div className="flex items-center space-x-2 text-[#087C80] pb-3 border-b border-[#DCE7E3]">
+                <MapPin className="h-5 w-5" />
+                <h2 className="text-base font-bold text-[#102A35]">Step 3: Location &amp; Confirmation</h2>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label htmlFor="city" className="block text-xs font-semibold text-[#102A35]">
+                    City <span className="text-[#52656B] font-normal">(Optional)</span>
+                  </label>
+                  <input
+                    id="city"
+                    type="text"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="e.g. Bengaluru, Mumbai, Delhi NCR"
+                    maxLength={100}
+                    className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-white border border-[#DCE7E3] focus:border-[#087C80] text-[#102A35] placeholder-[#52656B]/60 focus:outline-none focus:ring-2 focus:ring-[#087C80]/15 transition-all"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="country" className="block text-xs font-semibold text-[#102A35]">
+                    Country <span className="text-[#52656B] font-normal">(Optional)</span>
+                  </label>
+                  <input
+                    id="country"
+                    type="text"
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    placeholder="e.g. India"
+                    maxLength={100}
+                    className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-white border border-[#DCE7E3] focus:border-[#087C80] text-[#102A35] placeholder-[#52656B]/60 focus:outline-none focus:ring-2 focus:ring-[#087C80]/15 transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Summary card before saving */}
+              <div className="mt-4 p-4.5 rounded-2xl bg-[#F6F5ED] border border-[#DCE7E3] space-y-2">
+                <div className="text-xs font-bold text-[#102A35]">Profile Summary Preview</div>
+                <div className="text-xs text-[#52656B] space-y-1.5">
+                  <p>
+                    <span className="font-medium text-[#102A35]">Startup:</span>{' '}
+                    <span className="text-[#087C80] font-semibold">{startupName || '(Not specified)'}</span>
+                  </p>
+                  {professionalTitle && (
+                    <p>
+                      <span className="font-medium text-[#102A35]">Title:</span> {professionalTitle}
+                    </p>
+                  )}
+                  {companyStage && (
+                    <p>
+                      <span className="font-medium text-[#102A35]">Stage:</span> {companyStage}
+                    </p>
+                  )}
+                  {(city || country) && (
+                    <p>
+                      <span className="font-medium text-[#102A35]">Location:</span>{' '}
+                      {[city, country].filter(Boolean).join(', ')}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="pt-4 border-t border-[#DCE7E3] flex items-center justify-between gap-3">
+            {step > 1 ? (
               <button
                 type="button"
-                onClick={handleNextStep}
-                className="inline-flex items-center space-x-1.5 px-5 py-2.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-500 transition-all shadow-md shadow-indigo-600/20"
+                onClick={handlePrevStep}
+                disabled={isUpdating || saveSuccess}
+                className="inline-flex items-center space-x-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold text-[#102A35] hover:bg-[#F6F5ED] bg-white border border-[#DCE7E3] transition-all disabled:opacity-50"
               >
-                <span>Continue</span>
-                <ArrowRight className="h-3.5 w-3.5" />
+                <ArrowLeft className="h-3.5 w-3.5" />
+                <span>Back</span>
               </button>
             ) : (
-              <button
-                type="button"
-                onClick={() => handleSubmit()}
-                disabled={isUpdating || saveSuccess}
-                className="inline-flex items-center space-x-2 px-6 py-2.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:from-indigo-500 hover:to-violet-500 transition-all shadow-lg shadow-indigo-600/30 disabled:opacity-50"
+              <Link
+                to="/founder"
+                className="text-xs font-medium text-[#52656B] hover:text-[#102A35] transition-colors"
               >
-                {isUpdating ? (
-                  <>
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    <span>Saving Profile...</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    <span>Save &amp; Enter Workspace</span>
-                  </>
-                )}
-              </button>
+                Cancel
+              </Link>
             )}
+
+            <div className="flex items-center space-x-3">
+              {step < 3 ? (
+                <button
+                  type="button"
+                  onClick={handleNextStep}
+                  className="inline-flex items-center space-x-1.5 px-5 py-2.5 rounded-xl text-xs font-semibold bg-[#07545A] hover:bg-[#087C80] text-white transition-all shadow-xs"
+                >
+                  <span>Continue</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => handleSubmit()}
+                  disabled={isUpdating || saveSuccess}
+                  className="inline-flex items-center space-x-2 px-6 py-2.5 rounded-xl text-xs font-semibold bg-[#07545A] hover:bg-[#087C80] text-white transition-all shadow-sm disabled:opacity-50"
+                >
+                  {isUpdating ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <span>Saving Profile...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      <span>Save &amp; Enter Workspace</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -485,9 +487,9 @@ export const FounderOnboardingPage: React.FC = () => {
 
   if (isLoadingProfile) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center min-h-[50vh] p-8 text-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500 mb-4" />
-        <p className="text-sm text-slate-300 font-medium">Loading onboarding details...</p>
+      <div className="flex-1 flex flex-col items-center justify-center min-h-[50vh] p-8 text-center bg-[#F6F5ED]">
+        <Loader2 className="h-8 w-8 animate-spin text-[#087C80] mb-4" />
+        <p className="text-sm text-[#52656B] font-medium">Loading onboarding details...</p>
       </div>
     );
   }

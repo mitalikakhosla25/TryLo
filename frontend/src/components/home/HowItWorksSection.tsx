@@ -121,24 +121,26 @@ export const HowItWorksSection: React.FC = () => {
           </p>
 
           {/* Dual Journey Pill Switcher */}
-          <div className="inline-flex p-1.5 bg-[#EFEFE5] rounded-2xl border border-[#DCE7E3] shadow-inner">
+          <div className="inline-flex p-1.5 bg-[#EFEFE5] rounded-full border border-[#DCE7E3] shadow-inner">
             <button
               type="button"
               onClick={() => setActiveJourney('founders')}
-              className={`px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer ${activeJourney === 'founders'
-                  ? 'bg-white text-[#102A35] shadow-sm border border-[#DCE7E3]'
+              className={`px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer ${
+                activeJourney === 'founders'
+                  ? 'bg-[#087C80] text-white shadow-sm'
                   : 'text-[#52656B] hover:text-[#102A35]'
-                }`}
+              }`}
             >
               For Founders
             </button>
             <button
               type="button"
               onClick={() => setActiveJourney('testers')}
-              className={`px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer ${activeJourney === 'testers'
-                  ? 'bg-white text-[#102A35] shadow-sm border border-[#DCE7E3]'
+              className={`px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer ${
+                activeJourney === 'testers'
+                  ? 'bg-[#087C80] text-white shadow-sm'
                   : 'text-[#52656B] hover:text-[#102A35]'
-                }`}
+              }`}
             >
               For Testers
             </button>

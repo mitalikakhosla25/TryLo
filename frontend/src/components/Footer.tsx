@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
+import { BrandIcon } from './ui/BrandLogo';
 import { ShieldCheck } from 'lucide-react';
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -15,24 +16,11 @@ export const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12">
           {/* Brand & Value Proposition Column */}
           <div className="lg:col-span-2 space-y-4">
-            <Link to="/" className="inline-flex items-center space-x-3 group">
-              <div className="h-9 w-9 rounded-xl bg-[#087C80] flex items-center justify-center text-white shadow-xs group-hover:bg-[#07545A] transition-colors">
-                <svg
-                  className="h-5 w-5 text-white"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <polygon points="12 2 2 7 12 12 22 7 12 2" />
-                  <polyline points="2 17 12 22 22 17" />
-                  <polyline points="2 12 12 17 22 12" />
-                </svg>
+            <Link to="/" className="inline-flex items-center space-x-2.5 group">
+              <div className="shrink-0 group-hover:scale-105 transition-transform duration-300">
+                <BrandIcon className="h-8 w-8" />
               </div>
-              <span className="font-extrabold text-xl tracking-tight text-[#102A35]">
+              <span className="font-extrabold text-2xl tracking-tight text-[#102A35]">
                 TryLo
               </span>
             </Link>

@@ -138,13 +138,32 @@ export async function updateMyProfile(
 }
 
 /**
- * Validate URL string (optional or must be valid http/https URL)
+ * Normalize web URL (e.g. prepends https:// if missing, removes single-slash typos).
+ */
+export function normalizeWebUrl(url: string | null | undefined): string {
+  if (!url) return '';
+  let trimmed = url.trim();
+  if (!trimmed) return '';
+  // Fix single slash scheme like https:/example.com -> https://example.com
+  trimmed = trimmed.replace(/^(https?):\/([^\/])/i, '$1://$2');
+  // If no scheme provided (e.g. "girlyio.com" or "www.girlyio.com"), add https://
+  if (!/^https?:\/\//i.test(trimmed)) {
+    trimmed = `https://${trimmed}`;
+  }
+  return trimmed;
+}
+
+/**
+ * Validate URL string (optional or must be valid http/https URL with domain name)
  */
 export function isValidUrl(url: string | null | undefined): boolean {
   if (!url || !url.trim()) return true;
   try {
-    const parsed = new URL(url.trim());
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    const normalized = normalizeWebUrl(url);
+    const parsed = new URL(normalized);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
+    const hostname = parsed.hostname;
+    return !!hostname && (hostname.includes('.') || hostname === 'localhost');
   } catch {
     return false;
   }
@@ -155,10 +174,11 @@ export function isValidUrl(url: string | null | undefined): boolean {
  */
 export function isValidLinkedInUrl(url: string | null | undefined): boolean {
   if (!url || !url.trim()) return true;
-  if (!isValidUrl(url)) return false;
+  const normalized = normalizeWebUrl(url);
+  if (!isValidUrl(normalized)) return false;
   try {
-    const parsed = new URL(url.trim());
-    return parsed.hostname.includes('linkedin.com');
+    const parsed = new URL(normalized);
+    return parsed.hostname.toLowerCase().includes('linkedin.com');
   } catch {
     return false;
   }

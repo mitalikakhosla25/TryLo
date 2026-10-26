@@ -79,8 +79,9 @@ export const FeedbackSubmissionPage: React.FC = () => {
       });
 
       setIsSubmittedSuccess(true);
-    } catch (err: any) {
-      const msg = err.response?.data?.detail || err.message || 'Failed to submit feedback.';
+    } catch (err: unknown) {
+      const errObj = err as { response?: { data?: { detail?: string } }; message?: string };
+      const msg = errObj.response?.data?.detail || errObj.message || 'Failed to submit feedback.';
       setErrorMessage(typeof msg === 'string' ? msg : JSON.stringify(msg));
     }
   };
@@ -98,65 +99,65 @@ export const FeedbackSubmissionPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b0f17] text-slate-100 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto space-y-6">
+    <div className="min-h-[calc(100vh-140px)] bg-[#F6F5ED] py-10 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in duration-300">
         {/* Breadcrumb Navigation */}
-        <div className="flex items-center space-x-2 text-xs text-slate-400">
-          <Link to="/tester/tasks" className="hover:text-slate-200 transition-colors">
+        <div className="flex items-center space-x-2 text-xs text-[#52656B]">
+          <Link to="/tester/tasks" className="hover:text-[#07545A] transition-colors">
             My Tasks
           </Link>
           <span>/</span>
           <Link
             to={`/tester/campaigns/${campaignId}/tasks`}
-            className="hover:text-slate-200 transition-colors truncate max-w-[200px]"
+            className="hover:text-[#07545A] transition-colors truncate max-w-[200px]"
           >
             {campaignData?.campaign_title || 'Workspace'}
           </Link>
           <span>/</span>
-          <span className="text-violet-400 font-medium">New Feedback</span>
+          <span className="text-[#087C80] font-semibold">New Feedback</span>
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#DCE7E3]">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#102A35] flex items-center gap-2">
               {feedbackType === 'bug_report' ? (
                 <>
-                  <Bug className="h-6 w-6 text-rose-400" />
+                  <Bug className="h-6 w-6 text-rose-600" />
                   <span>Report a Bug</span>
                 </>
               ) : (
                 <>
-                  <MessageSquarePlus className="h-6 w-6 text-violet-400" />
+                  <MessageSquarePlus className="h-6 w-6 text-[#07545A]" />
                   <span>Submit Structured Feedback</span>
                 </>
               )}
             </h1>
-            <p className="text-sm text-slate-400 mt-1">
-              Campaign: <span className="text-slate-200 font-semibold">{campaignData?.campaign_title}</span>{' '}
+            <p className="text-xs sm:text-sm text-[#52656B] mt-1">
+              Campaign: <span className="text-[#102A35] font-semibold">{campaignData?.campaign_title}</span>{' '}
               ({campaignData?.startup_name})
             </p>
           </div>
 
           <Link
             to={`/tester/campaigns/${campaignId}/tasks`}
-            className="inline-flex items-center space-x-1 text-xs text-slate-400 hover:text-slate-200 transition-colors"
+            className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-full text-xs font-semibold bg-white hover:bg-[#EFEFE5] text-[#102A35] border border-[#DCE7E3] transition-colors shadow-xs"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-3.5 w-3.5" />
             <span>Back to Workspace</span>
           </Link>
         </div>
 
         {/* Success View */}
         {isSubmittedSuccess ? (
-          <div className="bg-slate-900/80 border border-emerald-500/30 rounded-2xl p-8 text-center space-y-4 shadow-xl">
-            <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-              <CheckCircle2 className="h-8 w-8 text-emerald-400" />
+          <div className="bg-white border border-[#DCE7E3] rounded-3xl p-8 sm:p-10 text-center space-y-4 shadow-sm">
+            <div className="w-16 h-16 mx-auto rounded-3xl bg-emerald-50 border border-emerald-200 flex items-center justify-center">
+              <CheckCircle2 className="h-8 w-8 text-emerald-600" />
             </div>
-            <h2 className="text-xl font-bold text-white">Submission Recorded Successfully!</h2>
-            <p className="text-sm text-slate-300 max-w-md mx-auto">
+            <h2 className="text-xl font-bold text-[#102A35]">Submission Recorded Successfully!</h2>
+            <p className="text-xs sm:text-sm text-[#52656B] max-w-md mx-auto leading-relaxed">
               Your {feedbackType === 'bug_report' ? 'bug report' : 'feedback'} has been recorded with status{' '}
-              <span className="font-semibold text-violet-300 bg-violet-500/10 px-2 py-0.5 rounded border border-violet-500/20">
+              <span className="font-semibold text-[#07545A] bg-[#D7EFEB] px-2.5 py-0.5 rounded-full border border-[#BCE1DA]">
                 Submitted
               </span>
               . The founder will be able to review your observations.
@@ -165,19 +166,19 @@ export const FeedbackSubmissionPage: React.FC = () => {
             <div className="pt-4 flex flex-wrap items-center justify-center gap-3">
               <button
                 onClick={resetForm}
-                className="px-4 py-2 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors"
+                className="px-5 py-2.5 text-xs font-semibold rounded-full bg-[#EFEFE5] hover:bg-[#DCE7E3] text-[#102A35] border border-[#DCE7E3] transition-colors cursor-pointer"
               >
                 Submit Another Item
               </button>
               <Link
                 to={`/tester/campaigns/${campaignId}/tasks`}
-                className="px-4 py-2 text-xs font-semibold rounded-lg bg-violet-600 hover:bg-violet-500 text-white shadow-md shadow-violet-600/20 transition-all"
+                className="px-5 py-2.5 text-xs font-semibold rounded-full bg-[#07545A] hover:bg-[#087C80] text-white shadow-xs transition-all"
               >
                 Return to Workspace
               </Link>
               <Link
                 to={`/tester/feedback?campaignId=${campaignId}`}
-                className="px-4 py-2 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-violet-400 border border-slate-700 transition-colors"
+                className="px-5 py-2.5 text-xs font-semibold rounded-full bg-white hover:bg-[#EFEFE5] text-[#07545A] border border-[#DCE7E3] transition-colors"
               >
                 View Feedback History
               </Link>
@@ -187,35 +188,35 @@ export const FeedbackSubmissionPage: React.FC = () => {
           /* Feedback Form */
           <form
             onSubmit={handleSubmit}
-            className="bg-slate-900/70 border border-slate-800/80 rounded-2xl p-6 sm:p-8 space-y-6 shadow-sm"
+            className="bg-white border border-[#DCE7E3] rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm"
           >
             {/* Feedback Type Tabs */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300 block">Feedback Type</label>
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-[#102A35] block">Feedback Type</label>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => setFeedbackType('general_feedback')}
-                  className={`flex items-center justify-center space-x-2 py-3 px-4 rounded-xl border text-xs font-semibold transition-all ${
+                  className={`flex items-center justify-center space-x-2 py-3 px-4 rounded-2xl border text-xs font-semibold transition-all cursor-pointer ${
                     feedbackType === 'general_feedback'
-                      ? 'bg-violet-600/20 border-violet-500 text-white shadow-sm'
-                      : 'bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-slate-200'
+                      ? 'bg-[#D7EFEB] border-[#BCE1DA] text-[#07545A] shadow-xs'
+                      : 'bg-white border-[#DCE7E3] text-[#52656B] hover:text-[#102A35]'
                   }`}
                 >
-                  <MessageSquarePlus className="h-4 w-4 text-violet-400" />
+                  <MessageSquarePlus className="h-4 w-4 text-[#07545A]" />
                   <span>General Feedback</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setFeedbackType('bug_report')}
-                  className={`flex items-center justify-center space-x-2 py-3 px-4 rounded-xl border text-xs font-semibold transition-all ${
+                  className={`flex items-center justify-center space-x-2 py-3 px-4 rounded-2xl border text-xs font-semibold transition-all cursor-pointer ${
                     feedbackType === 'bug_report'
-                      ? 'bg-rose-600/20 border-rose-500 text-white shadow-sm'
-                      : 'bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-slate-200'
+                      ? 'bg-rose-50 border-rose-200 text-rose-800 shadow-xs'
+                      : 'bg-white border-[#DCE7E3] text-[#52656B] hover:text-[#102A35]'
                   }`}
                 >
-                  <Bug className="h-4 w-4 text-rose-400" />
+                  <Bug className="h-4 w-4 text-rose-600" />
                   <span>Bug Report</span>
                 </button>
               </div>
@@ -223,22 +224,22 @@ export const FeedbackSubmissionPage: React.FC = () => {
 
             {/* Error Banner */}
             {errorMessage && (
-              <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center space-x-2">
-                <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                <span>{errorMessage}</span>
+              <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center space-x-2">
+                <AlertCircle className="h-4 w-4 flex-shrink-0 text-rose-600" />
+                <span className="font-medium">{errorMessage}</span>
               </div>
             )}
 
             {/* Associated Task Dropdown */}
             <div className="space-y-1.5">
-              <label htmlFor="taskSelect" className="text-xs font-semibold text-slate-300 block">
+              <label htmlFor="taskSelect" className="text-xs font-semibold text-[#102A35] block">
                 Associated Task (Optional)
               </label>
               <select
                 id="taskSelect"
                 value={taskId}
                 onChange={(e) => setTaskId(e.target.value)}
-                className="w-full text-xs p-2.5 bg-slate-800/80 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+                className="w-full text-xs p-3 bg-white border border-[#DCE7E3] rounded-xl text-[#102A35] focus:outline-none focus:border-[#087C80]"
               >
                 <option value="">-- General / Overall Product (No specific task) --</option>
                 {campaignData?.tasks.map((t) => (
@@ -247,7 +248,7 @@ export const FeedbackSubmissionPage: React.FC = () => {
                   </option>
                 ))}
               </select>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-[#52656B]">
                 Link this feedback to a specific step from the campaign instructions, or leave unassigned for general comments.
               </p>
             </div>
@@ -255,23 +256,23 @@ export const FeedbackSubmissionPage: React.FC = () => {
             {/* Severity (Bug Reports only) */}
             {feedbackType === 'bug_report' && (
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300 block">Severity Level</label>
+                <label className="text-xs font-semibold text-[#102A35] block">Severity Level</label>
                 <div className="grid grid-cols-4 gap-2">
                   {(['low', 'medium', 'high', 'critical'] as BugSeverity[]).map((level) => (
                     <button
                       key={level}
                       type="button"
                       onClick={() => setSeverity(level)}
-                      className={`py-2 px-3 rounded-lg text-xs font-medium uppercase tracking-wider border transition-all ${
+                      className={`py-2 px-3 rounded-full text-xs font-semibold uppercase tracking-wider border transition-all cursor-pointer ${
                         severity === level
                           ? level === 'critical'
-                            ? 'bg-rose-600 text-white border-rose-500 font-bold'
+                            ? 'bg-rose-600 text-white border-rose-600 font-bold'
                             : level === 'high'
-                            ? 'bg-orange-600 text-white border-orange-500 font-bold'
+                            ? 'bg-orange-600 text-white border-orange-600 font-bold'
                             : level === 'medium'
-                            ? 'bg-amber-600 text-white border-amber-500 font-bold'
-                            : 'bg-emerald-600 text-white border-emerald-500 font-bold'
-                          : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-slate-200'
+                            ? 'bg-amber-600 text-white border-amber-600 font-bold'
+                            : 'bg-emerald-600 text-white border-emerald-600 font-bold'
+                          : 'bg-white border-[#DCE7E3] text-[#52656B] hover:text-[#102A35]'
                       }`}
                     >
                       {level}
@@ -284,10 +285,10 @@ export const FeedbackSubmissionPage: React.FC = () => {
             {/* Title */}
             <div className="space-y-1.5">
               <div className="flex justify-between items-center text-xs">
-                <label htmlFor="fbTitle" className="font-semibold text-slate-300">
+                <label htmlFor="fbTitle" className="font-semibold text-[#102A35]">
                   {feedbackType === 'bug_report' ? 'Bug Title' : 'Feedback Title'} *
                 </label>
-                <span className="text-slate-500">{title.length} / 200</span>
+                <span className="text-[#52656B]">{title.length} / 200</span>
               </div>
               <input
                 id="fbTitle"
@@ -301,17 +302,17 @@ export const FeedbackSubmissionPage: React.FC = () => {
                     ? 'e.g. Settings dropdown crashes Safari 17 on click'
                     : 'e.g. Navigation structure feels intuitive and clean'
                 }
-                className="w-full text-xs p-2.5 bg-slate-800/80 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+                className="w-full text-xs p-3 bg-white border border-[#DCE7E3] rounded-xl text-[#102A35] placeholder-[#52656B]/60 focus:outline-none focus:border-[#087C80]"
               />
             </div>
 
             {/* Description */}
             <div className="space-y-1.5">
               <div className="flex justify-between items-center text-xs">
-                <label htmlFor="fbDesc" className="font-semibold text-slate-300">
+                <label htmlFor="fbDesc" className="font-semibold text-[#102A35]">
                   Detailed Description *
                 </label>
-                <span className="text-slate-500">{description.length} / 5000</span>
+                <span className="text-[#52656B]">{description.length} / 5000</span>
               </div>
               <textarea
                 id="fbDesc"
@@ -325,16 +326,16 @@ export const FeedbackSubmissionPage: React.FC = () => {
                     ? 'Describe what happened, what went wrong, and any relevant environmental context (browser version, OS, screen resolution)...'
                     : 'Share your observations, thoughts, usability feedback, or suggestions for improvement...'
                 }
-                className="w-full text-xs p-2.5 bg-slate-800/80 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 leading-relaxed"
+                className="w-full text-xs p-3 bg-white border border-[#DCE7E3] rounded-xl text-[#102A35] placeholder-[#52656B]/60 focus:outline-none focus:border-[#087C80] leading-relaxed"
               />
             </div>
 
             {/* Bug Report Specific Details */}
             {feedbackType === 'bug_report' && (
-              <div className="space-y-4 pt-2 border-t border-slate-800">
+              <div className="space-y-4 pt-4 border-t border-[#DCE7E3]">
                 {/* Steps to Reproduce */}
                 <div className="space-y-1.5">
-                  <label htmlFor="reproSteps" className="text-xs font-semibold text-slate-300 block">
+                  <label htmlFor="reproSteps" className="text-xs font-semibold text-[#102A35] block">
                     Steps to Reproduce (Optional)
                   </label>
                   <textarea
@@ -344,14 +345,14 @@ export const FeedbackSubmissionPage: React.FC = () => {
                     value={reproductionSteps}
                     onChange={(e) => setReproductionSteps(e.target.value)}
                     placeholder="1. Go to '/settings'&#10;2. Select language 'French'&#10;3. Click Save button"
-                    className="w-full text-xs p-2.5 bg-slate-800/80 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 font-mono text-[11px]"
+                    className="w-full text-xs p-3 bg-white border border-[#DCE7E3] rounded-xl text-[#102A35] placeholder-[#52656B]/60 focus:outline-none focus:border-[#087C80] font-mono text-[11px]"
                   />
                 </div>
 
                 {/* Expected vs Actual Behavior Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label htmlFor="expected" className="text-xs font-semibold text-slate-300 block">
+                    <label htmlFor="expected" className="text-xs font-semibold text-[#102A35] block">
                       Expected Behavior (Optional)
                     </label>
                     <textarea
@@ -361,12 +362,12 @@ export const FeedbackSubmissionPage: React.FC = () => {
                       value={expectedBehavior}
                       onChange={(e) => setExpectedBehavior(e.target.value)}
                       placeholder="What should have happened..."
-                      className="w-full text-xs p-2.5 bg-slate-800/80 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+                      className="w-full text-xs p-3 bg-white border border-[#DCE7E3] rounded-xl text-[#102A35] placeholder-[#52656B]/60 focus:outline-none focus:border-[#087C80]"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label htmlFor="actual" className="text-xs font-semibold text-slate-300 block">
+                    <label htmlFor="actual" className="text-xs font-semibold text-[#102A35] block">
                       Actual Behavior (Optional)
                     </label>
                     <textarea
@@ -376,7 +377,7 @@ export const FeedbackSubmissionPage: React.FC = () => {
                       value={actualBehavior}
                       onChange={(e) => setActualBehavior(e.target.value)}
                       placeholder="What actually occurred..."
-                      className="w-full text-xs p-2.5 bg-slate-800/80 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+                      className="w-full text-xs p-3 bg-white border border-[#DCE7E3] rounded-xl text-[#102A35] placeholder-[#52656B]/60 focus:outline-none focus:border-[#087C80]"
                     />
                   </div>
                 </div>
@@ -384,10 +385,10 @@ export const FeedbackSubmissionPage: React.FC = () => {
             )}
 
             {/* Form Actions */}
-            <div className="pt-4 border-t border-slate-800 flex items-center justify-between">
+            <div className="pt-4 border-t border-[#DCE7E3] flex items-center justify-between">
               <Link
                 to={`/tester/campaigns/${campaignId}/tasks`}
-                className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
+                className="text-xs font-semibold text-[#52656B] hover:text-[#102A35] transition-colors"
               >
                 Cancel
               </Link>
@@ -395,7 +396,7 @@ export const FeedbackSubmissionPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={submitFeedbackMutation.isPending}
-                className="inline-flex items-center space-x-2 px-5 py-2.5 text-xs font-semibold rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg shadow-violet-600/20 transition-all disabled:opacity-50"
+                className="inline-flex items-center space-x-2 px-6 py-2.5 text-xs font-semibold rounded-full bg-[#07545A] hover:bg-[#087C80] text-white shadow-xs transition-all disabled:opacity-50 cursor-pointer"
               >
                 {submitFeedbackMutation.isPending ? (
                   <>

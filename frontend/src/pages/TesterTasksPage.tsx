@@ -27,23 +27,23 @@ export const TesterTasksPage: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen bg-[#0b0f17] text-slate-100 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="min-h-[calc(100vh-140px)] bg-[#F6F5ED] py-10 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-300">
         {/* Header Breadcrumbs & Title */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-[#DCE7E3]">
           <div>
-            <div className="flex items-center space-x-2 text-xs text-slate-400 mb-1">
-              <Link to="/tester" className="hover:text-slate-200 transition-colors">
+            <div className="flex items-center space-x-2 text-xs text-[#52656B] mb-1">
+              <Link to="/tester" className="hover:text-[#07545A] transition-colors">
                 Workspace
               </Link>
               <span>/</span>
-              <span className="text-violet-400 font-medium">Testing Tasks</span>
+              <span className="text-[#087C80] font-semibold">Testing Tasks</span>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-              <Layers className="h-6 w-6 text-violet-400" />
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#102A35] flex items-center gap-2">
+              <Layers className="h-6 w-6 text-[#07545A]" />
               <span>My Testing Tasks</span>
             </h1>
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-xs sm:text-sm text-[#52656B] mt-1">
               Follow assigned testing tasks, track your progress, and report feedback for accepted campaigns.
             </p>
           </div>
@@ -51,14 +51,14 @@ export const TesterTasksPage: React.FC = () => {
           <div className="flex items-center gap-2.5">
             <Link
               to="/tester/feedback"
-              className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-medium rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700/80 text-slate-200 transition-colors"
+              className="inline-flex items-center space-x-1.5 px-4 py-2 text-xs font-semibold rounded-full bg-white border border-[#DCE7E3] hover:bg-[#EFEFE5] text-[#102A35] transition-colors shadow-xs"
             >
-              <MessageSquarePlus className="h-4 w-4 text-violet-400" />
+              <MessageSquarePlus className="h-4 w-4 text-[#07545A]" />
               <span>Feedback History</span>
             </Link>
             <Link
               to="/tester/discover"
-              className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg shadow-violet-600/20 transition-all"
+              className="inline-flex items-center space-x-1.5 px-5 py-2 text-xs font-semibold rounded-full bg-[#07545A] hover:bg-[#087C80] text-white shadow-xs transition-all"
             >
               <Sparkles className="h-4 w-4 text-[#FFC928]" />
               <span>Discover Campaigns</span>
@@ -67,45 +67,45 @@ export const TesterTasksPage: React.FC = () => {
         </div>
 
         {/* Filters and Search Bar */}
-        <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="bg-white border border-[#DCE7E3] rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 shadow-xs">
           {/* Status Tabs */}
-          <div className="flex items-center space-x-1 bg-slate-800/80 p-1 rounded-lg border border-slate-700/60 text-xs">
+          <div className="flex flex-wrap items-center gap-2 text-xs">
             <button
               onClick={() => setStatusFilter('all')}
-              className={`px-3 py-1.5 rounded-md font-medium transition-colors ${
+              className={`px-4 py-2 rounded-full font-semibold transition-colors border ${
                 statusFilter === 'all'
-                  ? 'bg-violet-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-[#07545A] text-white border-[#07545A] shadow-xs'
+                  : 'bg-white text-[#52656B] border-[#DCE7E3] hover:text-[#102A35]'
               }`}
             >
               All ({campaigns.length})
             </button>
             <button
               onClick={() => setStatusFilter('in_progress')}
-              className={`px-3 py-1.5 rounded-md font-medium transition-colors ${
+              className={`px-4 py-2 rounded-full font-semibold transition-colors border ${
                 statusFilter === 'in_progress'
-                  ? 'bg-amber-600/90 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-amber-100 text-amber-900 border-amber-300 shadow-xs'
+                  : 'bg-white text-[#52656B] border-[#DCE7E3] hover:text-[#102A35]'
               }`}
             >
               In Progress ({campaigns.filter((c) => c.assignment_status === 'in_progress').length})
             </button>
             <button
               onClick={() => setStatusFilter('completed')}
-              className={`px-3 py-1.5 rounded-md font-medium transition-colors ${
+              className={`px-4 py-2 rounded-full font-semibold transition-colors border ${
                 statusFilter === 'completed'
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-emerald-100 text-emerald-900 border-emerald-300 shadow-xs'
+                  : 'bg-white text-[#52656B] border-[#DCE7E3] hover:text-[#102A35]'
               }`}
             >
               Completed ({campaigns.filter((c) => c.assignment_status === 'completed').length})
             </button>
             <button
               onClick={() => setStatusFilter('not_started')}
-              className={`px-3 py-1.5 rounded-md font-medium transition-colors ${
+              className={`px-4 py-2 rounded-full font-semibold transition-colors border ${
                 statusFilter === 'not_started'
-                  ? 'bg-slate-700 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-[#EFEFE5] text-[#102A35] border-[#DCE7E3] shadow-xs'
+                  : 'bg-white text-[#52656B] border-[#DCE7E3] hover:text-[#102A35]'
               }`}
             >
               Not Started ({campaigns.filter((c) => c.assignment_status === 'not_started').length})
@@ -114,13 +114,13 @@ export const TesterTasksPage: React.FC = () => {
 
           {/* Search Box */}
           <div className="relative min-w-[240px]">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-[#52656B]" />
             <input
               type="text"
               placeholder="Search by startup or campaign..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-800/80 border border-slate-700/80 rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+              className="w-full pl-10 pr-3.5 py-2 text-xs bg-white border border-[#DCE7E3] rounded-xl text-[#102A35] placeholder-[#52656B]/60 focus:outline-none focus:border-[#087C80]"
             />
           </div>
         </div>
@@ -131,7 +131,7 @@ export const TesterTasksPage: React.FC = () => {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-32 bg-slate-900/50 border border-slate-800 rounded-xl animate-pulse"
+                className="h-32 bg-white border border-[#DCE7E3] rounded-3xl animate-pulse shadow-xs"
               />
             ))}
           </div>
@@ -139,16 +139,16 @@ export const TesterTasksPage: React.FC = () => {
 
         {/* Error State */}
         {isError && (
-          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 flex items-center justify-between">
+          <div className="p-6 rounded-3xl bg-rose-50 border border-rose-200 text-rose-800 flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <AlertCircle className="h-5 w-5 flex-shrink-0" />
+              <AlertCircle className="h-5 w-5 flex-shrink-0 text-rose-600" />
               <span className="text-sm font-medium">
                 {error instanceof Error ? error.message : 'Failed to load testing tasks.'}
               </span>
             </div>
             <button
               onClick={() => refetch()}
-              className="text-xs px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-md font-medium transition-colors"
+              className="text-xs px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-full font-semibold transition-colors"
             >
               Retry
             </button>
@@ -157,12 +157,12 @@ export const TesterTasksPage: React.FC = () => {
 
         {/* Empty State */}
         {!isLoading && !isError && filteredCampaigns.length === 0 && (
-          <div className="text-center py-16 px-4 bg-slate-900/40 border border-slate-800 rounded-2xl">
-            <div className="w-14 h-14 mx-auto rounded-full bg-violet-500/10 border border-violet-500/20 flex items-center justify-center mb-4">
-              <Layers className="h-7 w-7 text-violet-400" />
+          <div className="text-center py-16 px-4 bg-white border border-dashed border-[#DCE7E3] rounded-3xl shadow-xs">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-[#EFEFE5] border border-[#DCE7E3] flex items-center justify-center mb-4">
+              <Layers className="h-7 w-7 text-[#07545A]" />
             </div>
-            <h3 className="text-lg font-semibold text-white">No testing campaigns found</h3>
-            <p className="text-sm text-slate-400 max-w-md mx-auto mt-1 mb-6">
+            <h3 className="text-lg font-bold text-[#102A35]">No testing campaigns found</h3>
+            <p className="text-sm text-[#52656B] max-w-md mx-auto mt-1 mb-6">
               {searchTerm || statusFilter !== 'all'
                 ? 'No campaigns match your search or filter criteria. Try clearing the filters.'
                 : 'You have not been accepted to any active campaigns yet. Discover startups looking for beta testers and submit an application!'}
@@ -173,14 +173,14 @@ export const TesterTasksPage: React.FC = () => {
                   setSearchTerm('');
                   setStatusFilter('all');
                 }}
-                className="text-xs font-semibold px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors"
+                className="text-xs font-semibold px-5 py-2.5 rounded-full bg-[#EFEFE5] hover:bg-[#DCE7E3] text-[#102A35] border border-[#DCE7E3] transition-colors"
               >
                 Clear Filters
               </button>
             ) : (
               <Link
                 to="/tester/discover"
-                className="inline-flex items-center space-x-2 text-xs font-semibold px-4 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-600/20 transition-all"
+                className="inline-flex items-center space-x-2 text-xs font-semibold px-5 py-2.5 rounded-full bg-[#07545A] hover:bg-[#087C80] text-white shadow-xs transition-all"
               >
                 <Sparkles className="h-4 w-4 text-[#FFC928]" />
                 <span>Browse Available Campaigns</span>
@@ -201,28 +201,28 @@ export const TesterTasksPage: React.FC = () => {
               return (
                 <div
                   key={campaign.campaign_id}
-                  className="bg-slate-900/70 border border-slate-800/80 rounded-xl p-5 hover:border-slate-700/80 transition-all shadow-sm"
+                  className="bg-white border border-[#DCE7E3] rounded-3xl p-6 sm:p-7 hover:border-[#087C80]/50 transition-all shadow-xs"
                 >
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     {/* Left: Info */}
                     <div className="space-y-1.5">
                       <div className="flex items-center space-x-2">
-                        <span className="text-xs font-semibold text-violet-400 uppercase tracking-wider">
+                        <span className="text-xs font-bold text-[#07545A] uppercase tracking-wider">
                           {campaign.startup_name}
                         </span>
                         {campaign.product_type && (
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300">
+                          <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#EFEFE5] border border-[#DCE7E3] text-[#102A35] font-medium">
                             {campaign.product_type}
                           </span>
                         )}
                         {/* Assignment Status Pill */}
                         <span
-                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                          className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${
                             campaign.assignment_status === 'completed'
-                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                               : campaign.assignment_status === 'in_progress'
-                              ? 'bg-amber-500/10 text-amber-300 border-amber-500/20'
-                              : 'bg-slate-700/50 text-slate-300 border-slate-600/50'
+                              ? 'bg-amber-50 text-amber-800 border-amber-200'
+                              : 'bg-[#EFEFE5] text-[#52656B] border-[#DCE7E3]'
                           }`}
                         >
                           {campaign.assignment_status === 'completed'
@@ -233,7 +233,7 @@ export const TesterTasksPage: React.FC = () => {
                         </span>
                       </div>
 
-                      <h2 className="text-lg font-bold text-white hover:text-violet-300 transition-colors">
+                      <h2 className="text-lg font-bold text-[#102A35] hover:text-[#07545A] transition-colors">
                         <Link to={`/tester/campaigns/${campaign.campaign_id}/tasks`}>
                           {campaign.campaign_title}
                         </Link>
@@ -241,8 +241,8 @@ export const TesterTasksPage: React.FC = () => {
 
                       {/* Dates */}
                       {(campaign.testing_start_date || campaign.testing_end_date) && (
-                        <div className="flex items-center space-x-1.5 text-xs text-slate-400">
-                          <Calendar className="h-3.5 w-3.5 text-slate-500" />
+                        <div className="flex items-center space-x-1.5 text-xs text-[#52656B]">
+                          <Calendar className="h-3.5 w-3.5 text-[#07545A]" />
                           <span>
                             Testing Period:{' '}
                             {campaign.testing_start_date
@@ -260,21 +260,21 @@ export const TesterTasksPage: React.FC = () => {
                     {/* Right: Progress & Action */}
                     <div className="flex flex-col sm:flex-row sm:items-center gap-4 md:gap-6 min-w-[280px]">
                       {/* Progress Bar & Ratio */}
-                      <div className="flex-1 space-y-1">
+                      <div className="flex-1 space-y-1.5">
                         <div className="flex justify-between text-xs">
-                          <span className="text-slate-400">Task Completion</span>
-                          <span className="font-semibold text-white">
+                          <span className="text-[#52656B]">Task Completion</span>
+                          <span className="font-bold text-[#102A35]">
                             {campaign.completed_tasks} / {campaign.total_tasks} ({progressPercent}%)
                           </span>
                         </div>
-                        <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-700/50">
+                        <div className="w-full bg-[#EFEFE5] rounded-full h-2 overflow-hidden border border-[#DCE7E3]">
                           <div
                             className={`h-full transition-all duration-300 rounded-full ${
                               progressPercent === 100
-                                ? 'bg-emerald-500'
+                                ? 'bg-emerald-600'
                                 : progressPercent > 0
-                                ? 'bg-violet-500'
-                                : 'bg-slate-700'
+                                ? 'bg-[#087C80]'
+                                : 'bg-[#DCE7E3]'
                             }`}
                             style={{ width: `${progressPercent}%` }}
                           />
@@ -285,7 +285,7 @@ export const TesterTasksPage: React.FC = () => {
                       <div className="flex items-center space-x-2">
                         <Link
                           to={`/tester/campaigns/${campaign.campaign_id}/tasks`}
-                          className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-violet-600 hover:bg-violet-500 text-white shadow-md shadow-violet-600/20 transition-all whitespace-nowrap"
+                          className="inline-flex items-center space-x-1.5 px-4 py-2 text-xs font-semibold rounded-full bg-[#07545A] hover:bg-[#087C80] text-white shadow-xs transition-all whitespace-nowrap"
                         >
                           <span>Open Workspace</span>
                           <ArrowRight className="h-3.5 w-3.5" />
