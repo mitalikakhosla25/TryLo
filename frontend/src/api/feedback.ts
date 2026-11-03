@@ -36,6 +36,9 @@ export interface FounderFeedbackListItem {
   tester_id: string;
   tester_name: string;
   tester_experience_level?: string | null;
+  tester_verification_tier?: number;
+  tester_average_rating?: number | null;
+  tester_reviews_count?: number | null;
   task_id?: string | null;
   task_title?: string | null;
   feedback_type: FeedbackType;
@@ -68,6 +71,9 @@ export interface FounderFeedbackDetail {
   tester_id: string;
   tester_name: string;
   tester_experience_level?: string | null;
+  tester_verification_tier?: number;
+  tester_average_rating?: number | null;
+  tester_reviews_count?: number | null;
   task_id?: string | null;
   task_title?: string | null;
   task_description?: string | null;

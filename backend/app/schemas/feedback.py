@@ -83,6 +83,9 @@ class FounderFeedbackListItemResponse(BaseModel):
     tester_id: uuid.UUID
     tester_name: str
     tester_experience_level: Optional[str] = None
+    tester_verification_tier: Optional[int] = 1
+    tester_average_rating: Optional[float] = None
+    tester_reviews_count: Optional[int] = None
     task_id: Optional[str] = None
     task_title: Optional[str] = None
     feedback_type: str
@@ -119,6 +122,9 @@ class FounderFeedbackDetailResponse(BaseModel):
     tester_id: uuid.UUID
     tester_name: str
     tester_experience_level: Optional[str] = None
+    tester_verification_tier: Optional[int] = 1
+    tester_average_rating: Optional[float] = None
+    tester_reviews_count: Optional[int] = None
     task_id: Optional[str] = None
     task_title: Optional[str] = None
     task_description: Optional[str] = None
@@ -133,6 +139,8 @@ class FounderFeedbackDetailResponse(BaseModel):
     status: str
     retest_instructions: Optional[str] = None
     resolution_notes: Optional[str] = None
+    device_info: Optional[dict] = None
+    attachments: List[str] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
     internal_notes: List[FeedbackInternalNoteResponse] = []

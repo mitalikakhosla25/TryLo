@@ -83,6 +83,10 @@ export interface TesterProfile {
   city: string | null;
   country: string | null;
   linkedin_url: string | null;
+  verification_tier?: number;
+  has_resume?: boolean;
+  average_rating?: number;
+  reviews_count?: number;
   created_at: string;
   updated_at: string;
 }

@@ -30,6 +30,7 @@ class TestingTaskDetail(BaseModel):
     order: int = 1
     status: str = TASK_PROGRESS_NOT_STARTED
     completion_note: Optional[str] = None
+    proof_url: Optional[str] = None
     completed_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -60,6 +61,7 @@ class TaskProgressUpdateRequest(BaseModel):
     """Payload for updating a tester's task progress."""
     status: str
     completion_note: Optional[str] = Field(None, max_length=1000)
+    proof_url: Optional[str] = Field(None, max_length=500)
 
     @field_validator("status")
     @classmethod
@@ -69,7 +71,7 @@ class TaskProgressUpdateRequest(BaseModel):
             raise ValueError(f"Status must be one of: {ALLOWED_TASK_PROGRESS_STATUSES}")
         return clean
 
-    @field_validator("completion_note")
+    @field_validator("completion_note", "proof_url")
     @classmethod
     def sanitize_note(cls, v: Optional[str]) -> Optional[str]:
         if v is None:
@@ -86,6 +88,7 @@ class TaskProgressResponse(BaseModel):
     tester_id: uuid.UUID
     status: str
     completion_note: Optional[str] = None
+    proof_url: Optional[str] = None
     completed_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
@@ -129,6 +132,8 @@ class FeedbackCreateRequest(BaseModel):
     actual_behavior: Optional[str] = Field(None, max_length=2000)
     reproduction_steps: Optional[str] = Field(None, max_length=3000)
     severity: Optional[str] = None
+    device_info: Optional[dict] = None
+    attachments: List[str] = Field(default_factory=list)
 
     @field_validator("feedback_type")
     @classmethod
@@ -209,6 +214,8 @@ class FeedbackSubmissionResponse(BaseModel):
     status: str
     retest_instructions: Optional[str] = None
     resolution_notes: Optional[str] = None
+    device_info: Optional[dict] = None
+    attachments: List[str] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
 

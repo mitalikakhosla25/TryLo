@@ -27,6 +27,7 @@ from app.models.campaign import (
     CAMPAIGN_STATUS_PUBLISHED,
 )
 from app.models.startup import Startup
+from app.models.tester_verification import TesterResume
 from app.models.user import User
 from app.schemas.application import (
     ApplicationStatusChangeResponse,
@@ -201,13 +202,15 @@ def submit_campaign_application(
                     detail=f"Answer for '{prompt}' must be a boolean (yes/no).",
                 )
 
-    # 6. Create application
+    # 6. Create application with current ATS score snapshot
+    ats_score = current_user.tester_resume.ats_score if current_user.tester_resume else None
     application = CampaignApplication(
         campaign_id=campaign.id,
         tester_id=current_user.id,
         status=APPLICATION_STATUS_PENDING,
         screening_answers=payload.screening_answers,
         motivation=payload.motivation,
+        ats_score_at_application=ats_score,
     )
     db.add(application)
     db.commit()
@@ -398,6 +401,10 @@ def build_tester_public_profile(user: Optional[User]) -> TesterPublicProfile:
             full_name="Unknown Tester",
         )
     profile = user.tester_profile
+    resume = user.tester_resume
+    ats_score = resume.ats_score if resume else None
+    is_latex_verified = bool(resume.is_latex_verified) if resume else False
+
     return TesterPublicProfile(
         user_id=user.id,
         full_name=user.full_name,
@@ -409,6 +416,8 @@ def build_tester_public_profile(user: Optional[User]) -> TesterPublicProfile:
         city=profile.city if profile else None,
         country=profile.country if profile else None,
         linkedin_url=profile.linkedin_url if profile else None,
+        ats_score=ats_score,
+        is_latex_verified=is_latex_verified,
     )
 
 
@@ -429,6 +438,8 @@ def list_campaign_applications(
     campaign_id: uuid.UUID,
     status: Optional[str] = Query(None, description="Filter by pending, accepted, rejected"),
     search: Optional[str] = Query(None, description="Search by tester name"),
+    min_ats_score: Optional[int] = Query(None, ge=0, le=100, description="Filter by minimum LaTeX ATS score"),
+    sort_by: Optional[str] = Query(None, description="Sort order: 'ats_desc', 'created_asc', 'created_desc'"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),
@@ -445,11 +456,12 @@ def list_campaign_applications(
     ) or 0
     is_full = bool(campaign.max_testers is not None and accepted_testers >= campaign.max_testers)
 
-    # Base query for applications joined with tester and tester_profile
+    # Base query for applications joined with tester, tester_profile, and tester_resume
     stmt = (
         select(CampaignApplication)
         .options(
             joinedload(CampaignApplication.tester).joinedload(User.tester_profile),
+            joinedload(CampaignApplication.tester).joinedload(User.tester_resume),
             joinedload(CampaignApplication.campaign).joinedload(Campaign.startup),
         )
         .join(User, CampaignApplication.tester_id == User.id)
@@ -461,6 +473,16 @@ def list_campaign_applications(
         .join(User, CampaignApplication.tester_id == User.id)
         .where(CampaignApplication.campaign_id == campaign.id)
     )
+
+    resume_joined = False
+    if min_ats_score is not None:
+        stmt = stmt.outerjoin(TesterResume, CampaignApplication.tester_id == TesterResume.tester_id).where(
+            TesterResume.ats_score >= min_ats_score
+        )
+        count_stmt = count_stmt.outerjoin(TesterResume, CampaignApplication.tester_id == TesterResume.tester_id).where(
+            TesterResume.ats_score >= min_ats_score
+        )
+        resume_joined = True
 
     if status and status.strip():
         clean_status = status.strip().lower()
@@ -477,8 +499,17 @@ def list_campaign_applications(
     total_pages = math.ceil(total / page_size) if total > 0 else 1
     offset = (page - 1) * page_size
 
+    if sort_by == "ats_desc":
+        if not resume_joined:
+            stmt = stmt.outerjoin(TesterResume, CampaignApplication.tester_id == TesterResume.tester_id)
+        stmt = stmt.order_by(func.coalesce(TesterResume.ats_score, -1).desc(), CampaignApplication.created_at.desc())
+    elif sort_by == "created_asc":
+        stmt = stmt.order_by(CampaignApplication.created_at.asc())
+    else:
+        stmt = stmt.order_by(CampaignApplication.created_at.desc())
+
     apps = db.scalars(
-        stmt.order_by(CampaignApplication.created_at.desc()).offset(offset).limit(page_size)
+        stmt.offset(offset).limit(page_size)
     ).unique().all()
 
     items = []
@@ -529,6 +560,8 @@ def list_all_founder_applications(
     status: Optional[str] = Query(None, description="Filter by pending, accepted, rejected"),
     campaign_id: Optional[uuid.UUID] = Query(None, description="Filter by campaign ID"),
     search: Optional[str] = Query(None, description="Search by tester or campaign name"),
+    min_ats_score: Optional[int] = Query(None, ge=0, le=100, description="Filter by minimum LaTeX ATS score"),
+    sort_by: Optional[str] = Query(None, description="Sort order: 'ats_desc', 'created_asc', 'created_desc'"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),
@@ -539,6 +572,7 @@ def list_all_founder_applications(
         select(CampaignApplication)
         .options(
             joinedload(CampaignApplication.tester).joinedload(User.tester_profile),
+            joinedload(CampaignApplication.tester).joinedload(User.tester_resume),
             joinedload(CampaignApplication.campaign).joinedload(Campaign.startup),
         )
         .join(Campaign, CampaignApplication.campaign_id == Campaign.id)
@@ -554,6 +588,16 @@ def list_all_founder_applications(
         .join(User, CampaignApplication.tester_id == User.id)
         .where(Startup.owner_id == current_user.id)
     )
+
+    resume_joined = False
+    if min_ats_score is not None:
+        stmt = stmt.outerjoin(TesterResume, CampaignApplication.tester_id == TesterResume.tester_id).where(
+            TesterResume.ats_score >= min_ats_score
+        )
+        count_stmt = count_stmt.outerjoin(TesterResume, CampaignApplication.tester_id == TesterResume.tester_id).where(
+            TesterResume.ats_score >= min_ats_score
+        )
+        resume_joined = True
 
     if campaign_id:
         stmt = stmt.where(CampaignApplication.campaign_id == campaign_id)
@@ -584,8 +628,17 @@ def list_all_founder_applications(
     total_pages = math.ceil(total / page_size) if total > 0 else 1
     offset = (page - 1) * page_size
 
+    if sort_by == "ats_desc":
+        if not resume_joined:
+            stmt = stmt.outerjoin(TesterResume, CampaignApplication.tester_id == TesterResume.tester_id)
+        stmt = stmt.order_by(func.coalesce(TesterResume.ats_score, -1).desc(), CampaignApplication.created_at.desc())
+    elif sort_by == "created_asc":
+        stmt = stmt.order_by(CampaignApplication.created_at.asc())
+    else:
+        stmt = stmt.order_by(CampaignApplication.created_at.desc())
+
     apps = db.scalars(
-        stmt.order_by(CampaignApplication.created_at.desc()).offset(offset).limit(page_size)
+        stmt.offset(offset).limit(page_size)
     ).unique().all()
 
     items = []
@@ -652,6 +705,7 @@ def get_founder_application_detail(
         select(CampaignApplication)
         .options(
             joinedload(CampaignApplication.tester).joinedload(User.tester_profile),
+            joinedload(CampaignApplication.tester).joinedload(User.tester_resume),
             joinedload(CampaignApplication.campaign).joinedload(Campaign.startup),
         )
         .join(Campaign, CampaignApplication.campaign_id == Campaign.id)

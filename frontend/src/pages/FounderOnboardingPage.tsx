@@ -16,7 +16,6 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
-  Sparkles,
 } from 'lucide-react';
 
 interface FounderOnboardingWizardProps {
@@ -130,10 +129,6 @@ const FounderOnboardingWizard: React.FC<FounderOnboardingWizardProps> = ({ initi
       <div className="max-w-2xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-300">
         {/* Header */}
         <div className="text-center space-y-2.5">
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-semibold bg-[#D7EFEB] text-[#07545A] border border-[#BCE1DA]">
-            <Sparkles className="h-3.5 w-3.5 text-[#087C80]" />
-            <span>Founder Setup</span>
-          </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#102A35] tracking-tight">
             Tell Us About Your Startup
           </h1>

@@ -41,13 +41,6 @@ export const StartupListPage: React.FC = () => {
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-[#DCE7E3]">
           <div>
-            <div className="flex items-center space-x-2 mb-1.5">
-              <span className="px-3 py-0.5 rounded-full text-xs font-semibold bg-[#D7EFEB] text-[#07545A] border border-[#BCE1DA]">
-                Founder Ventures
-              </span>
-              <span className="text-xs text-[#52656B]">&bull;</span>
-              <span className="text-xs text-[#52656B]">Multi-Startup Management</span>
-            </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#102A35] tracking-tight">
               My Startups
             </h1>

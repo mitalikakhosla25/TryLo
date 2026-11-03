@@ -128,11 +128,8 @@ export const FounderFeedbackDashboardPage: React.FC = () => {
               <span>/</span>
               <span className="text-[#087C80] font-semibold">Feedback &amp; Issue Management</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#102A35] tracking-tight flex items-center space-x-3">
-              <span>Feedback Review &amp; Issues</span>
-              <span className="text-xs px-3 py-1 rounded-full bg-[#D7EFEB] text-[#07545A] border border-[#BCE1DA] font-medium">
-                Issue Tracking
-              </span>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#102A35] tracking-tight">
+              Feedback Review &amp; Issues
             </h1>
             <p className="text-xs sm:text-sm text-[#52656B]">
               Review bug reports and observations submitted by accepted testers across your startups and campaigns.

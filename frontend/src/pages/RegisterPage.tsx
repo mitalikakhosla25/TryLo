@@ -147,7 +147,7 @@ export const RegisterPage: React.FC = () => {
                 className="w-full inline-flex justify-center items-center space-x-2 py-3 px-5 rounded-full text-xs sm:text-sm font-bold text-white bg-[#07545A] hover:bg-[#087C80] shadow-md hover:shadow-lg hover:shadow-[#087C80]/20 transition-all cursor-pointer"
               >
                 <LogIn className="h-4 w-4" />
-                <span>Proceed to Sign In</span>
+                <span>Proceed to Log In</span>
               </Link>
               <div className="flex gap-2">
                 <Link
@@ -170,10 +170,6 @@ export const RegisterPage: React.FC = () => {
           /* Registration Form View */
           <div className="rounded-3xl bg-white border border-[#DCE7E3] p-8 sm:p-10 shadow-xl space-y-6">
             <div className="text-center space-y-2">
-              <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-[#D7EFEB] border border-[#BCE1DA] text-[11px] font-bold text-[#07545A]">
-                <Sparkles className="h-3 w-3 text-[#087C80]" />
-                <span>Join TryLo Community</span>
-              </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#102A35]">
                 Create Your Account
               </h1>
@@ -373,7 +369,7 @@ export const RegisterPage: React.FC = () => {
             <div className="pt-2 text-center text-xs text-[#52656B] border-t border-[#DCE7E3]">
               Already registered?{' '}
               <Link to="/login" className="text-[#087C80] hover:text-[#07545A] font-bold underline underline-offset-2">
-                Sign in to your account
+                Log in to your workspace
               </Link>
             </div>
           </div>

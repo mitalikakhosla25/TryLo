@@ -16,6 +16,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { StartupAvatar } from '../components/ui/StartupAvatar';
+import { StartupVerificationCard } from '../components/startup/StartupVerificationCard';
 
 interface StartupEditFormProps {
   startup: Startup;
@@ -136,11 +137,7 @@ const StartupEditForm: React.FC<StartupEditFormProps> = ({ startup }) => {
         {/* Header */}
         <div className="space-y-1.5 pb-4 border-b border-[#DCE7E3]">
           <div className="flex items-center space-x-2">
-            <span className="px-3 py-0.5 rounded-full text-xs font-semibold bg-[#D7EFEB] text-[#07545A] border border-[#BCE1DA]">
-              Edit Venture
-            </span>
-            <span className="text-xs text-[#52656B]">&bull;</span>
-            <span className="text-xs font-mono text-[#102A35] bg-white px-2.5 py-0.5 rounded-md border border-[#DCE7E3]">
+            <span className="text-xs font-mono text-[#52656B] bg-white px-2.5 py-0.5 rounded-md border border-[#DCE7E3]">
               slug: {startup.slug}
             </span>
           </div>
@@ -436,6 +433,9 @@ const StartupEditForm: React.FC<StartupEditFormProps> = ({ startup }) => {
             </button>
           </div>
         </form>
+
+        {/* Business Legitimacy & Anti-Shell Verification */}
+        <StartupVerificationCard startupId={startup.id} startupName={startup.name} />
       </div>
     </div>
   );

@@ -68,6 +68,10 @@ export const StartupCampaignListPage: React.FC = () => {
   const deleteMutation = useDeleteCampaign(startupId);
 
   const handleOpenPublish = (campaign: Campaign) => {
+    const verificationItem = startup?.is_verified
+      ? 'Anti-shell business verification cleared (Verified Startup Shield active)'
+      : 'Startup business verification proof verified for anti-shell compliance';
+
     setModalConfig({
       isOpen: true,
       type: 'publish',
@@ -79,6 +83,7 @@ export const StartupCampaignListPage: React.FC = () => {
         'Campaign details and testing tasks are complete',
         'Reward terms are accurate and clear',
         'Private access instructions will remain protected',
+        verificationItem,
       ],
     });
   };

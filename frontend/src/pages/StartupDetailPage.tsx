@@ -19,6 +19,8 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { StartupAvatar } from '../components/ui/StartupAvatar';
+import { StartupVerificationBadge } from '../components/ui/VerificationBadge';
+import { StartupVerificationCard } from '../components/startup/StartupVerificationCard';
 
 export const StartupDetailPage: React.FC = () => {
   const { startupId } = useParams<{ startupId: string }>();
@@ -99,13 +101,18 @@ export const StartupDetailPage: React.FC = () => {
               <span className="text-[#102A35] font-semibold truncate max-w-[200px]">{startup.name}</span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#102A35] tracking-tight flex items-center space-x-3">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#102A35] tracking-tight flex items-center gap-3">
               <span>{startup.name}</span>
+              <StartupVerificationBadge
+                isVerified={startup.is_verified}
+                status={startup.verification_status}
+                size="md"
+              />
             </h1>
 
             <div className="flex flex-wrap items-center gap-2 pt-1">
-              <span className="text-xs font-mono text-[#07545A] bg-[#D7EFEB] px-2.5 py-0.5 rounded-full border border-[#BCE1DA] font-semibold">
-                public slug: {startup.slug}
+              <span className="text-xs font-mono text-[#52656B] bg-white px-2.5 py-0.5 rounded-md border border-[#DCE7E3]">
+                slug: {startup.slug}
               </span>
               {startup.company_stage && (
                 <span
@@ -214,6 +221,13 @@ export const StartupDetailPage: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Business Legitimacy & Anti-Shell Verification Card */}
+        <StartupVerificationCard
+          startupId={startup.id}
+          startupName={startup.name}
+          onVerificationUpdated={() => refetch()}
+        />
 
         {/* Beta Testing Campaigns Section */}
         <div className="rounded-3xl bg-white border border-[#DCE7E3] p-6 sm:p-8 space-y-6 shadow-sm">

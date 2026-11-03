@@ -82,6 +82,7 @@ class CampaignApplicationResponse(BaseModel):
     status: str
     screening_answers: Dict[str, Any] = Field(default_factory=dict)
     motivation: Optional[str] = None
+    ats_score_at_application: Optional[int] = None
     created_at: datetime
     updated_at: datetime
 
@@ -96,6 +97,7 @@ class CampaignApplicationDetailResponse(BaseModel):
     status: str
     screening_answers: Dict[str, Any] = Field(default_factory=dict)
     motivation: Optional[str] = None
+    ats_score_at_application: Optional[int] = None
     created_at: datetime
     updated_at: datetime
 
@@ -136,6 +138,8 @@ class TesterPublicProfile(BaseModel):
     city: Optional[str] = None
     country: Optional[str] = None
     linkedin_url: Optional[str] = None
+    ats_score: Optional[int] = None
+    is_latex_verified: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 

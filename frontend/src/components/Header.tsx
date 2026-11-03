@@ -5,12 +5,6 @@ import { BrandIcon } from './ui/BrandLogo';
 import {
   Menu,
   X,
-  Compass,
-  FileCheck,
-  CheckSquare,
-  MessageSquare,
-  Building2,
-  Users2,
   User,
   LogOut,
   ArrowRight,
@@ -44,13 +38,74 @@ export const Header: React.FC = () => {
     navigate('/', { replace: true });
   };
 
+  const getActiveNav = (): 'home' | 'startups' | 'testers' | 'how-it-works' | null => {
+    if (location.pathname !== '/') return null;
+    if (location.hash === '#for-startups') return 'startups';
+    if (location.hash === '#for-testers') return 'testers';
+    if (location.hash === '#how-it-works') return 'how-it-works';
+    return 'home';
+  };
+
+  const activeNav = getActiveNav();
+
+  const handleNav = (target: 'home' | 'startups' | 'testers' | 'how-it-works') => {
+    setMobileMenuOpen(false);
+
+    if (target === 'home') {
+      if (location.pathname === '/') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        navigate({ pathname: '/', hash: '' }, { replace: true });
+      } else {
+        navigate('/');
+      }
+      return;
+    }
+
+    if (target === 'how-it-works') {
+      if (location.pathname === '/') {
+        const el = document.getElementById('how-it-works');
+        if (el) {
+          const elementPosition = el.getBoundingClientRect().top + window.scrollY;
+          window.scrollTo({ top: elementPosition - 88, behavior: 'smooth' });
+        }
+        navigate({ pathname: '/', hash: '#how-it-works' }, { replace: true });
+      } else {
+        navigate('/#how-it-works');
+      }
+      return;
+    }
+
+    // target is 'startups' or 'testers'
+    const role = target;
+    const hash = target === 'startups' ? '#for-startups' : '#for-testers';
+
+    if (location.pathname === '/') {
+      // 1. Dispatch event so the perspective switches and the toggle visibly slides
+      window.dispatchEvent(new CustomEvent('trylo-switch-tab', { detail: role }));
+
+      // 2. Smoothly scroll down to the services area with header offset
+      const section =
+        document.getElementById('services-section') ||
+        document.getElementById('our-services');
+      if (section) {
+        const elementPosition = section.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top: elementPosition - 88, behavior: 'smooth' });
+      }
+
+      // 3. Update router location hash
+      navigate({ pathname: '/', hash }, { replace: true });
+    } else {
+      navigate(`/${hash}`);
+    }
+  };
+
   const workspacePath = user ? (user.role === 'founder' ? '/founder' : '/tester') : '/';
 
   return (
-    <header className="border-b border-[#DCE7E3] bg-white/90 backdrop-blur-md sticky top-0 z-50">
+    <header className="border-b border-[#DCE7E3] bg-white/95 backdrop-blur-md sticky top-0 z-50 transition-all">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
         {/* Brand Logo & Wordmark */}
-        <div className="flex items-center space-x-6 lg:space-x-10">
+        <div className="flex items-center">
           <Link
             to="/"
             className="flex items-center space-x-2.5 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#087C80] rounded-xl p-1"
@@ -63,151 +118,153 @@ export const Header: React.FC = () => {
               TryLo
             </span>
           </Link>
-
-          {/* Desktop Public Navigation Pill (When Unauthenticated) */}
-          {!user && (
-            <nav
-              aria-label="Main Navigation"
-              className="hidden md:flex items-center space-x-1 bg-white/70 backdrop-blur-md px-2 py-1.5 rounded-full border border-[#DCE7E3] text-xs lg:text-sm font-medium text-[#52656B] shadow-2xs"
-            >
-              <Link
-                to="/"
-                className={`px-4 py-1.5 rounded-full transition-all duration-200 ${
-                  location.pathname === '/' && !location.hash
-                    ? 'text-[#07545A] font-bold bg-[#D7EFEB] shadow-2xs'
-                    : 'hover:text-[#102A35] hover:bg-[#F6F5ED]'
-                }`}
-              >
-                Home
-              </Link>
-              <a
-                href="/#for-startups"
-                className="px-4 py-1.5 rounded-full hover:text-[#102A35] hover:bg-[#F6F5ED] transition-colors"
-              >
-                For Startups
-              </a>
-              <a
-                href="/#for-testers"
-                className="px-4 py-1.5 rounded-full hover:text-[#102A35] hover:bg-[#F6F5ED] transition-colors"
-              >
-                For Testers
-              </a>
-              <a
-                href="/#how-it-works"
-                className="px-4 py-1.5 rounded-full hover:text-[#102A35] hover:bg-[#F6F5ED] transition-colors"
-              >
-                How It Works
-              </a>
-              <a
-                href="/#about"
-                className="px-4 py-1.5 rounded-full hover:text-[#102A35] hover:bg-[#F6F5ED] transition-colors"
-              >
-                About Us
-              </a>
-            </nav>
-          )}
-
-
-          {/* Desktop Role-Specific Navigation (When Authenticated) */}
-          {user && (
-            <nav
-              aria-label="Workspace Navigation"
-              className="hidden md:flex items-center space-x-1 text-xs font-semibold text-[#52656B]"
-            >
-              {user.role === 'tester' && (
-                <>
-                  <Link
-                    to="/tester/discover"
-                    className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-colors ${
-                      location.pathname === '/tester/discover'
-                        ? 'bg-[#D7EFEB] text-[#07545A] font-bold border border-[#BCE1DA]'
-                        : 'hover:text-[#102A35] hover:bg-[#F6F5ED]'
-                    }`}
-                  >
-                    <Compass className="h-4 w-4 text-[#087C80]" />
-                    <span>Discover</span>
-                  </Link>
-                  <Link
-                    to="/tester/applications"
-                    className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-colors ${
-                      location.pathname === '/tester/applications'
-                        ? 'bg-[#D7EFEB] text-[#07545A] font-bold border border-[#BCE1DA]'
-                        : 'hover:text-[#102A35] hover:bg-[#F6F5ED]'
-                    }`}
-                  >
-                    <FileCheck className="h-4 w-4 text-[#087C80]" />
-                    <span>Applications</span>
-                  </Link>
-                  <Link
-                    to="/tester/tasks"
-                    className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-colors ${
-                      location.pathname.startsWith('/tester/tasks') ||
-                      location.pathname.includes('/tasks')
-                        ? 'bg-[#D7EFEB] text-[#07545A] font-bold border border-[#BCE1DA]'
-                        : 'hover:text-[#102A35] hover:bg-[#F6F5ED]'
-                    }`}
-                  >
-                    <CheckSquare className="h-4 w-4 text-[#087C80]" />
-                    <span>Tasks</span>
-                  </Link>
-                  <Link
-                    to="/tester/feedback"
-                    className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-colors ${
-                      location.pathname === '/tester/feedback'
-                        ? 'bg-[#D7EFEB] text-[#07545A] font-bold border border-[#BCE1DA]'
-                        : 'hover:text-[#102A35] hover:bg-[#F6F5ED]'
-                    }`}
-                  >
-                    <MessageSquare className="h-4 w-4 text-[#087C80]" />
-                    <span>Feedback</span>
-                  </Link>
-                </>
-              )}
-
-              {user.role === 'founder' && (
-                <>
-                  <Link
-                    to="/founder/startups"
-                    className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-colors ${
-                      location.pathname.startsWith('/founder/startups')
-                        ? 'bg-[#D7EFEB] text-[#07545A] font-bold border border-[#BCE1DA]'
-                        : 'hover:text-[#102A35] hover:bg-[#F6F5ED]'
-                    }`}
-                  >
-                    <Building2 className="h-4 w-4 text-[#087C80]" />
-                    <span>Startups</span>
-                  </Link>
-                  <Link
-                    to="/founder/applications"
-                    className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-colors ${
-                      location.pathname === '/founder/applications'
-                        ? 'bg-[#D7EFEB] text-[#07545A] font-bold border border-[#BCE1DA]'
-                        : 'hover:text-[#102A35] hover:bg-[#F6F5ED]'
-                    }`}
-                  >
-                    <Users2 className="h-4 w-4 text-[#087C80]" />
-                    <span>Review Applicants</span>
-                  </Link>
-                  <Link
-                    to="/founder/feedback"
-                    id="founder-header-feedback-link"
-                    className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-colors ${
-                      location.pathname.startsWith('/founder/feedback')
-                        ? 'bg-[#D7EFEB] text-[#07545A] font-bold border border-[#BCE1DA]'
-                        : 'hover:text-[#102A35] hover:bg-[#F6F5ED]'
-                    }`}
-                  >
-                    <MessageSquare className="h-4 w-4 text-[#087C80]" />
-                    <span>Feedback &amp; Issues</span>
-                  </Link>
-                </>
-              )}
-            </nav>
-          )}
         </div>
 
+        {/* Desktop Public Navigation Pill (When Unauthenticated) */}
+        {!user && (
+          <nav
+            aria-label="Main Navigation"
+            className="hidden md:flex items-center space-x-1 bg-[#F6F5ED] p-1 rounded-full border border-[#DCE7E3] text-xs lg:text-sm font-medium text-[#52656B] shadow-2xs"
+          >
+            <button
+              type="button"
+              onClick={() => handleNav('home')}
+              className={`px-4 py-1.5 rounded-full transition-all duration-200 cursor-pointer ${
+                activeNav === 'home'
+                  ? 'text-[#07545A] font-bold bg-white shadow-2xs'
+                  : 'hover:text-[#102A35] hover:bg-white/60'
+              }`}
+            >
+              Home
+            </button>
+            <button
+              type="button"
+              onClick={() => handleNav('startups')}
+              className={`flex items-center space-x-1.5 px-4 py-1.5 rounded-full transition-all duration-200 cursor-pointer ${
+                activeNav === 'startups'
+                  ? 'text-[#07545A] font-bold bg-white shadow-2xs'
+                  : 'hover:text-[#102A35] hover:bg-white/60'
+              }`}
+            >
+              <span>For Startups</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleNav('testers')}
+              className={`flex items-center space-x-1.5 px-4 py-1.5 rounded-full transition-all duration-200 cursor-pointer ${
+                activeNav === 'testers'
+                  ? 'text-[#07545A] font-bold bg-white shadow-2xs'
+                  : 'hover:text-[#102A35] hover:bg-white/60'
+              }`}
+            >
+              <span>For Testers</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleNav('how-it-works')}
+              className={`px-4 py-1.5 rounded-full transition-all duration-200 cursor-pointer ${
+                activeNav === 'how-it-works'
+                  ? 'text-[#07545A] font-bold bg-white shadow-2xs'
+                  : 'hover:text-[#102A35] hover:bg-white/60'
+              }`}
+            >
+              How It Works
+            </button>
+          </nav>
+        )}
+
+        {/* Desktop Role-Specific Navigation (When Authenticated) */}
+        {user && (
+          <nav
+            aria-label="Workspace Navigation"
+            className="hidden md:flex items-center space-x-1 text-xs font-semibold text-[#52656B]"
+          >
+            {user.role === 'tester' && (
+              <>
+                <Link
+                  to="/tester/discover"
+                  className={`px-3 py-1.5 rounded-lg transition-colors ${
+                    location.pathname === '/tester/discover'
+                      ? 'bg-[#D7EFEB] text-[#07545A] font-bold border border-[#BCE1DA]'
+                      : 'hover:text-[#102A35] hover:bg-[#F6F5ED]'
+                  }`}
+                >
+                  <span>Discover</span>
+                </Link>
+                <Link
+                  to="/tester/applications"
+                  className={`px-3 py-1.5 rounded-lg transition-colors ${
+                    location.pathname === '/tester/applications'
+                      ? 'bg-[#D7EFEB] text-[#07545A] font-bold border border-[#BCE1DA]'
+                      : 'hover:text-[#102A35] hover:bg-[#F6F5ED]'
+                  }`}
+                >
+                  <span>Applications</span>
+                </Link>
+                <Link
+                  to="/tester/tasks"
+                  className={`px-3 py-1.5 rounded-lg transition-colors ${
+                    location.pathname.startsWith('/tester/tasks') ||
+                    location.pathname.includes('/tasks')
+                      ? 'bg-[#D7EFEB] text-[#07545A] font-bold border border-[#BCE1DA]'
+                      : 'hover:text-[#102A35] hover:bg-[#F6F5ED]'
+                  }`}
+                >
+                  <span>Tasks</span>
+                </Link>
+                <Link
+                  to="/tester/feedback"
+                  className={`px-3 py-1.5 rounded-lg transition-colors ${
+                    location.pathname === '/tester/feedback'
+                      ? 'bg-[#D7EFEB] text-[#07545A] font-bold border border-[#BCE1DA]'
+                      : 'hover:text-[#102A35] hover:bg-[#F6F5ED]'
+                  }`}
+                >
+                  <span>Feedback</span>
+                </Link>
+              </>
+            )}
+
+            {user.role === 'founder' && (
+              <>
+                <Link
+                  to="/founder/startups"
+                  className={`px-3 py-1.5 rounded-lg transition-colors ${
+                    location.pathname.startsWith('/founder/startups')
+                      ? 'bg-[#D7EFEB] text-[#07545A] font-bold border border-[#BCE1DA]'
+                      : 'hover:text-[#102A35] hover:bg-[#F6F5ED]'
+                  }`}
+                >
+                  <span>Startups</span>
+                </Link>
+                <Link
+                  to="/founder/applications"
+                  className={`px-3 py-1.5 rounded-lg transition-colors ${
+                    location.pathname === '/founder/applications'
+                      ? 'bg-[#D7EFEB] text-[#07545A] font-bold border border-[#BCE1DA]'
+                      : 'hover:text-[#102A35] hover:bg-[#F6F5ED]'
+                  }`}
+                >
+                  <span>Review Applicants</span>
+                </Link>
+                <Link
+                  to="/founder/feedback"
+                  id="founder-header-feedback-link"
+                  className={`px-3 py-1.5 rounded-lg transition-colors ${
+                    location.pathname.startsWith('/founder/feedback')
+                      ? 'bg-[#D7EFEB] text-[#07545A] font-bold border border-[#BCE1DA]'
+                      : 'hover:text-[#102A35] hover:bg-[#F6F5ED]'
+                  }`}
+                >
+                  <span>Feedback &amp; Issues</span>
+                </Link>
+              </>
+            )}
+          </nav>
+        )}
+
         {/* Right Action Menu */}
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2 sm:space-x-3">
           {user ? (
             /* Authenticated Actions */
             <div className="flex items-center space-x-2 sm:space-x-3">
@@ -222,15 +279,12 @@ export const Header: React.FC = () => {
                 <span className="text-[#102A35] font-semibold hidden sm:inline max-w-[130px] truncate">
                   {user.full_name}
                 </span>
-                <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-md bg-[#D7EFEB] text-[#07545A]">
-                  {user.role}
-                </span>
               </Link>
 
               <Link
                 to="/profile"
                 className="flex items-center space-x-1 text-xs font-medium text-[#52656B] hover:text-[#102A35] transition-colors px-2.5 py-1.5 rounded-lg hover:bg-[#F6F5ED]"
-                title="Profile Settings"
+                title="Profile &amp; Credibility"
               >
                 <User className="h-3.5 w-3.5" />
                 <span className="hidden md:inline">Profile</span>
@@ -248,20 +302,21 @@ export const Header: React.FC = () => {
             </div>
           ) : (
             /* Unauthenticated Visitor Actions */
-            <div className="flex items-center space-x-2.5 sm:space-x-3">
+            <div className="hidden md:flex items-center gap-2">
               <Link
                 to="/login"
-                className="text-xs sm:text-sm font-semibold text-[#102A35] hover:text-[#087C80] px-5 py-2.5 rounded-full border border-[#DCE7E3] bg-white hover:bg-[#F6F5ED] transition-colors shadow-2xs"
+                id="header-login-btn"
+                className="inline-flex items-center justify-center text-xs lg:text-sm font-semibold text-[#52656B] hover:text-[#102A35] px-3.5 py-2 rounded-full hover:bg-[#F6F5ED] transition-colors duration-150 cursor-pointer"
               >
-                Login
+                Log In
               </Link>
-
               <Link
                 to="/register"
-                className="inline-flex items-center space-x-2 text-xs sm:text-sm font-semibold px-5 py-2.5 rounded-full bg-[#07545A] hover:bg-[#087C80] text-white shadow-sm transition-all hover:shadow-md hover:shadow-[#087C80]/20"
+                id="header-register-btn"
+                className="group relative inline-flex items-center justify-center gap-1.5 text-xs lg:text-sm font-semibold text-white bg-gradient-to-r from-[#07545A] to-[#087C80] hover:from-[#087C80] hover:to-[#07545A] px-4.5 py-2 rounded-full shadow-xs hover:shadow-md hover:shadow-[#087C80]/20 border border-[#0B6B72]/30 active:scale-[0.98] transition-all duration-200 cursor-pointer"
               >
                 <span>Get Started</span>
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="w-3.5 h-3.5 text-[#5EEAD4] transition-transform duration-200 group-hover:translate-x-0.5" />
               </Link>
             </div>
           )}
@@ -283,48 +338,58 @@ export const Header: React.FC = () => {
         <div className="md:hidden border-t border-[#DCE7E3] bg-[#F6F5ED] px-4 pt-3 pb-6 space-y-3 animate-in slide-in-from-top-2 duration-150">
           {!user ? (
             <div className="flex flex-col space-y-1 text-sm font-medium text-[#102A35]">
-              <Link
-                to="/"
-                className="px-3 py-2 rounded-xl hover:bg-white transition-colors"
+              <button
+                type="button"
+                onClick={() => handleNav('home')}
+                className={`text-left px-3 py-2 rounded-xl transition-colors ${
+                  activeNav === 'home' ? 'bg-white font-bold text-[#07545A]' : 'hover:bg-white'
+                }`}
               >
                 Home
-              </Link>
-              <a
-                href="/#for-startups"
-                className="px-3 py-2 rounded-xl hover:bg-white transition-colors"
+              </button>
+              <button
+                type="button"
+                onClick={() => handleNav('startups')}
+                className={`text-left px-3 py-2 rounded-xl transition-colors ${
+                  activeNav === 'startups' ? 'bg-white font-bold text-[#07545A]' : 'hover:bg-white'
+                }`}
               >
-                For Startups
-              </a>
-              <a
-                href="/#for-testers"
-                className="px-3 py-2 rounded-xl hover:bg-white transition-colors"
+                <span>For Startups</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleNav('testers')}
+                className={`text-left px-3 py-2 rounded-xl transition-colors ${
+                  activeNav === 'testers' ? 'bg-white font-bold text-[#07545A]' : 'hover:bg-white'
+                }`}
               >
-                For Testers
-              </a>
-              <a
-                href="/#how-it-works"
-                className="px-3 py-2 rounded-xl hover:bg-white transition-colors"
+                <span>For Testers</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleNav('how-it-works')}
+                className={`text-left px-3 py-2 rounded-xl transition-colors ${
+                  activeNav === 'how-it-works' ? 'bg-white font-bold text-[#07545A]' : 'hover:bg-white'
+                }`}
               >
                 How It Works
-              </a>
-              <a
-                href="/#about"
-                className="px-3 py-2 rounded-xl hover:bg-white transition-colors"
-              >
-                About Us
-              </a>
-              <div className="pt-3 border-t border-[#DCE7E3] flex flex-col gap-2">
+              </button>
+
+              <div className="pt-3 border-t border-[#DCE7E3] grid grid-cols-2 gap-2.5">
                 <Link
                   to="/login"
-                  className="w-full text-center py-2.5 rounded-xl border border-[#DCE7E3] bg-white font-semibold text-xs text-[#102A35]"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full inline-flex items-center justify-center py-2.5 rounded-full text-xs font-semibold bg-white border border-[#DCE7E3] text-[#102A35] hover:bg-[#F6F5ED] transition-colors shadow-2xs"
                 >
-                  Sign In
+                  Log In
                 </Link>
                 <Link
                   to="/register"
-                  className="w-full text-center py-2.5 rounded-xl bg-[#087C80] text-white font-semibold text-xs shadow-sm"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full inline-flex items-center justify-center gap-1.5 py-2.5 rounded-full text-xs font-semibold bg-gradient-to-r from-[#07545A] to-[#087C80] text-white hover:shadow-xs transition-colors shadow-xs"
                 >
-                  Get Started
+                  <span>Get Started</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-[#5EEAD4]" />
                 </Link>
               </div>
             </div>
@@ -335,39 +400,32 @@ export const Header: React.FC = () => {
                 className="px-3 py-2 rounded-xl bg-white border border-[#DCE7E3] font-bold text-xs text-[#087C80] flex items-center justify-between"
               >
                 <span>My Workspace</span>
-                <span className="capitalize px-1.5 py-0.5 rounded bg-[#D7EFEB] text-[#07545A]">
-                  {user.role}
-                </span>
               </Link>
 
               {user.role === 'tester' && (
                 <>
                   <Link
                     to="/tester/discover"
-                    className="px-3 py-2 rounded-xl hover:bg-white text-xs font-semibold flex items-center space-x-2"
+                    className="px-3 py-2 rounded-xl hover:bg-white text-xs font-semibold block"
                   >
-                    <Compass className="h-4 w-4 text-[#087C80]" />
                     <span>Discover Campaigns</span>
                   </Link>
                   <Link
                     to="/tester/applications"
-                    className="px-3 py-2 rounded-xl hover:bg-white text-xs font-semibold flex items-center space-x-2"
+                    className="px-3 py-2 rounded-xl hover:bg-white text-xs font-semibold block"
                   >
-                    <FileCheck className="h-4 w-4 text-[#087C80]" />
                     <span>My Applications</span>
                   </Link>
                   <Link
                     to="/tester/tasks"
-                    className="px-3 py-2 rounded-xl hover:bg-white text-xs font-semibold flex items-center space-x-2"
+                    className="px-3 py-2 rounded-xl hover:bg-white text-xs font-semibold block"
                   >
-                    <CheckSquare className="h-4 w-4 text-[#087C80]" />
                     <span>Testing Tasks</span>
                   </Link>
                   <Link
                     to="/tester/feedback"
-                    className="px-3 py-2 rounded-xl hover:bg-white text-xs font-semibold flex items-center space-x-2"
+                    className="px-3 py-2 rounded-xl hover:bg-white text-xs font-semibold block"
                   >
-                    <MessageSquare className="h-4 w-4 text-[#087C80]" />
                     <span>Feedback Submissions</span>
                   </Link>
                 </>
@@ -377,23 +435,20 @@ export const Header: React.FC = () => {
                 <>
                   <Link
                     to="/founder/startups"
-                    className="px-3 py-2 rounded-xl hover:bg-white text-xs font-semibold flex items-center space-x-2"
+                    className="px-3 py-2 rounded-xl hover:bg-white text-xs font-semibold block"
                   >
-                    <Building2 className="h-4 w-4 text-[#087C80]" />
                     <span>My Startups</span>
                   </Link>
                   <Link
                     to="/founder/applications"
-                    className="px-3 py-2 rounded-xl hover:bg-white text-xs font-semibold flex items-center space-x-2"
+                    className="px-3 py-2 rounded-xl hover:bg-white text-xs font-semibold block"
                   >
-                    <Users2 className="h-4 w-4 text-[#087C80]" />
                     <span>Review Applicants</span>
                   </Link>
                   <Link
                     to="/founder/feedback"
-                    className="px-3 py-2 rounded-xl hover:bg-white text-xs font-semibold flex items-center space-x-2"
+                    className="px-3 py-2 rounded-xl hover:bg-white text-xs font-semibold block"
                   >
-                    <MessageSquare className="h-4 w-4 text-[#087C80]" />
                     <span>Feedback &amp; Issues</span>
                   </Link>
                 </>

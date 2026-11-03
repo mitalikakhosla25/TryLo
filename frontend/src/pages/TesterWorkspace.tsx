@@ -16,6 +16,8 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import type { TesterProfile } from '../api/profile';
+import { TesterTierBadge } from '../components/ui/VerificationBadge';
+import { TesterCredibilityHub } from '../components/tester/TesterCredibilityHub';
 
 export const TesterWorkspace: React.FC = () => {
   const { user, logout } = useAuth();
@@ -34,23 +36,18 @@ export const TesterWorkspace: React.FC = () => {
       <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-300">
         {/* Top Banner */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-[#DCE7E3]">
-          <div className="space-y-1">
-            <div className="flex items-center space-x-2">
-              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#D7EFEB] text-[#07545A] border border-[#BCE1DA] capitalize">
-                Tester Workspace
-              </span>
-              <span className="text-xs text-[#52656B]">&bull;</span>
-              <span className="text-xs text-emerald-700 flex items-center space-x-1 font-medium">
+          <div className="space-y-1.5">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#102A35] tracking-tight">
+              Welcome, {user?.full_name}
+            </h1>
+            <div className="flex items-center space-x-2 text-xs text-[#52656B]">
+              <span>Account Email: <span className="text-[#102A35] font-mono font-medium">{user?.email}</span></span>
+              <span>&bull;</span>
+              <span className="text-emerald-700 flex items-center space-x-1 font-medium">
                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
                 <span>Active Tester</span>
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#102A35] tracking-tight">
-              Welcome, {user?.full_name}
-            </h1>
-            <p className="text-xs text-[#52656B]">
-              Account Email: <span className="text-[#102A35] font-mono font-medium">{user?.email}</span>
-            </p>
           </div>
 
           <div className="flex items-center space-x-3">
@@ -82,7 +79,15 @@ export const TesterWorkspace: React.FC = () => {
                   <Sparkles className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-[#102A35]">Beta Tester Profile</h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-bold text-[#102A35]">Beta Tester Profile</h2>
+                    <TesterTierBadge
+                      tier={testerProfile.verification_tier || 1}
+                      rating={testerProfile.average_rating}
+                      reviewsCount={testerProfile.reviews_count}
+                      size="sm"
+                    />
+                  </div>
                   <p className="text-xs text-[#52656B]">
                     Level: <span className="text-[#07545A] font-bold">{testerProfile.experience_level || 'Intermediate'}</span>
                   </p>
@@ -181,6 +186,9 @@ export const TesterWorkspace: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Verified Tester Credibility Hub (Resume, Certifications, Endorsements, Employer Reviews) */}
+        <TesterCredibilityHub isOwner={true} />
 
         {/* Discover Campaigns CTA Card */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#07545A] to-[#087C80] p-6 sm:p-8 space-y-4 shadow-md text-white">

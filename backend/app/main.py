@@ -14,6 +14,8 @@ from app.api.campaigns import router as campaigns_router
 from app.api.applications import router as applications_router
 from app.api.tasks import router as tasks_router
 from app.api.feedback import router as feedback_router
+from app.api.startup_verification import router as startup_verification_router
+from app.api.tester_verification import router as tester_verification_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -62,6 +64,8 @@ app.include_router(campaigns_router)
 app.include_router(applications_router)
 app.include_router(tasks_router)
 app.include_router(feedback_router)
+app.include_router(startup_verification_router)
+app.include_router(tester_verification_router)
 
 
 @app.get("/")

@@ -13,6 +13,7 @@ import { usePublicCampaigns } from '../../context/useCampaigns';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { LoadingSpinner } from '../ui/FeedbackStates';
+import { StartupVerificationBadge } from '../ui/VerificationBadge';
 
 export const CampaignCarousel: React.FC = () => {
   const { data, isLoading, isError, refetch } = usePublicCampaigns({
@@ -201,9 +202,14 @@ export const CampaignCarousel: React.FC = () => {
               )}
               <div>
                 <span className="text-xs text-[#7E939B] block font-medium">Built by</span>
-                <span className="text-sm font-bold text-[#102A35]">
-                  {currentCampaign.startup_name}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-[#102A35]">
+                    {currentCampaign.startup_name}
+                  </span>
+                  {(currentCampaign.startup_is_verified || currentCampaign.startup?.is_verified) && (
+                    <StartupVerificationBadge isVerified={true} size="sm" />
+                  )}
+                </div>
               </div>
             </div>
 

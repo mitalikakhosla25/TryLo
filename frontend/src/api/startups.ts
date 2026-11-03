@@ -61,6 +61,8 @@ export interface Startup {
   state: string | null;
   country: string | null;
   founded_year: number | null;
+  is_verified?: boolean;
+  verification_status?: string;
   created_at: string;
   updated_at: string;
 }
@@ -79,6 +81,8 @@ export interface StartupPublic {
   state: string | null;
   country: string | null;
   founded_year: number | null;
+  is_verified?: boolean;
+  verification_status?: string;
   created_at: string;
   campaign_count?: number;
 }

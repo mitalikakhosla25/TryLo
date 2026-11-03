@@ -77,7 +77,14 @@ export function useSubmitApplication(campaignId: string) {
 
 export function useCampaignApplications(
   campaignId: string | undefined,
-  filters?: { status?: string; search?: string; page?: number; page_size?: number }
+  filters?: {
+    status?: string;
+    search?: string;
+    min_ats_score?: number;
+    sort_by?: string;
+    page?: number;
+    page_size?: number;
+  }
 ) {
   const { user } = useAuth();
   const isFounder = user?.role === 'founder';
@@ -92,7 +99,15 @@ export function useCampaignApplications(
 }
 
 export function useFounderApplications(
-  filters?: { status?: string; campaign_id?: string; search?: string; page?: number; page_size?: number }
+  filters?: {
+    status?: string;
+    campaign_id?: string;
+    search?: string;
+    min_ats_score?: number;
+    sort_by?: string;
+    page?: number;
+    page_size?: number;
+  }
 ) {
   const { user } = useAuth();
   const isFounder = user?.role === 'founder';

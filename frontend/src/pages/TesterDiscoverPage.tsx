@@ -19,6 +19,7 @@ import {
 import { usePublicCampaigns } from '../context/useCampaigns';
 import { useMyApplications } from '../context/useApplications';
 import type { PublicCampaignFilters, CampaignPublic } from '../api/campaigns';
+import { StartupVerificationBadge } from '../components/ui/VerificationBadge';
 
 const CATEGORY_OPTIONS = [
   'All Categories',
@@ -158,10 +159,6 @@ export const TesterDiscoverPage: React.FC = () => {
         {/* Header Banner */}
         <div className="relative overflow-hidden rounded-3xl bg-white border border-[#DCE7E3] p-6 sm:p-10 shadow-xs">
           <div className="relative z-10 space-y-3 max-w-2xl">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-semibold bg-[#D7EFEB] text-[#07545A] border border-[#BCE1DA]">
-              <Sparkles className="h-3.5 w-3.5 text-[#07545A]" />
-              <span>Discover Early Beta Opportunities</span>
-            </div>
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#102A35]">
               Find Products to Test &amp; Shape
             </h1>
@@ -561,9 +558,14 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, isApplied }) => {
             </div>
           )}
           <div>
-            <h4 className="text-xs font-bold text-[#102A35] group-hover:text-[#07545A] transition-colors line-clamp-1">
-              {campaign.startup_name}
-            </h4>
+            <div className="flex items-center gap-1.5">
+              <h4 className="text-xs font-bold text-[#102A35] group-hover:text-[#07545A] transition-colors line-clamp-1">
+                {campaign.startup_name}
+              </h4>
+              {(campaign.startup_is_verified || campaign.startup?.is_verified) && (
+                <StartupVerificationBadge isVerified={true} size="sm" />
+              )}
+            </div>
             <span className="text-[11px] text-[#52656B]">
               {campaign.product_type || 'Software Product'}
             </span>

@@ -25,6 +25,8 @@ import {
   Sparkles,
 } from 'lucide-react';
 import type { FounderApplicationItem } from '../api/applications';
+import { TesterTierBadge } from '../components/ui/VerificationBadge';
+import { TesterCredibilityHub } from '../components/tester/TesterCredibilityHub';
 
 export const CampaignApplicationsPage: React.FC = () => {
   const { campaignId } = useParams<{ campaignId: string }>();
@@ -34,9 +36,12 @@ export const CampaignApplicationsPage: React.FC = () => {
 
   const [filter, setFilter] = useState<'all' | 'pending' | 'accepted' | 'rejected'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [minAtsScore, setMinAtsScore] = useState<number | undefined>(undefined);
+  const [sortBy, setSortBy] = useState<string>('created_desc');
   const [expandedAppId, setExpandedAppId] = useState<string | null>(null);
 
   // Modals state
+  const [inspectTesterId, setInspectTesterId] = useState<string | null>(null);
   const [acceptModalApp, setAcceptModalApp] = useState<FounderApplicationItem | null>(null);
   const [rejectModalApp, setRejectModalApp] = useState<FounderApplicationItem | null>(null);
   const [rejectionNote, setRejectionNote] = useState('');
@@ -52,6 +57,8 @@ export const CampaignApplicationsPage: React.FC = () => {
   } = useCampaignApplications(campaignId, {
     status: filter,
     search: searchQuery || undefined,
+    min_ats_score: minAtsScore,
+    sort_by: sortBy,
   });
 
   const acceptMutation = useAcceptApplication(campaignId);
@@ -155,13 +162,10 @@ export const CampaignApplicationsPage: React.FC = () => {
               <span className="text-[#087C80] font-semibold">Applications</span>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 pt-1">
+            <div className="pt-1">
               <h1 className="text-2xl sm:text-3xl font-extrabold text-[#102A35] tracking-tight">
                 Review Tester Applications
               </h1>
-              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#D7EFEB] text-[#07545A] border border-[#BCE1DA]">
-                {campaign?.title || 'Campaign'}
-              </span>
             </div>
             <p className="text-xs sm:text-sm text-[#52656B]">
               Inspect applicant profiles and screening responses, accept qualified testers within capacity, and manage selection decisions.
@@ -341,6 +345,72 @@ export const CampaignApplicationsPage: React.FC = () => {
           </div>
         </div>
 
+        {/* ATS Score Filter & Sort Toolbar */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-white border border-[#DCE7E3]">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-bold text-[#102A35] mr-1">
+              LaTeX ATS Score Filter:
+            </span>
+            <button
+              type="button"
+              onClick={() => setMinAtsScore(undefined)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                minAtsScore === undefined
+                  ? 'bg-[#07545A] text-white shadow-2xs'
+                  : 'bg-[#F6F5ED] text-[#52656B] hover:text-[#102A35]'
+              }`}
+            >
+              All Scores
+            </button>
+            <button
+              type="button"
+              onClick={() => setMinAtsScore(90)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                minAtsScore === 90
+                  ? 'bg-emerald-600 text-white shadow-2xs'
+                  : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
+              }`}
+            >
+              90+ Elite (Top 5%)
+            </button>
+            <button
+              type="button"
+              onClick={() => setMinAtsScore(80)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                minAtsScore === 80
+                  ? 'bg-[#087C80] text-white shadow-2xs'
+                  : 'bg-[#D7EFEB] text-[#07545A] border border-[#BCE1DA] hover:bg-[#c9eae4]'
+              }`}
+            >
+              80+ Strong QA
+            </button>
+            <button
+              type="button"
+              onClick={() => setMinAtsScore(70)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                minAtsScore === 70
+                  ? 'bg-blue-600 text-white shadow-2xs'
+                  : 'bg-blue-50 text-blue-800 border border-blue-200 hover:bg-blue-100'
+              }`}
+            >
+              70+ Qualified
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-[#52656B] shrink-0">Sort:</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="text-xs px-3 py-1.5 rounded-xl border border-[#DCE7E3] bg-[#F6F5ED] text-[#102A35] font-semibold focus:outline-none focus:border-[#087C80] cursor-pointer"
+            >
+              <option value="created_desc">Newest Applicants First</option>
+              <option value="ats_desc">Highest ATS Score First (LaTeX Verified)</option>
+              <option value="created_asc">Oldest Applicants First</option>
+            </select>
+          </div>
+        </div>
+
         {/* Loading Skeleton */}
         {isLoading && (
           <div className="space-y-4">
@@ -426,6 +496,33 @@ export const CampaignApplicationsPage: React.FC = () => {
                           <h2 className="text-base sm:text-lg font-bold text-[#102A35]">
                             {tester.full_name}
                           </h2>
+                          <TesterTierBadge
+                            tier={tester.verification_tier || 1}
+                            rating={tester.average_rating}
+                            reviewsCount={tester.reviews_count}
+                            size="sm"
+                          />
+                          {tester.ats_score !== undefined && tester.ats_score !== null && (
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border shadow-2xs ${
+                                tester.ats_score >= 90
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                  : tester.ats_score >= 80
+                                  ? 'bg-[#D7EFEB] text-[#07545A] border-[#BCE1DA]'
+                                  : tester.ats_score >= 70
+                                  ? 'bg-blue-50 text-blue-800 border-blue-200'
+                                  : 'bg-stone-100 text-stone-700 border-stone-300'
+                              }`}
+                              title="ATS Score automatically evaluated from verified LaTeX resume source"
+                            >
+                              <span>ATS: {tester.ats_score}/100</span>
+                              {tester.is_latex_verified && (
+                                <span className="text-[9px] uppercase tracking-wider font-extrabold px-1 py-0.2 rounded bg-black/10">
+                                  LaTeX
+                                </span>
+                              )}
+                            </span>
+                          )}
                           {tester.experience_level && (
                             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#EFEFE5] text-[#102A35] border border-[#DCE7E3]">
                               {tester.experience_level}
@@ -436,6 +533,13 @@ export const CampaignApplicationsPage: React.FC = () => {
                               {[tester.city, tester.country].filter(Boolean).join(', ')}
                             </span>
                           )}
+                          <button
+                            type="button"
+                            onClick={() => setInspectTesterId(app.tester_id)}
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-[#087C80] hover:text-[#07545A] underline ml-1 cursor-pointer"
+                          >
+                            <span>Inspect Credentials & Resume</span>
+                          </button>
                         </div>
 
                         <div className="flex items-center space-x-2 text-xs text-[#52656B]">
@@ -608,10 +712,19 @@ export const CampaignApplicationsPage: React.FC = () => {
                     )}
 
                     {isAccepted && (
-                      <span className="text-xs text-[#0E7C57] font-semibold inline-flex items-center space-x-1">
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        <span>Product Access Instructions Granted</span>
-                      </span>
+                      <div className="flex items-center space-x-3">
+                        <span className="text-xs text-[#0E7C57] font-semibold inline-flex items-center space-x-1">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          <span>Product Access Instructions Granted</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setInspectTesterId(app.tester_id)}
+                          className="px-3 py-1 rounded-full text-xs font-semibold bg-[#D7EFEB] text-[#07545A] hover:bg-[#BCE1DA] transition-colors"
+                        >
+                          Rate / Endorse Tester
+                        </button>
+                      </div>
                     )}
 
                     {isRejected && (
@@ -746,6 +859,29 @@ export const CampaignApplicationsPage: React.FC = () => {
                   )}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Inspect Tester Credentials Modal */}
+        {inspectTesterId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in">
+            <div className="bg-[#F6F5ED] rounded-3xl max-w-3xl w-full p-6 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between pb-2 border-b border-[#DCE7E3]">
+                <h3 className="text-base font-bold text-[#102A35]">Applicant Verification & Credibility</h3>
+                <button
+                  type="button"
+                  onClick={() => setInspectTesterId(null)}
+                  className="p-1 rounded-lg text-[#52656B] hover:bg-[#EFEFE5]"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <TesterCredibilityHub
+                testerId={inspectTesterId}
+                isOwner={false}
+                onUpdated={() => refetch()}
+              />
             </div>
           </div>
         )}

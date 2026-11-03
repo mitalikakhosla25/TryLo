@@ -15,13 +15,24 @@ import {
   X,
   Plus,
   Sparkles,
+  Star,
+  ThumbsUp,
+  Award,
 } from 'lucide-react';
+import { useAuth } from '../context/useAuth';
 import {
   useFounderFeedbackDetail,
   useUpdateFeedbackStatus,
   useAddFeedbackInternalNote,
 } from '../context/useFeedback';
 import type { FeedbackStatus } from '../api/tasks';
+import { TesterTierBadge } from '../components/ui/VerificationBadge';
+import { TesterCredibilityHub } from '../components/tester/TesterCredibilityHub';
+import {
+  endorseTesterSkill,
+  createTesterReview,
+  TESTER_SPECIALIZATIONS,
+} from '../api/verification';
 
 export const FounderFeedbackDetailPage: React.FC = () => {
   const { feedbackId } = useParams<{ feedbackId: string }>();
@@ -48,6 +59,76 @@ export const FounderFeedbackDetailPage: React.FC = () => {
   // Internal Note form state
   const [noteBody, setNoteBody] = useState('');
   const [noteError, setNoteError] = useState<string | null>(null);
+
+  // Tester Credibility & Endorsement State
+  const { user } = useAuth();
+  const [inspectTesterId, setInspectTesterId] = useState<string | null>(null);
+  const [showEndorseModal, setShowEndorseModal] = useState<boolean>(false);
+  const [showReviewModal, setShowReviewModal] = useState<boolean>(false);
+  const [endorseSkill, setEndorseSkill] = useState<string>('Functional Testing');
+  const [endorseNote, setEndorseNote] = useState<string>('');
+  const [endorseLoading, setEndorseLoading] = useState<boolean>(false);
+  const [revOverall, setRevOverall] = useState<number>(5);
+  const [revThoroughness, setRevThoroughness] = useState<number>(5);
+  const [revResponsiveness, setRevResponsiveness] = useState<number>(5);
+  const [revQuality, setRevQuality] = useState<number>(5);
+  const [revScope, setRevScope] = useState<string>('');
+  const [revText, setRevText] = useState<string>('');
+  const [reviewLoading, setReviewLoading] = useState<boolean>(false);
+  const [credibilityMsg, setCredibilityMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  const handleEndorseTester = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!feedback?.tester_id || !endorseSkill) return;
+    setEndorseLoading(true);
+    setCredibilityMsg(null);
+    try {
+      await endorseTesterSkill(feedback.tester_id, {
+        skill_name: endorseSkill,
+        endorsement_note: endorseNote.trim() || undefined,
+      });
+      setCredibilityMsg({ text: `Successfully endorsed ${feedback.tester_name} for ${endorseSkill}!`, type: 'success' });
+      setShowEndorseModal(false);
+      setEndorseNote('');
+      refetch();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to endorse tester.';
+      setCredibilityMsg({ text: msg, type: 'error' });
+    } finally {
+      setEndorseLoading(false);
+    }
+  };
+
+  const handleCreateReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!feedback?.tester_id || !feedback?.campaign_id) return;
+    setReviewLoading(true);
+    setCredibilityMsg(null);
+    try {
+      await createTesterReview(feedback.tester_id, {
+        campaign_id: feedback.campaign_id,
+        reviewer_name: user?.full_name || 'Founder',
+        reviewer_title: 'Product Founder',
+        company_name: feedback.startup_name || 'Startup Founder',
+        overall_rating: revOverall,
+        thoroughness_rating: revThoroughness,
+        responsiveness_rating: revResponsiveness,
+        bug_report_quality_rating: revQuality,
+        review_text: revText.trim() || 'Verified quality testing and bug reports on TryLo.',
+        project_scope: revScope.trim() || `${feedback.campaign_title} Beta Test`,
+      });
+      setCredibilityMsg({ text: `Official performance review published for ${feedback.tester_name}!`, type: 'success' });
+      setShowReviewModal(false);
+      setRevText('');
+      setRevScope('');
+      refetch();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to submit review.';
+      setCredibilityMsg({ text: msg, type: 'error' });
+    } finally {
+      setReviewLoading(false);
+    }
+  };
 
   const handleOpenRetestModal = () => {
     setActionError(null);
@@ -272,11 +353,24 @@ export const FounderFeedbackDetailPage: React.FC = () => {
               )}
               <span>&bull;</span>
               <span>Tester: <strong className="text-[#102A35]">{feedback.tester_name}</strong></span>
+              <TesterTierBadge
+                tier={feedback.tester_verification_tier || 1}
+                rating={feedback.tester_average_rating}
+                reviewsCount={feedback.tester_reviews_count}
+                size="sm"
+              />
               {feedback.tester_experience_level && (
                 <span className="px-2 py-0.5 rounded-full bg-[#EFEFE5] text-[10px] text-[#07545A] border border-[#DCE7E3]">
                   {feedback.tester_experience_level}
                 </span>
               )}
+              <button
+                type="button"
+                onClick={() => setInspectTesterId(feedback.tester_id)}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#087C80] hover:text-[#07545A] underline ml-1 cursor-pointer"
+              >
+                <span>Inspect Credentials & Resume</span>
+              </button>
             </div>
           </div>
 
@@ -556,6 +650,92 @@ export const FounderFeedbackDetailPage: React.FC = () => {
           </div>
           <p className="text-xs text-[#52656B] leading-relaxed">
             Automated root cause clustering, error categorization, and duplicate detection are coming soon. Current feedback review is conducted directly by founders.
+          </p>
+        </div>
+
+        {/* Tester Credibility & Recognition Card */}
+        <div className="rounded-3xl bg-white border border-[#DCE7E3] p-6 sm:p-7 space-y-4 shadow-sm">
+          {credibilityMsg && (
+            <div
+              className={`p-3.5 rounded-2xl text-xs flex items-center justify-between gap-2 ${
+                credibilityMsg.type === 'success'
+                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                  : 'bg-rose-50 text-rose-800 border border-rose-200'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                {credibilityMsg.type === 'success' ? (
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
+                )}
+                <span>{credibilityMsg.text}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCredibilityMsg(null)}
+                className="text-xs hover:opacity-75"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-[#DCE7E3]">
+            <div className="flex items-center space-x-3.5">
+              <div className="h-11 w-11 rounded-2xl bg-[#D7EFEB] border border-[#BCE1DA] flex items-center justify-center text-[#087C80] font-bold text-sm shrink-0">
+                {feedback.tester_name ? feedback.tester_name.slice(0, 2).toUpperCase() : 'TT'}
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-base font-bold text-[#102A35]">{feedback.tester_name}</h3>
+                  <TesterTierBadge
+                    tier={feedback.tester_verification_tier || 1}
+                    rating={feedback.tester_average_rating}
+                    reviewsCount={feedback.tester_reviews_count}
+                    size="sm"
+                  />
+                  {feedback.tester_experience_level && (
+                    <span className="px-2 py-0.5 rounded-full bg-[#EFEFE5] text-[10px] text-[#07545A] border border-[#DCE7E3]">
+                      {feedback.tester_experience_level}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-[#52656B]">
+                  Submitting Beta Tester on <span className="font-semibold text-[#102A35]">{feedback.campaign_title}</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowEndorseModal(true)}
+                className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-[#F6F5ED] hover:bg-[#EFEFE5] text-[#07545A] border border-[#DCE7E3] transition-colors cursor-pointer"
+              >
+                <ThumbsUp className="h-3.5 w-3.5" />
+                <span>Endorse Skill</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowReviewModal(true)}
+                className="inline-flex items-center space-x-1.5 px-4 py-1.5 rounded-full text-xs font-semibold bg-[#07545A] hover:bg-[#087C80] text-white transition-colors shadow-xs cursor-pointer"
+              >
+                <Star className="h-3.5 w-3.5" />
+                <span>Leave Official Review</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setInspectTesterId(feedback.tester_id)}
+                className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold text-[#52656B] hover:text-[#102A35] border border-[#DCE7E3] bg-white transition-colors cursor-pointer"
+              >
+                <Award className="h-3.5 w-3.5 text-[#087C80]" />
+                <span>Credentials</span>
+              </button>
+            </div>
+          </div>
+          <p className="text-xs text-[#52656B] leading-relaxed">
+            High-caliber bug reports deserve recognition. Founders can endorse specialized testing proficiencies or publish verified employer reviews that advance this tester's standing across TryLo.
           </p>
         </div>
 
@@ -846,6 +1026,242 @@ export const FounderFeedbackDetailPage: React.FC = () => {
                   {statusMutation.isPending ? <span>Reopening...</span> : <span>Confirm &amp; Reopen</span>}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+        {/* Inspect Tester Credentials Modal */}
+        {inspectTesterId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in">
+            <div className="bg-[#F6F5ED] rounded-3xl max-w-4xl w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto border border-[#DCE7E3]">
+              <div className="flex items-center justify-between pb-2 border-b border-[#DCE7E3]">
+                <h3 className="text-base font-bold text-[#102A35]">Tester Credentials, Certifications &amp; Reviews</h3>
+                <button
+                  type="button"
+                  onClick={() => setInspectTesterId(null)}
+                  className="p-1 rounded-lg text-[#52656B] hover:bg-[#EFEFE5]"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <TesterCredibilityHub
+                testerId={inspectTesterId}
+                isOwner={false}
+                onUpdated={() => refetch()}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Endorse Tester Modal */}
+        {showEndorseModal && (
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-white border border-[#DCE7E3] rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+              <div className="flex items-center justify-between pb-2 border-b border-[#DCE7E3]">
+                <div className="flex items-center space-x-2 text-[#087C80]">
+                  <ThumbsUp className="h-5 w-5" />
+                  <h3 className="text-base font-bold text-[#102A35]">Endorse Tester Skill</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowEndorseModal(false)}
+                  className="text-[#52656B] hover:text-[#102A35]"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <p className="text-xs text-[#52656B]">
+                Recognize {feedback.tester_name}&apos;s proficiency based on the thoroughness of this bug report or test run.
+              </p>
+
+              <form onSubmit={handleEndorseTester} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-[#102A35] block">
+                    Skill to Endorse <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={endorseSkill}
+                    onChange={(e) => setEndorseSkill(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-white border border-[#DCE7E3] text-xs text-[#102A35] focus:outline-none focus:border-[#087C80]"
+                  >
+                    {TESTER_SPECIALIZATIONS.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-[#102A35] block">
+                    Endorsement Praise / Note (Optional):
+                  </label>
+                  <textarea
+                    value={endorseNote}
+                    onChange={(e) => setEndorseNote(e.target.value)}
+                    placeholder="E.g., 'Consistently provides clear network traces and reproducible steps on complex flows.'"
+                    rows={3}
+                    maxLength={500}
+                    className="w-full p-3 rounded-xl bg-white border border-[#DCE7E3] text-xs text-[#102A35] placeholder-[#52656B]/60 focus:outline-none focus:border-[#087C80]"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end space-x-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowEndorseModal(false)}
+                    disabled={endorseLoading}
+                    className="px-4 py-2 rounded-full text-xs font-semibold bg-[#EFEFE5] hover:bg-[#DCE7E3] text-[#102A35]"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={endorseLoading}
+                    className="px-5 py-2 rounded-full text-xs font-semibold bg-[#07545A] hover:bg-[#087C80] text-white shadow-xs"
+                  >
+                    {endorseLoading ? 'Submitting...' : 'Confirm Endorsement'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Leave Official Performance Review Modal */}
+        {showReviewModal && (
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-white border border-[#DCE7E3] rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between pb-2 border-b border-[#DCE7E3]">
+                <div className="flex items-center space-x-2 text-[#087C80]">
+                  <Star className="h-5 w-5 fill-[#FFC928] text-[#FFC928]" />
+                  <h3 className="text-base font-bold text-[#102A35]">Official Employer Review</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowReviewModal(false)}
+                  className="text-[#52656B] hover:text-[#102A35]"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <p className="text-xs text-[#52656B]">
+                Publish a verified performance rating for {feedback.tester_name}. This review will be permanently attached to their verified TryLo credibility profile.
+              </p>
+
+              <form onSubmit={handleCreateReview} className="space-y-4">
+                {/* Overall Rating Stars */}
+                <div className="space-y-1.5 p-3.5 rounded-2xl bg-[#F6F5ED] border border-[#DCE7E3]">
+                  <span className="text-xs font-bold text-[#102A35] block">Overall Rating (1 - 5 Stars):</span>
+                  <div className="flex items-center space-x-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setRevOverall(star)}
+                        className="p-1 hover:scale-110 transition-transform cursor-pointer"
+                      >
+                        <Star
+                          className={`h-6 w-6 ${
+                            star <= revOverall
+                              ? 'fill-[#FFC928] text-[#FFC928]'
+                              : 'text-[#DCE7E3] fill-[#EFEFE5]'
+                          }`}
+                        />
+                      </button>
+                    ))}
+                    <span className="text-xs font-bold text-[#102A35] ml-2">{revOverall}.0 / 5.0</span>
+                  </div>
+                </div>
+
+                {/* Sub-metrics */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1 text-xs">
+                    <label className="font-semibold text-[#52656B] block">Thoroughness</label>
+                    <select
+                      value={revThoroughness}
+                      onChange={(e) => setRevThoroughness(Number(e.target.value))}
+                      className="w-full p-2 rounded-xl bg-white border border-[#DCE7E3] text-xs font-medium"
+                    >
+                      {[5, 4, 3, 2, 1].map((n) => (
+                        <option key={n} value={n}>{n} Stars</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1 text-xs">
+                    <label className="font-semibold text-[#52656B] block">Responsiveness</label>
+                    <select
+                      value={revResponsiveness}
+                      onChange={(e) => setRevResponsiveness(Number(e.target.value))}
+                      className="w-full p-2 rounded-xl bg-white border border-[#DCE7E3] text-xs font-medium"
+                    >
+                      {[5, 4, 3, 2, 1].map((n) => (
+                        <option key={n} value={n}>{n} Stars</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1 text-xs">
+                    <label className="font-semibold text-[#52656B] block">Bug Quality</label>
+                    <select
+                      value={revQuality}
+                      onChange={(e) => setRevQuality(Number(e.target.value))}
+                      className="w-full p-2 rounded-xl bg-white border border-[#DCE7E3] text-xs font-medium"
+                    >
+                      {[5, 4, 3, 2, 1].map((n) => (
+                        <option key={n} value={n}>{n} Stars</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Project Scope */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-[#102A35] block">
+                    Testing Scope / Campaign Name:
+                  </label>
+                  <input
+                    type="text"
+                    value={revScope}
+                    onChange={(e) => setRevScope(e.target.value)}
+                    placeholder={feedback.campaign_title || 'Beta Campaign Testing'}
+                    className="w-full p-2.5 rounded-xl bg-white border border-[#DCE7E3] text-xs text-[#102A35] focus:outline-none focus:border-[#087C80]"
+                  />
+                </div>
+
+                {/* Review Text */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-[#102A35] block">
+                    Written Testimonial / Performance Review:
+                  </label>
+                  <textarea
+                    value={revText}
+                    onChange={(e) => setRevText(e.target.value)}
+                    placeholder="E.g., 'Outstanding bug documentation with clear reproduction logs and payload traces. Saved our engineering team days of debugging.'"
+                    rows={3}
+                    maxLength={1500}
+                    className="w-full p-3 rounded-xl bg-white border border-[#DCE7E3] text-xs text-[#102A35] placeholder-[#52656B]/60 focus:outline-none focus:border-[#087C80]"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end space-x-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowReviewModal(false)}
+                    disabled={reviewLoading}
+                    className="px-4 py-2 rounded-full text-xs font-semibold bg-[#EFEFE5] hover:bg-[#DCE7E3] text-[#102A35]"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={reviewLoading}
+                    className="px-5 py-2 rounded-full text-xs font-semibold bg-[#07545A] hover:bg-[#087C80] text-white shadow-xs"
+                  >
+                    {reviewLoading ? 'Publishing Review...' : 'Publish Verified Review'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}

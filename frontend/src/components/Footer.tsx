@@ -136,7 +136,7 @@ export const Footer: React.FC = () => {
               </li>
               <li>
                 <Link to="/login" className="hover:text-[#087C80] transition-colors">
-                  Sign In
+                  Log In
                 </Link>
               </li>
               <li>

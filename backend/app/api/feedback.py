@@ -116,6 +116,8 @@ def submit_campaign_feedback(
         reproduction_steps=payload.reproduction_steps,
         severity=payload.severity,
         status=FEEDBACK_STATUS_SUBMITTED,
+        device_info=payload.device_info,
+        attachments=payload.attachments or [],
         created_at=now,
         updated_at=now,
     )
@@ -152,6 +154,8 @@ def submit_campaign_feedback(
         status=submission.status,
         retest_instructions=submission.retest_instructions,
         resolution_notes=submission.resolution_notes,
+        device_info=submission.device_info,
+        attachments=submission.attachments or [],
         created_at=submission.created_at,
         updated_at=submission.updated_at,
     )
@@ -288,6 +292,8 @@ def get_feedback_submission(
         status=submission.status,
         retest_instructions=submission.retest_instructions,
         resolution_notes=submission.resolution_notes,
+        device_info=submission.device_info,
+        attachments=submission.attachments or [],
         created_at=submission.created_at,
         updated_at=submission.updated_at,
     )
@@ -481,6 +487,21 @@ def get_founder_feedback_detail(
         if (tester and tester.tester_profile)
         else None
     )
+    tester_tier = (
+        tester.tester_profile.verification_tier
+        if (tester and tester.tester_profile)
+        else 1
+    )
+    tester_avg_rating = (
+        tester.tester_profile.average_rating
+        if (tester and tester.tester_profile)
+        else None
+    )
+    tester_reviews_count = (
+        tester.tester_profile.reviews_count
+        if (tester and tester.tester_profile)
+        else None
+    )
 
     notes_response = [
         FeedbackInternalNoteResponse(
@@ -519,6 +540,9 @@ def get_founder_feedback_detail(
         tester_id=submission.tester_id,
         tester_name=tester.full_name if tester else "Tester",
         tester_experience_level=tester_exp,
+        tester_verification_tier=tester_tier,
+        tester_average_rating=tester_avg_rating,
+        tester_reviews_count=tester_reviews_count,
         task_id=submission.task_id,
         task_title=task_title,
         task_description=task_desc,
@@ -533,6 +557,8 @@ def get_founder_feedback_detail(
         status=submission.status,
         retest_instructions=submission.retest_instructions,
         resolution_notes=submission.resolution_notes,
+        device_info=submission.device_info,
+        attachments=submission.attachments or [],
         created_at=submission.created_at,
         updated_at=submission.updated_at,
         internal_notes=notes_response,

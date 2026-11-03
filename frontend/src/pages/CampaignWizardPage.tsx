@@ -21,6 +21,8 @@ import {
   Send,
   Save,
   HelpCircle,
+  ShieldCheck,
+  ExternalLink,
 } from 'lucide-react';
 import type {
   Campaign,
@@ -104,7 +106,7 @@ const CampaignWizardForm: React.FC<CampaignWizardFormProps> = ({
           {
             id: 'task-1',
             title: 'Initial onboarding and exploration',
-            description: 'Sign up and explore core workflow. Record any friction or confusing UI.',
+            description: 'Create an account and explore core workflow. Record any friction or confusing UI.',
             is_required: true,
             order: 1,
           },
@@ -1478,6 +1480,53 @@ const CampaignWizardForm: React.FC<CampaignWizardFormProps> = ({
                       : 'No instructions entered yet. Required before publication.'}
                   </p>
                 </div>
+
+                {/* Anti-Shell Startup Verification Trust Banner */}
+                {selectedStartup?.is_verified ? (
+                  <div className="p-4 rounded-2xl bg-[#E6F7F0] border border-[#B6EDD5] flex items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center space-x-2.5">
+                      <div className="h-8 w-8 rounded-xl bg-[#0E7C57] text-white flex items-center justify-center font-bold shrink-0">
+                        <ShieldCheck className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <div className="font-bold text-[#0E7C57] flex items-center gap-1.5">
+                          <span>Verified Business Status</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-white text-[#0E7C57] border border-[#B6EDD5] font-semibold">
+                            Anti-Shell Cleared
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[#52656B]">
+                          {selectedStartup.name} is a verified legal business entity. This campaign is cleared for public testing.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-2xl bg-[#FEF3C7]/80 border border-[#FDE68A] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                    <div className="flex items-start space-x-2.5">
+                      <div className="h-8 w-8 rounded-xl bg-[#F59E0B] text-white flex items-center justify-center font-bold shrink-0 mt-0.5">
+                        <AlertCircle className="h-4 w-4" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <span className="font-bold text-[#92400E]">
+                          Business Verification Proof Recommended
+                        </span>
+                        <p className="text-[11px] text-[#92400E]/90">
+                          To protect testers against shell entities, approved legal documentation (CIN/GSTIN/Incorporation proof) is required before campaigns become publicly visible. You can save your draft at any time.
+                        </p>
+                      </div>
+                    </div>
+                    {selectedStartup && (
+                      <Link
+                        to={`/founder/startups/${selectedStartup.id}/edit`}
+                        className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-[#FDE68A] text-[#92400E] font-semibold text-xs hover:bg-amber-50 transition-colors shadow-2xs"
+                      >
+                        <span>Verify Startup</span>
+                        <ExternalLink className="h-3 w-3" />
+                      </Link>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Action Bar */}

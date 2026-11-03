@@ -29,18 +29,42 @@ def get_engine() -> Optional[Engine]:
 
     try:
         connect_args: Dict[str, Any] = {}
-        # Psycopg 3 accepts connect_timeout in seconds
-        if settings.DB_TIMEOUT_SECONDS > 0:
-            connect_args["connect_timeout"] = settings.DB_TIMEOUT_SECONDS
+        if settings.SQLALCHEMY_DATABASE_URI.startswith("sqlite"):
+            connect_args["check_same_thread"] = False
+            connect_args["timeout"] = 10.0
+            _engine = create_engine(
+                settings.SQLALCHEMY_DATABASE_URI,
+                connect_args=connect_args,
+            )
 
-        _engine = create_engine(
-            settings.SQLALCHEMY_DATABASE_URI,
-            pool_pre_ping=True,
-            pool_size=5,
-            max_overflow=10,
-            pool_timeout=10,
-            connect_args=connect_args,
-        )
+            # Enforce SQLite foreign keys, enable WAL journal mode and busy timeout for concurrent safety
+            from sqlalchemy import event
+
+            @event.listens_for(_engine, "connect")
+            def set_sqlite_pragma(dbapi_connection, connection_record):
+                cursor = dbapi_connection.cursor()
+                cursor.execute("PRAGMA foreign_keys=ON")
+                cursor.execute("PRAGMA journal_mode=WAL")
+                cursor.execute("PRAGMA synchronous=NORMAL")
+                cursor.execute("PRAGMA busy_timeout=5000")
+                cursor.close()
+
+            from app.db.base import Base
+            import app.models  # noqa: F401
+            Base.metadata.create_all(bind=_engine)
+        else:
+            # Psycopg 3 accepts connect_timeout in seconds
+            if settings.DB_TIMEOUT_SECONDS > 0:
+                connect_args["connect_timeout"] = settings.DB_TIMEOUT_SECONDS
+
+            _engine = create_engine(
+                settings.SQLALCHEMY_DATABASE_URI,
+                pool_pre_ping=True,
+                pool_size=5,
+                max_overflow=10,
+                pool_timeout=10,
+                connect_args=connect_args,
+            )
         _SessionFactory = sessionmaker(autocommit=False, autoflush=False, bind=_engine)
         logger.info("SQLAlchemy engine initialized successfully.")
         return _engine

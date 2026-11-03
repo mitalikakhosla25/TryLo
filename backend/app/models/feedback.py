@@ -2,11 +2,16 @@
 
 import uuid
 from datetime import datetime, timezone
-from typing import Optional, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+# JSON types that seamlessly fall back to sa.JSON on SQLite
+JsonStructureType = postgresql.JSONB().with_variant(sa.JSON(), "sqlite")
+JsonListType = postgresql.JSONB().with_variant(sa.JSON(), "sqlite")
 
 if TYPE_CHECKING:
     from app.models.campaign import Campaign
@@ -64,6 +69,8 @@ class FeedbackSubmission(Base):
             "status IN ('submitted', 'in_review', 'resolved', 'needs_retest')",
             name="check_valid_feedback_status",
         ),
+        sa.Index("ix_feedback_submissions_camp_status", "campaign_id", "status"),
+        sa.Index("ix_feedback_submissions_camp_type", "campaign_id", "feedback_type"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -131,6 +138,15 @@ class FeedbackSubmission(Base):
     resolution_notes: Mapped[Optional[str]] = mapped_column(
         sa.Text,
         nullable=True,
+    )
+    device_info: Mapped[Optional[dict]] = mapped_column(
+        JsonStructureType,
+        nullable=True,
+    )
+    attachments: Mapped[List[str]] = mapped_column(
+        JsonListType,
+        nullable=False,
+        default=list,
     )
     created_at: Mapped[datetime] = mapped_column(
         sa.DateTime(timezone=True),

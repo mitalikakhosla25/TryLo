@@ -22,6 +22,7 @@ import {
   Gift,
 } from 'lucide-react';
 import { StartupAvatar } from '../components/ui/StartupAvatar';
+import { StartupVerificationBadge } from '../components/ui/VerificationBadge';
 
 export const PublicStartupPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -103,6 +104,12 @@ export const PublicStartupPage: React.FC = () => {
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-[#102A35]">
                   {startup.name}
                 </h1>
+                <StartupVerificationBadge
+                  isVerified={startup.is_verified}
+                  status={startup.verification_status}
+                  size="md"
+                  showDetails
+                />
                 {startup.company_stage && (
                   <Badge variant="aqua" size="sm">
                     {startup.company_stage}

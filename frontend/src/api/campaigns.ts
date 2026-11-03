@@ -69,6 +69,12 @@ export interface CampaignPublic {
   startup_name: string;
   startup_slug: string;
   startup_logo_url: string | null;
+  startup_is_verified?: boolean;
+  startup_verification_status?: string;
+  startup?: {
+    is_verified?: boolean;
+    verification_status?: string;
+  };
   title: string;
   slug: string;
   summary: string | null;

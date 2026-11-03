@@ -56,6 +56,23 @@ from app.schemas.feedback import (
     FounderFeedbackListResponse,
     FounderFeedbackDetailResponse,
 )
+from app.schemas.startup_verification import (
+    StartupVerificationSubmitRequest,
+    StartupVerificationReviewRequest,
+    CorporateEmailOtpRequest,
+    StartupVerificationResponse,
+)
+from app.schemas.tester_verification import (
+    TesterResumeUpdateRequest,
+    TesterResumeResponse,
+    TesterCertificationCreateRequest,
+    TesterCertificationResponse,
+    TesterEndorsementCreateRequest,
+    TesterEndorsementResponse,
+    TesterEmployerReviewCreateRequest,
+    TesterEmployerReviewResponse,
+    TesterVerificationOverviewResponse,
+)
 
 __all__ = [
     "UserRegisterRequest",
@@ -99,4 +116,17 @@ __all__ = [
     "FounderFeedbackListItemResponse",
     "FounderFeedbackListResponse",
     "FounderFeedbackDetailResponse",
+    "StartupVerificationSubmitRequest",
+    "StartupVerificationReviewRequest",
+    "CorporateEmailOtpRequest",
+    "StartupVerificationResponse",
+    "TesterResumeUpdateRequest",
+    "TesterResumeResponse",
+    "TesterCertificationCreateRequest",
+    "TesterCertificationResponse",
+    "TesterEndorsementCreateRequest",
+    "TesterEndorsementResponse",
+    "TesterEmployerReviewCreateRequest",
+    "TesterEmployerReviewResponse",
+    "TesterVerificationOverviewResponse",
 ]

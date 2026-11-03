@@ -30,6 +30,8 @@ import {
   Check,
   RefreshCw,
 } from 'lucide-react';
+import { TesterCredibilityHub } from '../components/tester/TesterCredibilityHub';
+import { TesterTierBadge } from '../components/ui/VerificationBadge';
 
 interface ProfileManagementContentProps {
   profileData: ProfileMeResponse;
@@ -353,6 +355,12 @@ const ProfileManagementContent: React.FC<ProfileManagementContentProps> = ({ pro
                 <div className="flex items-center space-x-2.5 text-[#087C80]">
                   <Sparkles className="h-5 w-5" />
                   <h2 className="text-base font-bold text-[#102A35]">Tester Overview</h2>
+                  <TesterTierBadge
+                    tier={tp?.verification_tier || 1}
+                    rating={tp?.average_rating}
+                    reviewsCount={tp?.reviews_count}
+                    size="sm"
+                  />
                 </div>
                 {tp?.experience_level && (
                   <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#D7EFEB] text-[#07545A] border border-[#BCE1DA]">
@@ -449,6 +457,11 @@ const ProfileManagementContent: React.FC<ProfileManagementContentProps> = ({ pro
               </div>
             </div>
           </div>
+        )}
+
+        {/* Verified Tester Credibility Hub (Resume, Certificates, Endorsements, Employer Reviews) */}
+        {!isEditing && !isFounder && (
+          <TesterCredibilityHub isOwner={true} />
         )}
 
         {/* EDIT MODE: FOUNDER */}

@@ -125,7 +125,7 @@ def _list_public_startups_impl(
     offset = (page - 1) * page_size
     stmt = (
         select(Startup)
-        .options(joinedload(Startup.campaigns))
+        .options(joinedload(Startup.campaigns), joinedload(Startup.verification))
         .order_by(Startup.created_at.desc())
     )
     if conditions:
@@ -151,6 +151,8 @@ def _list_public_startups_impl(
                 state=s.state,
                 country=s.country,
                 founded_year=s.founded_year,
+                is_verified=s.is_verified,
+                verification_status=s.verification_status,
                 created_at=s.created_at,
                 campaign_count=published_count,
             )
@@ -214,7 +216,7 @@ def get_public_startup(
     clean_slug = slug.strip().lower()
     startup = db.scalar(
         select(Startup)
-        .options(joinedload(Startup.campaigns))
+        .options(joinedload(Startup.campaigns), joinedload(Startup.verification))
         .where(Startup.slug == clean_slug)
     )
     if startup is None:
@@ -237,6 +239,8 @@ def get_public_startup(
         state=startup.state,
         country=startup.country,
         founded_year=startup.founded_year,
+        is_verified=startup.is_verified,
+        verification_status=startup.verification_status,
         created_at=startup.created_at,
         campaign_count=published_count,
     )

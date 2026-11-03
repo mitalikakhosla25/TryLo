@@ -134,6 +134,8 @@ class StartupResponse(BaseModel):
     state: Optional[str] = None
     country: Optional[str] = None
     founded_year: Optional[int] = None
+    is_verified: bool = False
+    verification_status: Optional[str] = "unverified"
     created_at: datetime
     updated_at: datetime
 
@@ -154,6 +156,8 @@ class StartupPublicResponse(BaseModel):
     state: Optional[str] = None
     country: Optional[str] = None
     founded_year: Optional[int] = None
+    is_verified: bool = False
+    verification_status: Optional[str] = "unverified"
     created_at: datetime
     campaign_count: Optional[int] = 0
 

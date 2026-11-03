@@ -1,0 +1,105 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 841.89 595.28] /Contents 4 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >> /F2 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> /F3 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique >> /F4 << /Type /Font /Subtype /Type1 /BaseFont /Courier >> /F5 << /Type /Font /Subtype /Type1 /BaseFont /Courier-Bold >> >> >> >>
+endobj
+4 0 obj
+<< /Length 2439 >>
+stream
+0.965 0.961 0.929 rg
+0.00 0.00 841.89 595.28 re
+f
+0.027 0.329 0.353 RG
+3 w
+20.00 20.00 801.89 555.28 re
+S
+0.851 0.467 0.024 RG
+1 w
+26.00 26.00 789.89 543.28 re
+S
+0.737 0.882 0.855 RG
+0.75 w
+30.00 30.00 781.89 535.28 re
+S
+0.027 0.329 0.353 rg
+32.00 500.00 777.89 63.00 re
+f
+1.000 1.000 1.000 rg
+BT /F1 15 Tf 190.94 538.00 Td (INTERNATIONAL SOFTWARE TESTING QUALIFICATIONS BOARD) Tj ET
+0.850 0.950 0.930 rg
+BT /F1 11 Tf 320.94 516.00 Td (INDIAN TESTING BOARD \(ITB\)) Tj ET
+0.322 0.396 0.420 rg
+BT /F3 11 Tf 270.94 460.00 Td (This is to certify that the examination committee has evaluated) Tj ET
+0.063 0.165 0.208 rg
+BT /F1 26 Tf 310.94 415.00 Td (PRIYA PATEL) Tj ET
+0.851 0.467 0.024 RG
+2 w
+260.00 405.00 m 580.00 405.00 l S
+0.322 0.396 0.420 rg
+BT /F2 11 Tf 250.94 375.00 Td (and hereby awards the professional qualification and designation of:) Tj ET
+1.000 1.000 1.000 rg
+0.031 0.486 0.502 RG
+1.5 w
+120.00 300.00 601.89 55.00 re
+B
+0.027 0.329 0.353 rg
+BT /F1 15 Tf 245.94 332.00 Td (CERTIFIED TESTER ADVANCED LEVEL) Tj ET
+0.063 0.165 0.208 rg
+BT /F1 13 Tf 260.94 312.00 Td (TEST AUTOMATION ENGINEER \(CTAL-TAE\)) Tj ET
+1.000 1.000 1.000 rg
+0.863 0.906 0.890 RG
+1 w
+120.00 210.00 601.89 75.00 re
+B
+0.322 0.396 0.420 rg
+BT /F1 9 Tf 140.00 260.00 Td (Credential Identification:) Tj ET
+0.063 0.165 0.208 rg
+BT /F5 10 Tf 280.00 260.00 Td (ISTQB-CTAL-TAE-2023-8821) Tj ET
+0.322 0.396 0.420 rg
+BT /F1 9 Tf 140.00 240.00 Td (Issue Date:) Tj ET
+0.063 0.165 0.208 rg
+BT /F2 9 Tf 280.00 240.00 Td (15 August 2023 \(15/08/2023\)) Tj ET
+0.322 0.396 0.420 rg
+BT /F1 9 Tf 140.00 220.00 Td (Validity & Status:) Tj ET
+0.055 0.486 0.341 rg
+BT /F1 9 Tf 280.00 220.00 Td (Lifetime Valid / Active Professional Status) Tj ET
+0.902 0.969 0.941 rg
+0.055 0.486 0.341 RG
+1 w
+120.00 115.00 601.89 75.00 re
+B
+0.055 0.486 0.341 rg
+BT /F1 10 Tf 140.00 165.00 Td ([V] TRYLO ATTESTED & VERIFIED CREDENTIAL RECORD) Tj ET
+0.063 0.165 0.208 rg
+BT /F2 8.5 Tf 140.00 147.00 Td (Authenticated on TryLo Platform via official ITB / ISTQB certification repository.) Tj ET
+0.322 0.396 0.420 rg
+BT /F4 8 Tf 140.00 131.00 Td (Cryptographic Hash: e3b0c44298fc...7113 | Verification: CONFIRMED) Tj ET
+0.322 0.396 0.420 RG
+1 w
+140.00 70.00 m 300.00 70.00 l S
+0.063 0.165 0.208 rg
+BT /F1 8.5 Tf 160.00 55.00 Td (Chairperson, ISTQB) Tj ET
+0.322 0.396 0.420 RG
+1 w
+540.00 70.00 m 700.00 70.00 l S
+0.063 0.165 0.208 rg
+BT /F1 8.5 Tf 560.00 55.00 Td (President, Indian Testing Board) Tj ET
+endstream
+endobj
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000546 00000 n 
+trailer
+<< /Size 5 /Root 1 0 R >>
+startxref
+3037
+%%EOF

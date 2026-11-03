@@ -103,6 +103,12 @@ export interface TesterPublicProfile {
   city?: string | null;
   country?: string | null;
   linkedin_url?: string | null;
+  verification_tier?: 'unverified' | 'bronze' | 'silver' | 'gold' | 'platinum';
+  has_resume?: boolean;
+  ats_score?: number | null;
+  is_latex_verified?: boolean;
+  average_rating?: number | null;
+  reviews_count?: number;
 }
 
 export interface FounderApplicationItem {
@@ -172,11 +178,20 @@ export interface CampaignAccessInstructions {
  */
 export async function listCampaignApplications(
   campaignId: string,
-  params?: { status?: string; search?: string; page?: number; page_size?: number }
+  params?: {
+    status?: string;
+    search?: string;
+    min_ats_score?: number;
+    sort_by?: string;
+    page?: number;
+    page_size?: number;
+  }
 ): Promise<FounderApplicationListResponse> {
   const q = new URLSearchParams();
   if (params?.status && params.status !== 'all') q.set('status', params.status);
   if (params?.search) q.set('search', params.search);
+  if (params?.min_ats_score !== undefined && params.min_ats_score !== null) q.set('min_ats_score', String(params.min_ats_score));
+  if (params?.sort_by) q.set('sort_by', params.sort_by);
   if (params?.page) q.set('page', String(params.page));
   if (params?.page_size) q.set('page_size', String(params.page_size));
   const qs = q.toString() ? `?${q.toString()}` : '';
@@ -192,12 +207,22 @@ export async function listCampaignApplications(
  * List applications across all founder campaigns.
  */
 export async function listAllFounderApplications(
-  params?: { status?: string; campaign_id?: string; search?: string; page?: number; page_size?: number }
+  params?: {
+    status?: string;
+    campaign_id?: string;
+    search?: string;
+    min_ats_score?: number;
+    sort_by?: string;
+    page?: number;
+    page_size?: number;
+  }
 ): Promise<FounderApplicationListResponse> {
   const q = new URLSearchParams();
   if (params?.status && params.status !== 'all') q.set('status', params.status);
   if (params?.campaign_id) q.set('campaign_id', params.campaign_id);
   if (params?.search) q.set('search', params.search);
+  if (params?.min_ats_score !== undefined && params.min_ats_score !== null) q.set('min_ats_score', String(params.min_ats_score));
+  if (params?.sort_by) q.set('sort_by', params.sort_by);
   if (params?.page) q.set('page', String(params.page));
   if (params?.page_size) q.set('page_size', String(params.page_size));
   const qs = q.toString() ? `?${q.toString()}` : '';

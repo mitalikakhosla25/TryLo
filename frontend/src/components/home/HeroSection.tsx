@@ -16,6 +16,7 @@ import {
 import { Container } from '../ui/Container';
 import { usePublicStartups } from '../../context/useStartups';
 import { usePublicCampaigns } from '../../context/useCampaigns';
+import { TutorialModal } from './TutorialModal';
 
 interface HeroStartupItem {
   id: string;
@@ -107,6 +108,7 @@ export const HeroSection: React.FC = () => {
 
   const [activeIndex, setActiveIndex] = useState(2); // Center on NutriBox (index 2) by default
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
 
   // Fetch real startups and campaigns
   const { data: startupsData } = usePublicStartups({ page_size: 8 });
@@ -294,13 +296,6 @@ export const HeroSection: React.FC = () => {
               LEFT COLUMN: HERO HEADLINE, SUPPORTING COPY, CTAs & STATS
               ===================================================================== */}
           <div className="lg:col-span-6 space-y-6 text-center lg:text-left">
-            {/* Pill Badge */}
-            <div className="inline-flex items-center">
-              <span className="text-[11px] font-bold uppercase tracking-widest px-3.5 py-1.5 rounded-full bg-[#D7EFEB] text-[#07545A] border border-[#BCE1DA] shadow-2xs">
-                WHERE IDEAS MEET REAL PEOPLE
-              </span>
-            </div>
-
             {/* Editorial Heading */}
             <h1 className="text-4xl sm:text-5xl lg:text-[58px] font-extrabold tracking-tight text-[#102A35] leading-[1.12]">
               From Idea to Impact,{' '}
@@ -323,15 +318,16 @@ export const HeroSection: React.FC = () => {
                 <ArrowRight className="h-4 w-4" />
               </Link>
 
-              <a
-                href="#how-it-works"
+              <button
+                type="button"
+                onClick={() => setIsTutorialOpen(true)}
                 className="w-full sm:w-auto inline-flex items-center justify-center space-x-2.5 text-sm sm:text-base font-semibold px-6 py-3.5 rounded-full bg-white hover:bg-[#F6F5ED] text-[#102A35] border border-[#DCE7E3] hover:border-[#087C80] shadow-2xs transition-all cursor-pointer"
               >
                 <div className="h-6 w-6 rounded-full bg-[#D7EFEB] text-[#087C80] flex items-center justify-center">
                   <Play className="h-3 w-3 fill-current ml-0.5" />
                 </div>
                 <span>Watch Demo</span>
-              </a>
+              </button>
             </div>
 
             {/* Floating Live Stats Row */}
@@ -524,6 +520,12 @@ export const HeroSection: React.FC = () => {
           </div>
         </div>
       </Container>
+
+      <TutorialModal
+        isOpen={isTutorialOpen}
+        onClose={() => setIsTutorialOpen(false)}
+        initialRole="founder"
+      />
     </section>
   );
 };

@@ -30,6 +30,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import type { CampaignStatus } from '../api/campaigns';
+import { StartupVerificationBadge } from '../components/ui/VerificationBadge';
 
 export const CampaignDetailPage: React.FC = () => {
   const { campaignId } = useParams<{ campaignId: string }>();
@@ -250,13 +251,20 @@ export const CampaignDetailPage: React.FC = () => {
                 </span>
               )}
               {startup && (
-                <Link
-                  to={`/founder/startups/${startup.id}`}
-                  className="inline-flex items-center space-x-1 text-xs text-[#52656B] hover:text-[#102A35]"
-                >
-                  <Building2 className="h-3 w-3 text-[#087C80]" />
-                  <span>{startup.name}</span>
-                </Link>
+                <div className="flex items-center gap-1.5">
+                  <Link
+                    to={`/founder/startups/${startup.id}`}
+                    className="inline-flex items-center space-x-1 text-xs text-[#52656B] hover:text-[#102A35]"
+                  >
+                    <Building2 className="h-3 w-3 text-[#087C80]" />
+                    <span>{startup.name}</span>
+                  </Link>
+                  <StartupVerificationBadge
+                    isVerified={startup.is_verified}
+                    status={startup.verification_status}
+                    size="sm"
+                  />
+                </div>
               )}
             </div>
           </div>

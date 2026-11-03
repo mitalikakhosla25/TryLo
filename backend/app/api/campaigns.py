@@ -162,6 +162,20 @@ def validate_draft_for_publishing(campaign: Campaign) -> None:
         campaign.testing_end_date,
     )
 
+    # Anti-shell company safeguard: verify legitimate business status
+    if campaign.startup and campaign.startup.verification:
+        if campaign.startup.verification.verification_status == "rejected":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot publish campaign: Startup business verification was rejected ({campaign.startup.verification.rejection_reason or 'Documentation invalid'}).",
+            )
+    if settings.REQUIRE_STARTUP_VERIFICATION_TO_PUBLISH:
+        if not campaign.startup or not campaign.startup.is_verified:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Startup must have approved business verification proof (anti-shell protection) before publishing campaigns.",
+            )
+
 
 # ==============================================================================
 # Founder Campaign Management Endpoints

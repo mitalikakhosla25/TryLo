@@ -51,6 +51,7 @@ INDIAN_STATES_AND_UTS = [
 if TYPE_CHECKING:
     from app.models.user import User
     from app.models.campaign import Campaign
+    from app.models.startup_verification import StartupVerification
 
 
 class Startup(Base):
@@ -69,6 +70,7 @@ class Startup(Base):
             "founded_year IS NULL OR (founded_year >= 1900 AND founded_year <= 2100)",
             name="check_valid_startup_founded_year",
         ),
+        sa.Index("ix_startups_owner_created", "owner_id", "created_at"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -154,6 +156,22 @@ class Startup(Base):
         back_populates="startup",
         cascade="all, delete-orphan",
     )
+    verification: Mapped[Optional["StartupVerification"]] = relationship(
+        "StartupVerification",
+        back_populates="startup",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+
+    @property
+    def is_verified(self) -> bool:
+        """Returns True if this startup has verified business credentials."""
+        return bool(self.verification and self.verification.verification_status == "verified")
+
+    @property
+    def verification_status(self) -> str:
+        """Returns the current verification status of the startup."""
+        return self.verification.verification_status if self.verification else "unverified"
 
     def __repr__(self) -> str:
         return f"<Startup id={self.id!r} name={self.name!r} slug={self.slug!r} owner_id={self.owner_id!r}>"

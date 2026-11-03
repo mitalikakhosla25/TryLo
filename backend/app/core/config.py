@@ -1,8 +1,13 @@
 """TryLo Core Configuration Module."""
 
+import os
+from pathlib import Path
 from typing import List, Union, Optional
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
+CANONICAL_DB_FILE = (BACKEND_DIR / "trylo.db").resolve()
 
 
 class Settings(BaseSettings):
@@ -23,8 +28,8 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5173",
     ]
 
-    # Database Configuration
-    DATABASE_URL: str = ""
+    # Database Configuration - Defaults to canonical absolute SQLite path
+    DATABASE_URL: str = f"sqlite:///{CANONICAL_DB_FILE.as_posix()}"
     DB_TIMEOUT_SECONDS: int = 5
 
     # JWT Authentication Configuration
@@ -43,6 +48,9 @@ class Settings(BaseSettings):
     # Rate Limiting for Login Attempts (in-memory, per IP/email)
     LOGIN_RATE_LIMIT_MAX_ATTEMPTS: int = 5
     LOGIN_RATE_LIMIT_WINDOW_SECONDS: int = 300
+
+    # Anti-Shell Company Verification Gating
+    REQUIRE_STARTUP_VERIFICATION_TO_PUBLISH: bool = False
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

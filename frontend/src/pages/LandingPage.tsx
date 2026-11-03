@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import {
   Rocket,
   ShieldCheck,
@@ -24,6 +24,54 @@ import { usePublicCampaigns } from '../context/useCampaigns';
 import { usePublicStartups } from '../context/useStartups';
 
 export const LandingPage: React.FC = () => {
+  const location = useLocation();
+  const [perspective, setPerspective] = useState<'startups' | 'testers'>('startups');
+
+  useEffect(() => {
+    const handleSwitch = (tab: 'startups' | 'testers') => {
+      setPerspective(tab);
+      const el = document.getElementById('services-section');
+      if (el) {
+        const elementPosition = el.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top: elementPosition - 88, behavior: 'smooth' });
+      }
+    };
+
+    const handleCustomTab = (e: Event) => {
+      const customEvent = e as CustomEvent<'startups' | 'testers'>;
+      if (customEvent.detail === 'testers' || customEvent.detail === 'startups') {
+        handleSwitch(customEvent.detail);
+      }
+    };
+
+    window.addEventListener('trylo-switch-tab', handleCustomTab);
+    return () => window.removeEventListener('trylo-switch-tab', handleCustomTab);
+  }, []);
+
+  useEffect(() => {
+    if (location.hash === '#for-testers') {
+      setPerspective('testers');
+      const el = document.getElementById('services-section');
+      if (el) {
+        const elementPosition = el.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top: elementPosition - 88, behavior: 'smooth' });
+      }
+    } else if (location.hash === '#for-startups') {
+      setPerspective('startups');
+      const el = document.getElementById('services-section');
+      if (el) {
+        const elementPosition = el.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top: elementPosition - 88, behavior: 'smooth' });
+      }
+    } else if (location.hash === '#how-it-works') {
+      const el = document.getElementById('how-it-works');
+      if (el) {
+        const elementPosition = el.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top: elementPosition - 88, behavior: 'smooth' });
+      }
+    }
+  }, [location.hash]);
+
   const {
     data: campaignsData,
     isLoading: campaignsLoading,
@@ -38,7 +86,7 @@ export const LandingPage: React.FC = () => {
   const featuredStartups = startupsData?.items || [];
 
   return (
-    <div className="flex-1 flex flex-col space-y-20 sm:space-y-28 pb-16 sm:pb-24 overflow-hidden">
+    <div className="flex-1 flex flex-col pb-16 sm:pb-24 overflow-hidden">
       {/* =========================================================================
           SECTION 1: HERO & PERSPECTIVE STARTUP DECK
           ========================================================================= */}
@@ -47,7 +95,7 @@ export const LandingPage: React.FC = () => {
       {/* =========================================================================
           SECTION 2: PAN INDIA COMMUNITY MAP
           ========================================================================= */}
-      <section className="relative scroll-mt-24" id="startup-map">
+      <section className="relative scroll-mt-24 mt-10 sm:mt-14" id="startup-map">
         <Container size="xl">
           <IndiaStartupMap />
         </Container>
@@ -56,24 +104,25 @@ export const LandingPage: React.FC = () => {
       {/* =========================================================================
           SECTION 3: BUILT FOR BUILDERS AND BELIEVERS (SERVICES)
           ========================================================================= */}
-      <div id="for-startups" className="scroll-mt-24">
-        <div id="for-testers" className="scroll-mt-24">
-          <ServicesSection />
-        </div>
-      </div>
+      <section id="services-section" className="relative scroll-mt-24 mt-4 sm:mt-6">
+        <span id="for-startups" className="absolute -top-24 pointer-events-none" />
+        <span id="for-testers" className="absolute -top-24 pointer-events-none" />
+        <ServicesSection
+          activeTab={perspective}
+          onTabChange={(tab) => {
+            setPerspective(tab);
+            window.history.replaceState(null, '', tab === 'startups' ? '#for-startups' : '#for-testers');
+          }}
+        />
+      </section>
 
       {/* =========================================================================
           SECTION 4: STARTUP DISCOVERY (REAL BACKEND STARTUP DIRECTORY)
           ========================================================================= */}
-      <section className="relative scroll-mt-24" id="discover-startups">
+      <section className="relative scroll-mt-24 mt-12 sm:mt-16" id="discover-startups">
         <Container size="xl" className="space-y-10">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div className="space-y-2 max-w-2xl">
-              <div className="inline-flex items-center">
-                <span className="text-[11px] font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-[#D7EFEB] text-[#07545A] border border-[#BCE1DA] shadow-2xs">
-                  VENTURE DISCOVERY
-                </span>
-              </div>
               <h2 className="text-3xl sm:text-4xl font-extrabold text-[#102A35] tracking-tight">
                 Discover Startups Building{' '}
                 <span className="text-[#087C80]">What's Next</span>
@@ -204,15 +253,10 @@ export const LandingPage: React.FC = () => {
       {/* =========================================================================
           SECTION 5: FEATURED CAMPAIGNS (TESTING OPPORTUNITIES)
           ========================================================================= */}
-      <section className="relative">
+      <section className="relative mt-12 sm:mt-16">
         <Container size="xl" className="space-y-10">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div className="space-y-2 max-w-2xl">
-              <div className="inline-flex items-center">
-                <span className="text-[11px] font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-[#D7EFEB] text-[#07545A] border border-[#BCE1DA] shadow-2xs">
-                  HANDS-ON TESTING
-                </span>
-              </div>
               <h2 className="text-3xl sm:text-4xl font-extrabold text-[#102A35] tracking-tight">
                 Featured Beta <span className="text-[#087C80]">Campaigns</span>
               </h2>
@@ -352,22 +396,24 @@ export const LandingPage: React.FC = () => {
       {/* =========================================================================
           SECTION 6: HOW TRYLO WORKS (STEP BY STEP WORKFLOW)
           ========================================================================= */}
-      <HowItWorksSection />
+      <div className="mt-12 sm:mt-16">
+        <HowItWorksSection
+          activeJourney={perspective === 'startups' ? 'founders' : 'testers'}
+          onJourneyChange={(journey) => {
+            setPerspective(journey === 'founders' ? 'startups' : 'testers');
+            window.history.replaceState(null, '', journey === 'founders' ? '#for-startups' : '#for-testers');
+          }}
+        />
+      </div>
 
       {/* =========================================================================
           SECTION 7: ABOUT US SECTION
           ========================================================================= */}
-      <section className="relative scroll-mt-24" id="about">
+      <section className="relative scroll-mt-24 mt-12 sm:mt-16" id="about">
         <Container size="xl">
           <div className="rounded-3xl border border-[#DCE7E3] bg-gradient-to-br from-white via-white to-[#D7EFEB]/30 p-8 sm:p-14 shadow-sm relative overflow-hidden">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               <div className="lg:col-span-7 space-y-5">
-                <div className="inline-flex items-center">
-                  <span className="text-[11px] font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-[#D7EFEB] text-[#07545A] border border-[#BCE1DA] shadow-2xs">
-                    ABOUT TRYLO
-                  </span>
-                </div>
-
                 <h2 className="text-3xl sm:text-4xl font-extrabold text-[#102A35] tracking-tight">
                   Bridging the Gap Between{' '}
                   <span className="text-[#087C80]">Builders</span> &amp; Early Adopters
@@ -445,15 +491,9 @@ export const LandingPage: React.FC = () => {
       {/* =========================================================================
           SECTION 8: FINAL CALL TO ACTION
           ========================================================================= */}
-      <section className="relative">
+      <section className="relative mt-12 sm:mt-16">
         <Container size="xl">
           <div className="rounded-3xl p-8 sm:p-14 relative overflow-hidden bg-gradient-to-br from-white via-white to-[#D7EFEB]/40 border border-[#BCE1DA] shadow-xl text-center space-y-6">
-            <div className="inline-flex items-center mx-auto">
-              <span className="text-[11px] font-bold uppercase tracking-widest px-3.5 py-1.5 rounded-full bg-[#D7EFEB] text-[#07545A] border border-[#BCE1DA] shadow-2xs">
-                JOIN TRYLO TODAY
-              </span>
-            </div>
-
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#102A35] tracking-tight max-w-2xl mx-auto">
               Ready to Build or Test <span className="text-[#087C80]">What's Next?</span>
             </h2>
@@ -485,7 +525,7 @@ export const LandingPage: React.FC = () => {
                 to="/login"
                 className="text-xs font-semibold text-[#52656B] hover:text-[#087C80] transition-colors"
               >
-                Already have an account? <span className="underline underline-offset-2">Sign In to Workspace</span>
+                Already have an account? <span className="underline underline-offset-2">Log In to Workspace</span>
               </Link>
             </div>
           </div>

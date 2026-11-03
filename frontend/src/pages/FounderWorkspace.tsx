@@ -39,22 +39,17 @@ export const FounderWorkspace: React.FC = () => {
         {/* Top Banner */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-[#DCE7E3]">
           <div className="space-y-1.5">
-            <div className="flex items-center space-x-2">
-              <span className="px-3 py-0.5 rounded-full text-xs font-semibold bg-[#D7EFEB] text-[#07545A] border border-[#BCE1DA] capitalize">
-                Founder Workspace
-              </span>
-              <span className="text-xs text-[#52656B]">&bull;</span>
-              <span className="text-xs text-[#0E7C57] flex items-center space-x-1 font-semibold">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#102A35] tracking-tight">
+              Welcome back, {user?.full_name}
+            </h1>
+            <div className="flex items-center space-x-2 text-xs text-[#52656B]">
+              <span>Account Email: <span className="text-[#102A35] font-mono font-medium">{user?.email}</span></span>
+              <span>&bull;</span>
+              <span className="text-[#0E7C57] flex items-center space-x-1 font-semibold">
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 <span>Active Founder</span>
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#102A35] tracking-tight">
-              Welcome back, {user?.full_name}
-            </h1>
-            <p className="text-xs text-[#52656B]">
-              Account Email: <span className="text-[#102A35] font-mono font-medium">{user?.email}</span>
-            </p>
           </div>
 
           <div className="flex items-center space-x-3">

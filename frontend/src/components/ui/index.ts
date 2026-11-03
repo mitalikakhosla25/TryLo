@@ -6,3 +6,4 @@ export * from './Container';
 export * from './EmptyState';
 export * from './FeedbackStates';
 export * from './BrandLogo';
+export * from './VerificationBadge';

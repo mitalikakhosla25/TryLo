@@ -41,6 +41,7 @@ class CampaignTaskProgress(Base):
             "status IN ('not_started', 'in_progress', 'completed')",
             name="check_valid_task_progress_status",
         ),
+        sa.Index("ix_task_progress_camp_tester", "campaign_id", "tester_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -73,6 +74,10 @@ class CampaignTaskProgress(Base):
     )
     completion_note: Mapped[Optional[str]] = mapped_column(
         sa.Text,
+        nullable=True,
+    )
+    proof_url: Mapped[Optional[str]] = mapped_column(
+        sa.String(500),
         nullable=True,
     )
     completed_at: Mapped[Optional[datetime]] = mapped_column(

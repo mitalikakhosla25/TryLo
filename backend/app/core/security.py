@@ -16,8 +16,13 @@ from pwdlib.hashers.argon2 import Argon2Hasher
 
 from app.core.config import settings
 
-# Initialize Argon2id password hasher with secure defaults
-_password_hash = PasswordHash((Argon2Hasher(),))
+# Initialize Argon2id password hasher
+# Use secure production parameters in production; use lightweight parameters in dev/testing for speed
+if settings.APP_ENV == "production":
+    _hasher = Argon2Hasher(time_cost=3, memory_cost=65536, parallelism=4)
+else:
+    _hasher = Argon2Hasher(time_cost=1, memory_cost=1024, parallelism=1)
+_password_hash = PasswordHash((_hasher,))
 
 # Minimum and maximum length constraints for passwords
 MIN_PASSWORD_LENGTH = 8

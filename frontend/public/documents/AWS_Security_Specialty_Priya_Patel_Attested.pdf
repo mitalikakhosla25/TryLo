@@ -1,0 +1,93 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 841.89 595.28] /Contents 4 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >> /F2 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> /F3 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique >> /F4 << /Type /Font /Subtype /Type1 /BaseFont /Courier >> /F5 << /Type /Font /Subtype /Type1 /BaseFont /Courier-Bold >> >> >> >>
+endobj
+4 0 obj
+<< /Length 2182 >>
+stream
+0.965 0.961 0.929 rg
+0.00 0.00 841.89 595.28 re
+f
+0.059 0.125 0.235 RG
+2.5 w
+20.00 20.00 801.89 555.28 re
+S
+0.950 0.600 0.150 RG
+1.5 w
+26.00 26.00 789.89 543.28 re
+S
+0.059 0.125 0.235 rg
+28.00 510.00 785.89 57.00 re
+f
+1.000 1.000 1.000 rg
+BT /F1 17 Tf 270.94 538.00 Td (AMAZON WEB SERVICES) Tj ET
+0.950 0.600 0.150 rg
+BT /F2 10 Tf 300.94 520.00 Td (Training and Certification) Tj ET
+0.322 0.396 0.420 rg
+BT /F3 11 Tf 300.94 465.00 Td (This credential validates that) Tj ET
+0.063 0.165 0.208 rg
+BT /F1 26 Tf 310.94 420.00 Td (PRIYA PATEL) Tj ET
+0.950 0.600 0.150 RG
+2 w
+260.00 410.00 m 580.00 410.00 l S
+0.322 0.396 0.420 rg
+BT /F2 11 Tf 270.94 380.00 Td (has successfully demonstrated advanced expertise and is awarded:) Tj ET
+1.000 1.000 1.000 rg
+0.059 0.125 0.235 RG
+1.5 w
+130.00 290.00 581.89 65.00 re
+B
+0.059 0.125 0.235 rg
+BT /F1 18 Tf 250.94 332.00 Td (AWS Certified Security - Specialty) Tj ET
+0.322 0.396 0.420 rg
+BT /F2 9 Tf 220.94 308.00 Td (Demonstrating comprehensive knowledge of cloud security, encryption, and IAM governance.) Tj ET
+1.000 1.000 1.000 rg
+0.863 0.906 0.890 RG
+1 w
+130.00 195.00 581.89 78.00 re
+B
+0.322 0.396 0.420 rg
+BT /F1 9 Tf 150.00 252.00 Td (Validation Number:) Tj ET
+0.063 0.165 0.208 rg
+BT /F5 10 Tf 290.00 252.00 Td (AWS-SEC-SPEC-99120) Tj ET
+0.322 0.396 0.420 rg
+BT /F1 9 Tf 150.00 232.00 Td (Issue Date:) Tj ET
+0.063 0.165 0.208 rg
+BT /F2 9 Tf 290.00 232.00 Td (12 November 2023) Tj ET
+0.322 0.396 0.420 rg
+BT /F1 9 Tf 150.00 212.00 Td (Expiration Date:) Tj ET
+0.055 0.486 0.341 rg
+BT /F1 9 Tf 290.00 212.00 Td (12 November 2026 \(Active\)) Tj ET
+0.902 0.969 0.941 rg
+0.055 0.486 0.341 RG
+1 w
+130.00 105.00 581.89 75.00 re
+B
+0.055 0.486 0.341 rg
+BT /F1 10 Tf 150.00 155.00 Td ([V] TRYLO VERIFIED CLOUD CREDENTIAL) Tj ET
+0.063 0.165 0.208 rg
+BT /F2 8.5 Tf 150.00 137.00 Td (Authenticated against AWS Certification Verification Registry \(aws.amazon.com/verification\).) Tj ET
+0.322 0.396 0.420 rg
+BT /F4 8 Tf 150.00 121.00 Td (Attested ID: TRYLO-AWS-SEC-99120 | Verified for Beta Security Roles) Tj ET
+0.322 0.396 0.420 rg
+BT /F3 8 Tf 270.94 50.00 Td (Amazon Web Services, Inc. All rights reserved. Verify at aws.amazon.com/verification) Tj ET
+endstream
+endobj
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000546 00000 n 
+trailer
+<< /Size 5 /Root 1 0 R >>
+startxref
+2780
+%%EOF

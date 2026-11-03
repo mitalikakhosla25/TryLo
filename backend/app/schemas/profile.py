@@ -173,6 +173,10 @@ class TesterProfileResponse(BaseModel):
     city: Optional[str] = None
     country: Optional[str] = None
     linkedin_url: Optional[str] = None
+    verification_tier: int = 1
+    has_resume: bool = False
+    average_rating: float = 0.0
+    reviews_count: int = 0
     created_at: datetime
     updated_at: datetime
 

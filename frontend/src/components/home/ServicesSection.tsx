@@ -1,17 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Rocket,
-  BarChart2,
-  Users2,
-  Sparkles,
   ArrowRight,
-  Compass,
-  FileCheck,
-  ListTodo,
-  Award,
-  Building2,
-  Users,
 } from 'lucide-react';
 import { Container } from '../ui/Container';
 
@@ -19,10 +9,14 @@ interface ServiceCardData {
   id: string;
   title: string;
   description: string;
-  icon: React.ReactNode;
   image: string;
   link: string;
   linkText: string;
+}
+
+export interface ServicesSectionProps {
+  activeTab?: 'startups' | 'testers';
+  onTabChange?: (tab: 'startups' | 'testers') => void;
 }
 
 const STARTUP_SERVICES: ServiceCardData[] = [
@@ -31,7 +25,6 @@ const STARTUP_SERVICES: ServiceCardData[] = [
     title: 'Reach Real Users',
     description:
       'Get your product in front of genuine beta testers who are eager to try and give feedback.',
-    icon: <Rocket className="h-5 w-5 text-[#087C80]" />,
     image: '/images/service-bars.jpg',
     link: '/register?role=founder',
     linkText: 'Recruit Testers',
@@ -41,7 +34,6 @@ const STARTUP_SERVICES: ServiceCardData[] = [
     title: 'Actionable Insights',
     description:
       'Receive structured feedback and actionable reports to improve your product faster.',
-    icon: <BarChart2 className="h-5 w-5 text-[#087C80]" />,
     image: '/images/service-waves.jpg',
     link: '/register?role=founder',
     linkText: 'Explore Insights',
@@ -51,7 +43,6 @@ const STARTUP_SERVICES: ServiceCardData[] = [
     title: 'Build Your Community',
     description:
       'Create a loyal user base and turn early testers into long-term advocates.',
-    icon: <Users2 className="h-5 w-5 text-[#087C80]" />,
     image: '/images/service-community.jpg',
     link: '/register?role=founder',
     linkText: 'Grow Advocates',
@@ -61,7 +52,6 @@ const STARTUP_SERVICES: ServiceCardData[] = [
     title: 'Showcase Your Startup',
     description:
       'Get featured, gain visibility and connect with investors and industry experts.',
-    icon: <Sparkles className="h-5 w-5 text-[#087C80]" />,
     image: '/images/service-star.jpg',
     link: '/register?role=founder',
     linkText: 'Get Featured',
@@ -74,8 +64,7 @@ const TESTER_SERVICES: ServiceCardData[] = [
     title: 'Discover Early Tech',
     description:
       'Get hands-on access to emerging developer tools, SaaS apps, and products before public release.',
-    icon: <Compass className="h-5 w-5 text-[#087C80]" />,
-    image: '/images/product-studygenie.jpg',
+    image: '/images/service-laptop.jpg',
     link: '/tester/discover',
     linkText: 'Browse Campaigns',
   },
@@ -84,7 +73,6 @@ const TESTER_SERVICES: ServiceCardData[] = [
     title: 'Seamless Applications',
     description:
       'Apply with your testing profile, hardware configurations, and answers tailored to founders.',
-    icon: <FileCheck className="h-5 w-5 text-[#087C80]" />,
     image: '/images/service-bars.jpg',
     link: '/register?role=tester',
     linkText: 'Join as Tester',
@@ -94,7 +82,6 @@ const TESTER_SERVICES: ServiceCardData[] = [
     title: 'Guided Testing Tasks',
     description:
       'Follow clear, task-oriented test objectives to exercise key product features and usability flows.',
-    icon: <ListTodo className="h-5 w-5 text-[#087C80]" />,
     image: '/images/service-waves.jpg',
     link: '/tester/discover',
     linkText: 'View Tasks',
@@ -104,32 +91,36 @@ const TESTER_SERVICES: ServiceCardData[] = [
     title: 'Build Your Reputation',
     description:
       'Earn recognition for high-impact bug reports, unlock exclusive rewards, and become a trusted beta specialist.',
-    icon: <Award className="h-5 w-5 text-[#087C80]" />,
     image: '/images/service-star.jpg',
     link: '/register?role=tester',
     linkText: 'Start Testing',
   },
 ];
 
-export const ServicesSection: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'startups' | 'testers'>('startups');
+export const ServicesSection: React.FC<ServicesSectionProps> = ({
+  activeTab: controlledTab,
+  onTabChange,
+}) => {
+  const [internalTab, setInternalTab] = useState<'startups' | 'testers'>('startups');
+  const activeTab = controlledTab !== undefined ? controlledTab : internalTab;
+
+  const handleSelectTab = (tab: 'startups' | 'testers') => {
+    setInternalTab(tab);
+    if (onTabChange) {
+      onTabChange(tab);
+    }
+  };
 
   const services = activeTab === 'startups' ? STARTUP_SERVICES : TESTER_SERVICES;
 
   return (
-    <section className="relative overflow-hidden py-6 sm:py-12" id="our-services">
+    <section className="relative overflow-hidden py-3 sm:py-6" id="our-services">
       <Container size="xl" className="space-y-12">
         {/* =====================================================================
             HEADER: BADGE, HEADLINE & DESCRIPTION (2-column layout matching reference)
             ===================================================================== */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
           <div className="lg:col-span-7 space-y-3">
-            <div className="inline-flex items-center">
-              <span className="text-[11px] font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-[#D7EFEB] text-[#07545A] border border-[#BCE1DA] shadow-2xs">
-                OUR SERVICES
-              </span>
-            </div>
-
             <h2 className="text-3xl sm:text-4xl lg:text-[44px] font-extrabold text-[#102A35] tracking-tight leading-[1.15]">
               Built for <span className="text-[#087C80]">Builders</span> and{' '}
               <span className="text-[#087C80]">Believers</span>
@@ -145,32 +136,38 @@ export const ServicesSection: React.FC = () => {
         </div>
 
         {/* =====================================================================
-            PILL TOGGLE SWITCHER
+            PILL TOGGLE SWITCHER (Sliding Animated Indicator)
             ===================================================================== */}
         <div className="flex justify-center">
-          <div className="inline-flex p-1.5 bg-[#EFEFE5] rounded-full border border-[#DCE7E3] shadow-inner">
+          <div className="relative inline-grid grid-cols-2 p-1.5 bg-[#EFEFE5] rounded-full border border-[#DCE7E3] shadow-inner w-72 sm:w-80 select-none">
+            {/* Sliding Animated Indicator */}
+            <div
+              className="absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] rounded-full bg-[#087C80] shadow-sm transition-all duration-300 ease-out"
+              style={{
+                left: activeTab === 'startups' ? '6px' : 'calc(50%)',
+              }}
+            />
+
             <button
               type="button"
-              onClick={() => setActiveTab('startups')}
-              className={`flex items-center space-x-2 px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer ${
+              onClick={() => handleSelectTab('startups')}
+              className={`relative z-10 flex items-center justify-center py-2.5 rounded-full text-xs sm:text-sm font-bold transition-colors duration-200 cursor-pointer ${
                 activeTab === 'startups'
-                  ? 'bg-[#087C80] text-white shadow-sm'
+                  ? 'text-white'
                   : 'text-[#52656B] hover:text-[#102A35]'
               }`}
             >
-              <Building2 className="h-4 w-4" />
               <span>For Startups</span>
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab('testers')}
-              className={`flex items-center space-x-2 px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer ${
+              onClick={() => handleSelectTab('testers')}
+              className={`relative z-10 flex items-center justify-center py-2.5 rounded-full text-xs sm:text-sm font-bold transition-colors duration-200 cursor-pointer ${
                 activeTab === 'testers'
-                  ? 'bg-[#087C80] text-white shadow-sm'
+                  ? 'text-white'
                   : 'text-[#52656B] hover:text-[#102A35]'
               }`}
             >
-              <Users className="h-4 w-4" />
               <span>For Testers</span>
             </button>
           </div>
@@ -188,21 +185,14 @@ export const ServicesSection: React.FC = () => {
               {/* Subtle upper ambient aqua tint */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-[#D7EFEB]/40 to-transparent rounded-full blur-2xl pointer-events-none" />
 
-              <div className="space-y-4 relative z-10">
-                {/* Circular teal icon badge */}
-                <div className="h-12 w-12 rounded-full bg-[#D7EFEB] border border-[#BCE1DA] flex items-center justify-center text-[#087C80] shadow-xs group-hover:scale-110 transition-transform">
-                  {item.icon}
-                </div>
-
+              <div className="space-y-2 relative z-10">
                 {/* Card Title & Description */}
-                <div className="space-y-2">
-                  <h3 className="text-lg font-extrabold text-[#102A35] tracking-tight group-hover:text-[#087C80] transition-colors">
-                    {item.title}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-[#52656B] leading-relaxed">
-                    {item.description}
-                  </p>
-                </div>
+                <h3 className="text-lg font-extrabold text-[#102A35] tracking-tight group-hover:text-[#087C80] transition-colors">
+                  {item.title}
+                </h3>
+                <p className="text-xs sm:text-sm text-[#52656B] leading-relaxed">
+                  {item.description}
+                </p>
               </div>
 
               {/* Bottom: Arrow Button + 3D Rendered Artwork */}

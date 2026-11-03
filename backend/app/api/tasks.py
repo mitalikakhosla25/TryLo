@@ -171,6 +171,7 @@ def get_campaign_tasks(
 
         task_status = p.status if p else TASK_PROGRESS_NOT_STARTED
         completion_note = p.completion_note if p else None
+        proof_url = p.proof_url if p else None
         completed_at = p.completed_at if p else None
         updated_at = p.updated_at if p else None
 
@@ -190,6 +191,7 @@ def get_campaign_tasks(
                 order=t.get("order", idx + 1),
                 status=task_status,
                 completion_note=completion_note,
+                proof_url=proof_url,
                 completed_at=completed_at,
                 updated_at=updated_at,
             )
@@ -270,6 +272,7 @@ def update_task_progress(
             tester_id=current_user.id,
             status=payload.status,
             completion_note=payload.completion_note,
+            proof_url=payload.proof_url,
             completed_at=completed_at,
             created_at=now,
             updated_at=now,
@@ -279,6 +282,7 @@ def update_task_progress(
         # Update existing record
         progress.status = payload.status
         progress.completion_note = payload.completion_note
+        progress.proof_url = payload.proof_url
         progress.updated_at = now
 
         if payload.status == TASK_PROGRESS_COMPLETED:
@@ -306,6 +310,7 @@ def update_task_progress(
         tester_id=progress.tester_id,
         status=progress.status,
         completion_note=progress.completion_note,
+        proof_url=progress.proof_url,
         completed_at=progress.completed_at,
         created_at=progress.created_at,
         updated_at=progress.updated_at,

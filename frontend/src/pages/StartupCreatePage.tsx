@@ -132,11 +132,6 @@ export const StartupCreatePage: React.FC = () => {
 
         {/* Header */}
         <div className="space-y-1.5 pb-4 border-b border-[#DCE7E3]">
-          <div className="flex items-center space-x-2">
-            <span className="px-3 py-0.5 rounded-full text-xs font-semibold bg-[#D7EFEB] text-[#07545A] border border-[#BCE1DA]">
-              Create Venture
-            </span>
-          </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#102A35] tracking-tight">Add a New Startup</h1>
           <p className="text-xs sm:text-sm text-[#52656B]">
             Set up a new company profile. Each startup has a unique public slug and can launch independent beta campaigns.

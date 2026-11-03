@@ -279,6 +279,8 @@ class CampaignPublicResponse(BaseModel):
     startup_name: str
     startup_slug: str
     startup_logo_url: Optional[str] = None
+    startup_is_verified: bool = False
+    startup_verification_status: Optional[str] = "unverified"
     title: str
     slug: str
     summary: Optional[str] = None

@@ -76,6 +76,8 @@ class Campaign(Base):
             "reward_amount IS NULL OR reward_amount >= 0",
             name="check_valid_campaign_reward_amount",
         ),
+        sa.Index("ix_campaigns_status_created", "status", "created_at"),
+        sa.Index("ix_campaigns_startup_status", "startup_id", "status"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -223,6 +225,14 @@ class Campaign(Base):
     @property
     def startup_logo_url(self) -> Optional[str]:
         return self.startup.logo_url if self.startup else None
+
+    @property
+    def startup_is_verified(self) -> bool:
+        return self.startup.is_verified if self.startup else False
+
+    @property
+    def startup_verification_status(self) -> str:
+        return self.startup.verification_status if self.startup else "unverified"
 
     def __repr__(self) -> str:
         return f"<Campaign id={self.id!r} title={self.title!r} startup_id={self.startup_id!r} status={self.status!r}>"

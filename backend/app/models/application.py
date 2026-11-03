@@ -40,6 +40,8 @@ class CampaignApplication(Base):
             "status IN ('pending', 'accepted', 'rejected')",
             name="check_valid_application_status",
         ),
+        sa.Index("ix_campaign_applications_camp_status", "campaign_id", "status"),
+        sa.Index("ix_campaign_applications_tester_status", "tester_id", "status"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -77,6 +79,11 @@ class CampaignApplication(Base):
     rejection_note: Mapped[Optional[str]] = mapped_column(
         sa.Text,
         nullable=True,
+    )
+    ats_score_at_application: Mapped[Optional[int]] = mapped_column(
+        sa.Integer,
+        nullable=True,
+        index=True,
     )
     created_at: Mapped[datetime] = mapped_column(
         sa.DateTime(timezone=True),

@@ -11,7 +11,6 @@ import {
   type ExperienceLevel,
 } from '../api/profile';
 import {
-  Sparkles,
   UserCheck,
   Cpu,
   Monitor,
@@ -21,7 +20,14 @@ import {
   AlertCircle,
   Loader2,
   Check,
+  ShieldCheck,
+  Award,
+  ExternalLink,
 } from 'lucide-react';
+import {
+  updateTesterResume,
+  TESTER_SPECIALIZATIONS,
+} from '../api/verification';
 
 interface TesterOnboardingWizardProps {
   initialProfile: TesterProfile | null;
@@ -46,6 +52,14 @@ const TesterOnboardingWizard: React.FC<TesterOnboardingWizardProps> = ({ initial
   const [city, setCity] = useState<string>(() => initialProfile?.city || '');
   const [country, setCountry] = useState<string>(() => initialProfile?.country || '');
   const [linkedinUrl, setLinkedinUrl] = useState<string>(() => initialProfile?.linkedin_url || '');
+
+  // Step 4: Credibility & Resume State
+  const [resumeUrl, setResumeUrl] = useState<string>('');
+  const [fileName, setFileName] = useState<string>('');
+  const [specializations, setSpecializations] = useState<string[]>([]);
+  const [githubUrl, setGithubUrl] = useState<string>('');
+  const [portfolioUrl, setPortfolioUrl] = useState<string>('');
+  const [bugBountyUrl, setBugBountyUrl] = useState<string>('');
 
   // Validation Errors
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -103,6 +117,8 @@ const TesterOnboardingWizard: React.FC<TesterOnboardingWizardProps> = ({ initial
       setStep(2);
     } else if (step === 2 && validateStep2()) {
       setStep(3);
+    } else if (step === 3 && validateStep3()) {
+      setStep(4);
     }
   };
 
@@ -143,6 +159,28 @@ const TesterOnboardingWizard: React.FC<TesterOnboardingWizardProps> = ({ initial
         linkedin_url: linkedinUrl.trim() || null,
       });
 
+      // If user provided resume, specializations or portfolio links, persist them to update tier
+      if (
+        resumeUrl.trim() ||
+        specializations.length > 0 ||
+        githubUrl.trim() ||
+        portfolioUrl.trim() ||
+        bugBountyUrl.trim()
+      ) {
+        try {
+          await updateTesterResume({
+            resume_url: resumeUrl.trim() || undefined,
+            file_name: fileName.trim() || (resumeUrl.trim() ? 'Attested_QA_Resume.pdf' : undefined),
+            github_url: githubUrl.trim() || undefined,
+            portfolio_url: portfolioUrl.trim() || undefined,
+            bug_bounty_url: bugBountyUrl.trim() || undefined,
+            specializations,
+          });
+        } catch (resErr) {
+          console.warn('Resume update optional notice:', resErr);
+        }
+      }
+
       setSaveSuccess(true);
       setTimeout(() => {
         navigate('/tester', { replace: true });
@@ -161,10 +199,6 @@ const TesterOnboardingWizard: React.FC<TesterOnboardingWizardProps> = ({ initial
       <div className="max-w-2xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-300">
         {/* Header */}
         <div className="text-center space-y-2.5">
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-semibold bg-[#D7EFEB] text-[#07545A] border border-[#BCE1DA]">
-            <Sparkles className="h-3.5 w-3.5 text-[#087C80]" />
-            <span>Tester Onboarding</span>
-          </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#102A35] tracking-tight">
             Set Up Your Testing Profile
           </h1>
@@ -180,16 +214,19 @@ const TesterOnboardingWizard: React.FC<TesterOnboardingWizardProps> = ({ initial
               1. About You
             </span>
             <span className={step >= 2 ? 'text-[#087C80] font-bold' : 'text-[#52656B]'}>
-              2. Testing Preferences
+              2. Skills &amp; Categories
             </span>
             <span className={step >= 3 ? 'text-[#087C80] font-bold' : 'text-[#52656B]'}>
-              3. Setup &amp; Devices
+              3. Hardware &amp; Location
+            </span>
+            <span className={step >= 4 ? 'text-[#087C80] font-bold' : 'text-[#52656B]'}>
+              4. Credibility &amp; Resume
             </span>
           </div>
           <div className="w-full bg-[#EFEFE5] h-2 rounded-full overflow-hidden">
             <div
               className="bg-gradient-to-r from-[#087C80] to-[#07545A] h-full transition-all duration-300"
-              style={{ width: `${(step / 3) * 100}%` }}
+              style={{ width: `${(step / 4) * 100}%` }}
             />
           </div>
         </div>
@@ -495,6 +532,172 @@ const TesterOnboardingWizard: React.FC<TesterOnboardingWizardProps> = ({ initial
             </div>
           )}
 
+          {/* Step 4: Credibility & QA Verification */}
+          {step === 4 && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between pb-3 border-b border-[#DCE7E3]">
+                <div className="flex items-center space-x-2 text-[#087C80]">
+                  <ShieldCheck className="h-5 w-5" />
+                  <h2 className="text-base font-bold text-[#102A35]">Step 4: Credibility &amp; QA Verification</h2>
+                </div>
+                <span className="text-[11px] font-semibold text-[#0E7C57] bg-[#E6F7F0] px-2.5 py-0.5 rounded-full border border-[#B6EDD5]">
+                  Tier 2 Boost (Optional)
+                </span>
+              </div>
+
+              {/* Explanatory Trust Tier Banner */}
+              <div className="p-4 rounded-2xl bg-[#E6F7F0]/60 border border-[#B6EDD5] space-y-2.5 text-xs">
+                <div className="flex items-center gap-2 font-bold text-[#0E7C57]">
+                  <Award className="h-4 w-4" />
+                  <span>TryLo 3-Tier Verification Architecture</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 text-[11px]">
+                  <div className="p-2.5 rounded-xl bg-white border border-[#B6EDD5]">
+                    <div className="font-bold text-[#102A35] flex items-center gap-1">
+                      <span className="h-2 w-2 rounded-full bg-[#52656B]"></span>
+                      <span>Tier 1: Basic</span>
+                    </div>
+                    <p className="text-[#52656B] mt-0.5">Completed profile info and bio.</p>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-white border border-[#B6EDD5] shadow-xs">
+                    <div className="font-bold text-[#087C80] flex items-center gap-1">
+                      <span className="h-2 w-2 rounded-full bg-[#087C80]"></span>
+                      <span>Tier 2: Vetted</span>
+                    </div>
+                    <p className="text-[#52656B] mt-0.5">QA Resume or verified certifications attached.</p>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-white border border-[#B6EDD5]">
+                    <div className="font-bold text-[#0E7C57] flex items-center gap-1">
+                      <span className="h-2 w-2 rounded-full bg-[#0E7C57]"></span>
+                      <span>Tier 3: Top-Rated</span>
+                    </div>
+                    <p className="text-[#52656B] mt-0.5">3+ verified founder reviews (avg &ge; 4.0 stars).</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* QA Resume / Attested Document Attachment */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-[#102A35]">
+                    QA Resume / CV Document URL <span className="text-[#52656B] font-normal">(PDF or Cloud Storage Link)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setResumeUrl('/documents/Priya_Patel_Senior_QA_Automation_Attested.pdf');
+                      setFileName('Priya_Patel_Senior_QA_Automation_Attested.pdf');
+                      if (specializations.length === 0) {
+                        setSpecializations(['Security Testing', 'Automated Testing', 'API Testing']);
+                      }
+                    }}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#087C80] hover:text-[#07545A] underline cursor-pointer"
+                  >
+                    <span>Load Sample Attested QA CV</span>
+                  </button>
+                </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={resumeUrl}
+                    onChange={(e) => setResumeUrl(e.target.value)}
+                    placeholder="e.g. /documents/Priya_Patel_Senior_QA_Automation_Attested.pdf or https://drive.google.com/..."
+                    className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-white border border-[#DCE7E3] focus:border-[#087C80] text-[#102A35] placeholder-[#52656B]/60 focus:outline-none focus:ring-2 focus:ring-[#087C80]/15"
+                  />
+                </div>
+                {resumeUrl && (
+                  <div className="flex items-center space-x-2 text-[11px] text-[#0E7C57] bg-[#E6F7F0] p-2 rounded-xl border border-[#B6EDD5]">
+                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                    <span>Resume attached: {fileName || 'Attested_QA_Resume.pdf'}</span>
+                    <a
+                      href={resumeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-auto inline-flex items-center gap-1 font-bold underline"
+                    >
+                      <span>Preview</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              {/* QA Specializations */}
+              <div className="space-y-2 pt-2 border-t border-[#DCE7E3]">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-[#102A35]">
+                    QA Specializations
+                  </label>
+                  <span className="text-[11px] text-[#087C80] font-medium">
+                    {specializations.length} selected
+                  </span>
+                </div>
+                <p className="text-[11px] text-[#52656B]">
+                  Select the domains where you have demonstrable testing track records:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {TESTER_SPECIALIZATIONS.map((spec) => {
+                    const isSelected = specializations.includes(spec);
+                    return (
+                      <button
+                        key={spec}
+                        type="button"
+                        onClick={() => toggleSelection(spec, specializations, setSpecializations)}
+                        className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#087C80] border-[#087C80] text-white font-semibold'
+                            : 'bg-[#F6F5ED] border-[#DCE7E3] text-[#52656B] hover:text-[#102A35] hover:border-[#087C80]/40'
+                        }`}
+                      >
+                        {isSelected && <Check className="h-3 w-3 text-white" />}
+                        <span>{spec}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Portfolio & GitHub Repositories */}
+              <div className="space-y-3 pt-2 border-t border-[#DCE7E3]">
+                <label className="block text-xs font-semibold text-[#102A35]">
+                  QA Portfolio &amp; Code Links <span className="text-[#52656B] font-normal">(Optional)</span>
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div className="space-y-1">
+                    <span className="text-[#52656B]">GitHub / Repo:</span>
+                    <input
+                      type="url"
+                      value={githubUrl}
+                      onChange={(e) => setGithubUrl(e.target.value)}
+                      placeholder="https://github.com/your-username"
+                      className="w-full px-3 py-2 rounded-xl bg-white border border-[#DCE7E3] text-xs text-[#102A35] focus:outline-none focus:border-[#087C80]"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[#52656B]">QA Portfolio URL:</span>
+                    <input
+                      type="url"
+                      value={portfolioUrl}
+                      onChange={(e) => setPortfolioUrl(e.target.value)}
+                      placeholder="https://yourportfolio.dev"
+                      className="w-full px-3 py-2 rounded-xl bg-white border border-[#DCE7E3] text-xs text-[#102A35] focus:outline-none focus:border-[#087C80]"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[#52656B]">Bug Bounty Profile:</span>
+                    <input
+                      type="url"
+                      value={bugBountyUrl}
+                      onChange={(e) => setBugBountyUrl(e.target.value)}
+                      placeholder="https://hackerone.com/username"
+                      className="w-full px-3 py-2 rounded-xl bg-white border border-[#DCE7E3] text-xs text-[#102A35] focus:outline-none focus:border-[#087C80]"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Navigation Buttons */}
           <div className="pt-4 border-t border-[#DCE7E3] flex items-center justify-between gap-3">
             {step > 1 ? (
@@ -517,7 +720,7 @@ const TesterOnboardingWizard: React.FC<TesterOnboardingWizardProps> = ({ initial
             )}
 
             <div className="flex items-center space-x-3">
-              {step < 3 ? (
+              {step < 4 ? (
                 <button
                   type="button"
                   onClick={handleNextStep}
@@ -541,7 +744,7 @@ const TesterOnboardingWizard: React.FC<TesterOnboardingWizardProps> = ({ initial
                   ) : (
                     <>
                       <CheckCircle2 className="h-3.5 w-3.5" />
-                      <span>Save &amp; Enter Workspace</span>
+                      <span>Complete &amp; Enter Workspace</span>
                     </>
                   )}
                 </button>

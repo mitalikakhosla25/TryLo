@@ -8,7 +8,6 @@ import {
   EyeOff,
   AlertCircle,
   ArrowLeft,
-  Sparkles,
   Loader2,
   LogIn,
 } from 'lucide-react';
@@ -104,10 +103,6 @@ export const LoginPage: React.FC = () => {
         {/* Login Card */}
         <div className="rounded-3xl bg-white border border-[#DCE7E3] p-8 sm:p-10 shadow-xl space-y-6">
           <div className="text-center space-y-2">
-            <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-[#D7EFEB] border border-[#BCE1DA] text-[11px] font-bold text-[#07545A]">
-              <Sparkles className="h-3 w-3 text-[#087C80]" />
-              <span>Sign In to TryLo</span>
-            </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#102A35]">
               Welcome Back
             </h1>
@@ -195,12 +190,12 @@ export const LoginPage: React.FC = () => {
               {isSubmitting ? (
                 <span className="flex items-center space-x-2">
                   <Loader2 className="h-4 w-4 animate-spin text-white" />
-                  <span>Signing In...</span>
+                  <span>Logging In...</span>
                 </span>
               ) : (
                 <span className="flex items-center space-x-2">
                   <LogIn className="h-4 w-4" />
-                  <span>Sign In</span>
+                  <span>Log In</span>
                 </span>
               )}
             </button>

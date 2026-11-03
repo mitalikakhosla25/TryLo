@@ -175,5 +175,58 @@ class TesterProfile(Base):
         has_interests = bool(self.interests and len(self.interests) >= 1)
         return has_bio and has_skills and has_interests
 
+    @property
+    def verification_tier(self) -> int:
+        """
+        Calculates verification tier:
+        Tier 0: Profile incomplete
+        Tier 1: Profile complete
+        Tier 2: Has uploaded resume or verified certification
+        Tier 3: Has verified reviews (3+) and average rating >= 4.0
+        """
+        tier = 1 if self.is_complete else 0
+        if self.user:
+            has_resume = bool(self.user.tester_resume and self.user.tester_resume.resume_url)
+            has_cert = any(c.verification_status == "verified" for c in self.user.tester_certifications)
+            if has_resume or has_cert:
+                tier = max(tier, 2)
+            verified_reviews = [r for r in self.user.received_reviews if r.is_verified]
+            if len(verified_reviews) >= 3:
+                avg = sum(r.overall_rating for r in verified_reviews) / len(verified_reviews)
+                if avg >= 4.0:
+                    tier = 3
+        return tier
+
+    @property
+    def has_resume(self) -> bool:
+        return bool(self.user and self.user.tester_resume and self.user.tester_resume.resume_url)
+
+    @property
+    def ats_score(self) -> Optional[int]:
+        if self.user and self.user.tester_resume:
+            return self.user.tester_resume.ats_score
+        return None
+
+    @property
+    def is_latex_verified(self) -> bool:
+        if self.user and self.user.tester_resume:
+            return bool(self.user.tester_resume.is_latex_verified)
+        return False
+
+    @property
+    def average_rating(self) -> float:
+        if not self.user or not self.user.received_reviews:
+            return 0.0
+        reviews = [r for r in self.user.received_reviews if r.is_verified]
+        if not reviews:
+            return 0.0
+        return round(sum(r.overall_rating for r in reviews) / len(reviews), 1)
+
+    @property
+    def reviews_count(self) -> int:
+        if not self.user or not self.user.received_reviews:
+            return 0
+        return len([r for r in self.user.received_reviews if r.is_verified])
+
     def __repr__(self) -> str:
         return f"<TesterProfile user_id={self.user_id!r} experience_level={self.experience_level!r}>"

@@ -14,33 +14,6 @@ import { usePublicStartups } from '../../context/useStartups';
 import { Button } from '../ui/Button';
 import { StartupAvatar } from '../ui/StartupAvatar';
 
-// Demonstration cards matching reference image when state has sample or empty initial data
-const DEMO_CARDS_BY_STATE: Record<
-  string,
-  Array<{ name: string; category: string; image?: string | null; slug?: string }>
-> = {
-  Maharashtra: [
-    { name: 'NutriBox', category: 'Food & Beverage', image: '/images/product-nutribox.jpg' },
-    { name: 'AutoMitra', category: 'Automotive', image: '/images/product-automitra.jpg' },
-    { name: 'StudyGenie', category: 'EdTech', image: '/images/product-studygenie.jpg' },
-    { name: 'Kraftly', category: 'Handicrafts', image: '/images/product-kraftly.jpg' },
-  ],
-  Karnataka: [
-    { name: 'StudyGenie', category: 'EdTech', image: '/images/product-studygenie.jpg' },
-    { name: 'AutoMitra', category: 'Automotive', image: '/images/product-automitra.jpg' },
-    { name: 'NutriBox', category: 'Food & Beverage', image: '/images/product-nutribox.jpg' },
-  ],
-  Delhi: [
-    { name: 'FinMate', category: 'FinTech', image: '/images/founder-finmate.jpg' },
-    { name: 'Bloomly', category: 'Sustainability', image: '/images/founder-bloomly.jpg' },
-    { name: 'Kraftly', category: 'Handicrafts', image: '/images/product-kraftly.jpg' },
-  ],
-  Punjab: [
-    { name: 'FemmeCare Health', category: 'HealthTech', image: null }, // Displays 'FH' alphabet monogram
-    { name: 'EcoKart', category: 'E-Commerce', image: '/images/product-ecokart.jpg' },
-  ],
-};
-
 export const IndiaStartupMap: React.FC = () => {
   const [selectedState, setSelectedState] = useState<string | null>(null);
   const [hoveredState, setHoveredState] = useState<IndiaStateFeature | null>(null);
@@ -74,25 +47,23 @@ export const IndiaStartupMap: React.FC = () => {
     setCarouselIndex(0);
   };
 
-  // Cards to display in the state panel
+  // Cards to display in the state panel strictly derived from database
   const displayCards = selectedState
-    ? (realStartups.length > 0
-        ? realStartups.map((s) => {
-            const hasValidLogo = Boolean(
-              s.logo_url &&
-              s.logo_url.trim() &&
-              (s.logo_url.startsWith('http://') || s.logo_url.startsWith('https://')) &&
-              !s.logo_url.includes('phototourl.com') &&
-              !s.logo_url.includes('example.com')
-            );
-            return {
-              name: s.name,
-              category: s.industry || 'Technology',
-              image: hasValidLogo ? s.logo_url : null,
-              slug: s.slug,
-            };
-          })
-        : DEMO_CARDS_BY_STATE[selectedState] || [])
+    ? realStartups.map((s) => {
+        const hasValidLogo = Boolean(
+          s.logo_url &&
+          s.logo_url.trim() &&
+          (s.logo_url.startsWith('http://') || s.logo_url.startsWith('https://')) &&
+          !s.logo_url.includes('phototourl.com') &&
+          !s.logo_url.includes('example.com')
+        );
+        return {
+          name: s.name,
+          category: s.industry || 'Technology',
+          image: hasValidLogo ? s.logo_url : null,
+          slug: s.slug,
+        };
+      })
     : [];
 
   const handlePrevCards = () => {
@@ -112,12 +83,6 @@ export const IndiaStartupMap: React.FC = () => {
           ========================================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div className="lg:col-span-5 space-y-6">
-          <div className="inline-flex items-center">
-            <span className="text-[11px] font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-[#D7EFEB] text-[#07545A] border border-[#BCE1DA] shadow-2xs">
-              PAN INDIA COMMUNITY
-            </span>
-          </div>
-
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#102A35] tracking-tight leading-[1.15]">
             Startups from Every Corner of{' '}
             <span className="text-[#087C80]">India</span>

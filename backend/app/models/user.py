@@ -15,6 +15,12 @@ if TYPE_CHECKING:
     from app.models.application import CampaignApplication
     from app.models.task_progress import CampaignTaskProgress
     from app.models.feedback import FeedbackSubmission
+    from app.models.tester_verification import (
+        TesterResume,
+        TesterCertification,
+        TesterEndorsement,
+        TesterEmployerReview,
+    )
 
 
 class UserRole(str, enum.Enum):
@@ -116,6 +122,40 @@ class User(Base):
         "FeedbackSubmission",
         back_populates="tester",
         cascade="all, delete-orphan",
+    )
+    tester_resume: Mapped[Optional["TesterResume"]] = relationship(
+        "TesterResume",
+        back_populates="tester",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    tester_certifications: Mapped[List["TesterCertification"]] = relationship(
+        "TesterCertification",
+        back_populates="tester",
+        cascade="all, delete-orphan",
+    )
+    received_endorsements: Mapped[List["TesterEndorsement"]] = relationship(
+        "TesterEndorsement",
+        foreign_keys="[TesterEndorsement.tester_id]",
+        back_populates="tester",
+        cascade="all, delete-orphan",
+    )
+    given_endorsements: Mapped[List["TesterEndorsement"]] = relationship(
+        "TesterEndorsement",
+        foreign_keys="[TesterEndorsement.endorser_id]",
+        back_populates="endorser",
+        cascade="all, delete-orphan",
+    )
+    received_reviews: Mapped[List["TesterEmployerReview"]] = relationship(
+        "TesterEmployerReview",
+        foreign_keys="[TesterEmployerReview.tester_id]",
+        back_populates="tester",
+        cascade="all, delete-orphan",
+    )
+    given_reviews: Mapped[List["TesterEmployerReview"]] = relationship(
+        "TesterEmployerReview",
+        foreign_keys="[TesterEmployerReview.reviewer_id]",
+        back_populates="reviewer",
     )
 
     def __repr__(self) -> str:
