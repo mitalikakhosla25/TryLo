@@ -16,7 +16,7 @@ import {
   ExternalLink,
   RotateCcw,
 } from 'lucide-react';
-import { useQueryAiCopilot } from '../../context/useFeedback';
+import { useQueryAiCopilot, useAiEngineStatus } from '../../context/useFeedback';
 import type { AiCopilotQueryResponse } from '../../api/feedback';
 
 interface Message {
@@ -57,6 +57,7 @@ export const FounderAiCopilotDrawer: React.FC<FounderAiCopilotDrawerProps> = ({
   ]);
 
   const { mutateAsync: queryCopilot, isPending } = useQueryAiCopilot();
+  const { data: engineStatus } = useAiEngineStatus();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -154,8 +155,15 @@ export const FounderAiCopilotDrawer: React.FC<FounderAiCopilotDrawerProps> = ({
             <div>
               <div className="flex items-center space-x-2">
                 <h3 className="text-sm font-extrabold text-[#102A35]">TryLo AI Co-Pilot</h3>
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-[#D7EFEB] text-[#07545A]">
-                  Active
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                    engineStatus?.is_live_llm
+                      ? 'bg-purple-100 text-purple-700 border border-purple-200'
+                      : 'bg-[#D7EFEB] text-[#07545A]'
+                  }`}
+                  title={engineStatus?.notice}
+                >
+                  {engineStatus?.is_live_llm ? 'Gemini 1.5 Flash' : 'Free Local Engine'}
                 </span>
               </div>
               <p className="text-[11px] text-[#52656B]">

@@ -336,6 +336,23 @@ export interface AiCopilotQueryResponse {
   timestamp: string;
 }
 
+export interface AiEngineStatusResponse {
+  is_live_llm: boolean;
+  provider: string;
+  model: string;
+  subscription_required: boolean;
+  free_tier_available: boolean;
+  free_tier_provider_url: string;
+  notice: string;
+}
+
+/**
+ * Fetch current operational status of the AI Engine (Hybrid Gemini / Local)
+ */
+export async function fetchAiEngineStatus(): Promise<AiEngineStatusResponse> {
+  return apiClient<AiEngineStatusResponse>('/api/founder/ai-engine/status');
+}
+
 /**
  * Send natural language query to TryLo Founder AI Co-Pilot
  */

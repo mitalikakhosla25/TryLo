@@ -129,3 +129,4 @@ def analyze_recording_voice_and_frustration(
         "segments": segments,
         "analyzed_at": datetime.now(timezone.utc),
     }
+

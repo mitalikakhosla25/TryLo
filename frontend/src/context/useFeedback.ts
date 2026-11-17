@@ -13,6 +13,7 @@ import {
   getVideoAiInsights,
   getRetestProtocol,
   exportFeedbackTicket,
+  fetchAiEngineStatus,
   type FounderFeedbackFilters,
   type FounderFeedbackListResponse,
   type FounderFeedbackDetail,
@@ -218,5 +219,16 @@ export function useExportFeedbackTicket() {
     { feedbackId: string; targetRepo?: string }
   >({
     mutationFn: ({ feedbackId, targetRepo }) => exportFeedbackTicket(feedbackId, targetRepo),
+  });
+}
+
+export function useAiEngineStatus() {
+  const { user } = useAuth();
+  const isFounder = user?.role === 'founder';
+  return useQuery({
+    queryKey: ['ai-engine-status'],
+    queryFn: () => fetchAiEngineStatus(),
+    enabled: !!user && isFounder,
+    staleTime: 60000,
   });
 }

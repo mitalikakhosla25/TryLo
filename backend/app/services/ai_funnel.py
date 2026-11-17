@@ -159,3 +159,4 @@ def reconstruct_user_journey_funnel(
         "executive_funnel_takeaway": executive_takeaway,
         "reconstructed_at": datetime.now(timezone.utc),
     }
+

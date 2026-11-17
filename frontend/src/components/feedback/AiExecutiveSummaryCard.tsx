@@ -26,6 +26,7 @@ import {
 import {
   useExecutiveFeedbackSynthesis,
   useGenerateExecutiveFeedbackSynthesis,
+  useAiEngineStatus,
 } from '../../context/useFeedback';
 
 interface AiExecutiveSummaryCardProps {
@@ -39,6 +40,7 @@ export const AiExecutiveSummaryCard: React.FC<AiExecutiveSummaryCardProps> = ({
 }) => {
   const { data: synthesis, isLoading, isError, error } = useExecutiveFeedbackSynthesis(campaignId);
   const { mutate: runBatchSynthesis, isPending: isSynthesizing } = useGenerateExecutiveFeedbackSynthesis();
+  const { data: engineStatus } = useAiEngineStatus();
 
   const [copiedType, setCopiedType] = useState<'brief' | 'pr' | 'patch' | null>(null);
   const [showPreview, setShowPreview] = useState<'brief' | 'pr' | null>(null);
@@ -134,6 +136,16 @@ export const AiExecutiveSummaryCard: React.FC<AiExecutiveSummaryCardProps> = ({
               </h2>
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#07545A] text-white">
                 Macro Intelligence
+              </span>
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                  engineStatus?.is_live_llm
+                    ? 'bg-purple-100 text-purple-700 border border-purple-200'
+                    : 'bg-[#D7EFEB] text-[#07545A]'
+                }`}
+                title={engineStatus?.notice}
+              >
+                {engineStatus?.is_live_llm ? 'Gemini 1.5 Flash' : 'Free Local Engine'}
               </span>
               {campaignTitle && (
                 <span className="text-xs font-medium text-[#52656B]">

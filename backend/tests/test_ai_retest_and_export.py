@@ -45,3 +45,4 @@ def test_export_issue_to_backlog():
     assert "https://github.com/trylo-org/core-saas/issues/new" in res["github_issue_url"]
     assert "bug" in res["labels"]
     assert "Linear Bug Report" in res["linear_markdown"] or "TryLo Bug Report" in res["linear_markdown"]
+

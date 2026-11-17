@@ -47,6 +47,7 @@ from app.schemas.feedback import (
     AiExecutiveSynthesisResponse,
     AiCopilotQueryRequest,
     AiCopilotQueryResponse,
+    AiEngineStatusResponse,
     AiE2eReproductionRequest,
     AiE2eReproductionResponse,
     AiUserJourneyFunnelResponse,
@@ -1116,6 +1117,37 @@ def query_founder_ai_copilot(
             campaign_title=None,
         )
         return AiCopilotQueryResponse(**copilot_dict)
+
+    camp_ids = [c.id for c in campaigns]
+    camp_title = campaigns[0].title if (payload.campaign_id and len(campaigns) == 1) else None
+
+    # Fetch submissions across matching founder campaigns
+    sub_stmt = (
+        select(FeedbackSubmission)
+        .options(selectinload(FeedbackSubmission.tester))
+        .where(FeedbackSubmission.campaign_id.in_(camp_ids))
+    )
+    submissions = list(db.scalars(sub_stmt).all())
+
+    copilot_dict = query_ai_copilot(
+        query=payload.query,
+        submissions=submissions,
+        campaign_title=camp_title,
+    )
+    return AiCopilotQueryResponse(**copilot_dict)
+
+
+@router.get(
+    "/api/founder/ai-engine/status",
+    response_model=AiEngineStatusResponse,
+    summary="Get TryLo AI Engine status and LLM hybrid provider information",
+)
+def get_ai_engine_status_endpoint(
+    current_user: User = Depends(require_role("founder")),
+):
+    """Return status of AI engine, indicating whether live Gemini LLM is active or offline heuristic engine."""
+    from app.services.llm_gateway import get_ai_engine_status
+    return get_ai_engine_status()
 
 
 @router.post(

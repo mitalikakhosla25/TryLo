@@ -249,6 +249,17 @@ class AiCopilotQueryResponse(BaseModel):
     timestamp: datetime
 
 
+class AiEngineStatusResponse(BaseModel):
+    """Status metadata indicating whether live Gemini LLM is active or local engine."""
+    is_live_llm: bool
+    provider: str
+    model: str
+    subscription_required: bool = False
+    free_tier_available: bool = True
+    free_tier_provider_url: str
+    notice: str
+
+
 class AiE2eReproductionRequest(BaseModel):
     """Payload for generating an autonomous E2E reproduction script."""
     framework: str = Field(default="playwright", pattern="^(playwright|cypress)$")

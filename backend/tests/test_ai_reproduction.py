@@ -68,3 +68,4 @@ def test_generate_cypress_e2e_script():
     assert "describe('Automated Defect Reproduction" in result["test_script_code"]
     assert "cy.visit" in result["test_script_code"]
     assert "npx cypress run" in result["cli_command"]
+

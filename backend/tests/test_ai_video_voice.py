@@ -41,3 +41,4 @@ def test_analyze_recording_voice_and_frustration_crash():
 
     assert "blank" in result["segments"][2]["spoken_transcript"].lower() or "crash" in result["segments"][2]["spoken_transcript"].lower()
     assert result["segments"][2]["frustration_intensity"] >= 7
+

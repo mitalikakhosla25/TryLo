@@ -244,3 +244,4 @@ describe('Automated Defect Reproduction: {safe_title}', () => {{
         "cli_command": cli_cmd,
         "generated_at": datetime.now(timezone.utc),
     }
+

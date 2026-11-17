@@ -39,3 +39,4 @@ def test_reconstruct_user_journey_funnel_with_checkout_critical_bottleneck():
     assert checkout_stage["reported_defects_count"] >= 2
     assert "Monetization & Checkout" in res["critical_drop_off_stage"]
     assert "bottleneck" in res["executive_funnel_takeaway"].lower()
+

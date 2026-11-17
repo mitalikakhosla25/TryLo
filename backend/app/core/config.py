@@ -52,6 +52,10 @@ class Settings(BaseSettings):
     # Anti-Shell Company Verification Gating
     REQUIRE_STARTUP_VERIFICATION_TO_PUBLISH: bool = False
 
+    # Google Gemini AI Integration (Free tier available via Google AI Studio)
+    GEMINI_API_KEY: Optional[str] = None
+    GEMINI_MODEL: str = "gemini-1.5-flash"
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def parse_cors_origins(cls, value: Union[List[str], str]) -> List[str]:

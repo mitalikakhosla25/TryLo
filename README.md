@@ -59,7 +59,7 @@ TryLo/
 | **Task Execution & Progress** | Accepted tester task checklist, step-by-step progress updating (`not_started`, `in_progress`, `completed`), private access instruction release. | Access instructions released **only** to accepted testers (`status == 'accepted'`); progress updates isolated per tester. |
 | **Feedback & Bug Reporting** | Bug reports with severity, reproduction steps, expected/actual behavior, associated task tagging. | Submissions linked to verified campaign membership; non-accepted testers cannot submit feedback. |
 | **Founder Issue Management** | Feedback review dashboard, filtering/search, private internal notes, audit history timeline, retest request loop, issue resolution, reopen. | Validated state machine (`ALLOWED_TRANSITIONS`); internal notes and history strictly isolated from testers; cross-founder 404 protection. |
-| **AI Feedback Analysis** | Explicitly marked **"Coming Soon" (V2)** in UI. No external AI API calls or fabricated insights. | Zero external AI dependencies; TryLo operates 100% human-verified and founder-driven for V1. |
+| **AI Super-Intelligence Suite** | Multi-log executive synthesis, Playwright/Cypress test generator, user journey funnel, frustration heatmap, AI retest protocol, and sprint ticket exporter. | Hybrid Architecture: Operates 100% offline via built-in NLP engine (zero subscription/cost); seamlessly elevates to Google Gemini 1.5 Flash when `GEMINI_API_KEY` is provided. |
 
 ---
 

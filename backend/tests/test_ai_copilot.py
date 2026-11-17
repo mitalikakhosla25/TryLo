@@ -53,3 +53,25 @@ def test_query_ai_copilot_readiness_verdict():
     assert "release readiness synthesis" in result["answer_markdown"].lower()
     assert len(result["suggested_followups"]) >= 2
 
+
+def test_ai_engine_status_and_free_tier():
+    from app.services.llm_gateway import get_ai_engine_status
+    status = get_ai_engine_status()
+    assert status["subscription_required"] is False
+    assert status["free_tier_available"] is True
+    assert "aistudio.google.com" in status["free_tier_provider_url"]
+
+
+def test_query_ai_copilot_with_gemini_mock(monkeypatch):
+    from app.services import ai_copilot
+
+    monkeypatch.setattr(ai_copilot, "is_gemini_configured", lambda: True)
+    monkeypatch.setattr(ai_copilot, "generate_text_with_gemini", lambda *args, **kwargs: "### Gemini Live Synthesis\n\nAll checkout paths are unblocked.")
+
+    subs = [
+        make_dummy_submission("Stripe checkout hangs on submission", "Payment modal is stuck", "critical"),
+    ]
+    result = query_ai_copilot(query="Synthesize latest feedback", submissions=subs)
+    assert "gemini live synthesis" in result["answer_markdown"].lower()
+    assert "Google Gemini 1.5 Flash" in result["key_takeaways"][0]
+

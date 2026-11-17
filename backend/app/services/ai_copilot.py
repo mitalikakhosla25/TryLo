@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 
 from app.models.feedback import FeedbackSubmission
+from app.services.llm_gateway import is_gemini_configured, generate_text_with_gemini
 
 
 def _extract_tokens(text: str) -> set[str]:
@@ -113,6 +114,45 @@ def query_ai_copilot(
         }
         for s in top_matches
     ]
+
+    # Check for live Google Gemini LLM synthesis if configured
+    if is_gemini_configured() and total_submissions > 0:
+        reports_summary = "\n".join(
+            f"- Title: {s.title} | Severity: {s.severity} | Steps: {s.reproduction_steps or 'N/A'}"
+            for s in top_matches[:5]
+        )
+        llm_prompt = (
+            f"Campaign: {camp_name}\n"
+            f"Total Submissions: {total_submissions}\n"
+            f"Critical Blockers: {critical_count}\n"
+            f"High Friction Issues: {high_count}\n\n"
+            f"Top Relevant Reports:\n{reports_summary}\n\n"
+            f"Founder Query: \"{clean_query}\"\n\n"
+            "Provide an insightful, direct, technical and product synthesis answering the founder inquiry. "
+            "Format your answer in clear GitHub markdown with headings and bullet points. Do not use decorative emojis."
+        )
+        system_instruction = (
+            "You are TryLo AI, an expert software testing and product triage co-pilot for startup founders. "
+            "Give actionable, technical root cause insights based on real tester feedback."
+        )
+        llm_answer = generate_text_with_gemini(llm_prompt, system_instruction=system_instruction)
+        if llm_answer:
+            return {
+                "query": clean_query,
+                "answer_markdown": llm_answer,
+                "key_takeaways": [
+                    f"Analyzed {total_submissions} reports with Google Gemini 1.5 Flash.",
+                    f"Identified {len(top_matches)} directly relevant feedback submissions.",
+                    f"{critical_count} critical blockers flagged in this campaign.",
+                ],
+                "suggested_followups": [
+                    "What is the recommended Git diff hotfix for the top blocker?",
+                    "What is our release readiness verdict?",
+                    "How do we prevent regression on this flow?",
+                ],
+                "referenced_feedbacks": referenced_feedbacks,
+                "timestamp": datetime.now(timezone.utc),
+            }
 
     key_takeaways: List[str] = []
     suggested_followups: List[str] = []

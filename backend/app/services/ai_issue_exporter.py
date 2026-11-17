@@ -66,3 +66,4 @@ def export_issue_to_backlog(
         "dev_brief_markdown": linear_md.strip(),
         "generated_at": datetime.now(timezone.utc),
     }
+
