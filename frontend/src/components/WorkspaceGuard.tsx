@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Navigate, Link } from 'react-router-dom';
+import React from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useProfile } from '../context/useProfile';
 import { useAuth } from '../context/useAuth';
 import { ApiError } from '../api/client';
@@ -14,19 +14,9 @@ export const WorkspaceGuard: React.FC<WorkspaceGuardProps> = ({
   children,
   expectedRole,
 }) => {
-  const { user, refreshUser } = useAuth();
+  const { logout } = useAuth();
+  const navigate = useNavigate();
   const { profileData, isLoading, isError, error, refetch } = useProfile();
-
-  const isAuthError =
-    !user ||
-    (error instanceof ApiError && error.status === 401) ||
-    (error instanceof Error && error.message.toLowerCase().includes('not authenticated'));
-
-  useEffect(() => {
-    if (isAuthError && user) {
-      refreshUser();
-    }
-  }, [isAuthError, user, refreshUser]);
 
   if (isLoading) {
     return (
@@ -38,38 +28,53 @@ export const WorkspaceGuard: React.FC<WorkspaceGuardProps> = ({
     );
   }
 
-  // Not authenticated -> redirect to login
-  if (isAuthError) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // Handle server / network errors with a retry option without logging out
+  // Handle server / network / auth errors with an explicit action to prevent redirect loops
   if (isError) {
+    const isAuthError =
+      (error instanceof ApiError && error.status === 401) ||
+      (error instanceof Error && error.message.toLowerCase().includes('not authenticated'));
+
     return (
       <div className="flex-1 flex items-center justify-center p-8 text-center">
         <div className="max-w-md w-full bg-white border border-[#DCE7E3] rounded-3xl p-8 space-y-4 shadow-xl">
           <div className="h-12 w-12 mx-auto rounded-full bg-[#FEF3C7] border border-[#FDE68A] flex items-center justify-center text-[#9A4200]">
             <AlertCircle className="h-6 w-6" />
           </div>
-          <h2 className="text-lg font-bold text-[#102A35]">Profile Verification Unavailable</h2>
+          <h2 className="text-lg font-bold text-[#102A35]">
+            {isAuthError ? 'Session Expired' : 'Profile Verification Unavailable'}
+          </h2>
           <p className="text-xs text-[#52656B] leading-relaxed">
-            {error instanceof Error ? error.message : 'Unable to connect to the profile service.'}
+            {isAuthError
+              ? 'Your authenticated session is no longer active. Please log in again.'
+              : error instanceof Error
+              ? error.message
+              : 'Unable to connect to the profile service.'}
           </p>
           <div className="pt-2 flex justify-center gap-3">
-            <button
-              onClick={() => refetch()}
-              className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-full text-xs font-bold bg-[#07545A] text-white hover:bg-[#087C80] transition-colors shadow-sm cursor-pointer"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              <span>Retry Connection</span>
-            </button>
-            <Link
-              to="/login"
-              className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-full text-xs font-bold bg-white text-[#102A35] border border-[#DCE7E3] hover:bg-[#F6F5ED] transition-colors shadow-sm"
-            >
-              <LogIn className="h-3.5 w-3.5" />
-              <span>Log In</span>
-            </Link>
+            {isAuthError ? (
+              <button
+                onClick={async () => {
+                  try {
+                    await logout();
+                  } catch {
+                    // ignore
+                  }
+                  navigate('/login', { replace: true });
+                }}
+                className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-full text-xs font-bold bg-[#07545A] text-white hover:bg-[#087C80] transition-colors shadow-sm cursor-pointer"
+              >
+                <LogIn className="h-3.5 w-3.5" />
+                <span>Log In Again</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => refetch()}
+                className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-full text-xs font-bold bg-[#07545A] text-white hover:bg-[#087C80] transition-colors shadow-sm cursor-pointer"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                <span>Retry Connection</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
