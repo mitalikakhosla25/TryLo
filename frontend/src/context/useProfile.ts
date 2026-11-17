@@ -6,6 +6,7 @@ import {
   type FounderProfileUpdateRequest,
   type TesterProfileUpdateRequest,
 } from '../api/profile';
+import { ApiError } from '../api/client';
 import { useAuth } from './useAuth';
 
 export function useProfile() {
@@ -17,7 +18,10 @@ export function useProfile() {
     queryFn: getMyProfile,
     enabled: !!user,
     staleTime: 10000,
-    retry: 1,
+    retry: (failureCount, error) => {
+      if (error instanceof ApiError && error.status === 401) return false;
+      return failureCount < 1;
+    },
   });
 
   const mutation = useMutation<

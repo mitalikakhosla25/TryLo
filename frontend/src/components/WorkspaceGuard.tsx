@@ -1,7 +1,9 @@
-import React from 'react';
-import { Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Navigate, Link } from 'react-router-dom';
 import { useProfile } from '../context/useProfile';
-import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { useAuth } from '../context/useAuth';
+import { ApiError } from '../api/client';
+import { Loader2, AlertCircle, RefreshCw, LogIn } from 'lucide-react';
 
 interface WorkspaceGuardProps {
   children: React.ReactNode;
@@ -12,7 +14,19 @@ export const WorkspaceGuard: React.FC<WorkspaceGuardProps> = ({
   children,
   expectedRole,
 }) => {
+  const { user, refreshUser } = useAuth();
   const { profileData, isLoading, isError, error, refetch } = useProfile();
+
+  const isAuthError =
+    !user ||
+    (error instanceof ApiError && error.status === 401) ||
+    (error instanceof Error && error.message.toLowerCase().includes('not authenticated'));
+
+  useEffect(() => {
+    if (isAuthError && user) {
+      refreshUser();
+    }
+  }, [isAuthError, user, refreshUser]);
 
   if (isLoading) {
     return (
@@ -22,6 +36,11 @@ export const WorkspaceGuard: React.FC<WorkspaceGuardProps> = ({
         <p className="text-xs text-[#52656B]">Checking onboarding completion</p>
       </div>
     );
+  }
+
+  // Not authenticated -> redirect to login
+  if (isAuthError) {
+    return <Navigate to="/login" replace />;
   }
 
   // Handle server / network errors with a retry option without logging out
@@ -36,7 +55,7 @@ export const WorkspaceGuard: React.FC<WorkspaceGuardProps> = ({
           <p className="text-xs text-[#52656B] leading-relaxed">
             {error instanceof Error ? error.message : 'Unable to connect to the profile service.'}
           </p>
-          <div className="pt-2 flex justify-center">
+          <div className="pt-2 flex justify-center gap-3">
             <button
               onClick={() => refetch()}
               className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-full text-xs font-bold bg-[#07545A] text-white hover:bg-[#087C80] transition-colors shadow-sm cursor-pointer"
@@ -44,6 +63,13 @@ export const WorkspaceGuard: React.FC<WorkspaceGuardProps> = ({
               <RefreshCw className="h-3.5 w-3.5" />
               <span>Retry Connection</span>
             </button>
+            <Link
+              to="/login"
+              className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-full text-xs font-bold bg-white text-[#102A35] border border-[#DCE7E3] hover:bg-[#F6F5ED] transition-colors shadow-sm"
+            >
+              <LogIn className="h-3.5 w-3.5" />
+              <span>Log In</span>
+            </Link>
           </div>
         </div>
       </div>
