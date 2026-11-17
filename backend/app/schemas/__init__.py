@@ -27,6 +27,12 @@ from app.schemas.campaign import (
     CampaignResponse,
     CampaignPublicResponse,
     CampaignPublicListResponse,
+    CampaignAnalyticsResponse,
+    FounderAnalyticsOverviewResponse,
+    FunnelMetrics,
+    SeverityBreakdown,
+    DeviceMetric,
+    TaskCompletionMetric,
 )
 
 from app.schemas.application import (

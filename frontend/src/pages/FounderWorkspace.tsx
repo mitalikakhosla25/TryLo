@@ -17,13 +17,18 @@ import {
   ExternalLink,
   Plus,
   Users,
+  TrendingUp,
+  Bug,
+  Coins,
 } from 'lucide-react';
 import type { FounderProfile } from '../api/profile';
+import { useFounderAnalyticsOverview } from '../context/useCampaigns';
 
 export const FounderWorkspace: React.FC = () => {
   const { user, logout } = useAuth();
   const { profileData } = useProfile();
   const { data: startups, isLoading: isLoadingStartups } = useMyStartups();
+  const { data: analyticsOverview } = useFounderAnalyticsOverview();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -280,6 +285,96 @@ export const FounderWorkspace: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Founder Intelligence & Portfolio Analytics (Version 2) */}
+        {analyticsOverview && (
+          <div className="rounded-3xl bg-white border border-[#DCE7E3] p-6 sm:p-7 space-y-5 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-[#DCE7E3]">
+              <div className="flex items-center space-x-3">
+                <div className="h-10 w-10 rounded-2xl bg-[#D7EFEB] border border-[#BCE1DA] flex items-center justify-center text-[#087C80] shadow-xs">
+                  <TrendingUp className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base sm:text-lg font-bold text-[#102A35]">
+                      Founder QA Intelligence Overview
+                    </h2>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#07545A] text-white">
+                      V2 Suite
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#52656B]">
+                    Macro analytics across all your registered startups and beta campaigns.
+                  </p>
+                </div>
+              </div>
+
+              {startups && startups.length > 0 && (
+                <Link
+                  to={`/founder/startups/${startups[0].id}/campaigns`}
+                  className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-[#F6F5ED] hover:bg-[#EFEFE5] text-[#102A35] border border-[#DCE7E3] transition-colors"
+                >
+                  <span>Campaign Reports</span>
+                  <ArrowRight className="h-3.5 w-3.5 text-[#087C80]" />
+                </Link>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className="p-4 rounded-2xl bg-[#F6F5ED] border border-[#DCE7E3] space-y-1">
+                <div className="flex items-center justify-between text-xs text-[#52656B]">
+                  <span>Vetted Testers</span>
+                  <Users className="h-4 w-4 text-[#087C80]" />
+                </div>
+                <div className="text-2xl font-black text-[#102A35]">
+                  {analyticsOverview.total_testers_engaged}
+                </div>
+                <div className="text-[11px] text-[#52656B]">
+                  Across {analyticsOverview.active_campaigns} active campaigns
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#F6F5ED] border border-[#DCE7E3] space-y-1">
+                <div className="flex items-center justify-between text-xs text-[#52656B]">
+                  <span>Bugs Triaged</span>
+                  <Bug className="h-4 w-4 text-[#087C80]" />
+                </div>
+                <div className="text-2xl font-black text-[#102A35]">
+                  {analyticsOverview.total_bugs_reported}
+                </div>
+                <div className="text-[11px] text-rose-600 font-semibold">
+                  {analyticsOverview.critical_bugs_count} critical priority
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#F6F5ED] border border-[#DCE7E3] space-y-1">
+                <div className="flex items-center justify-between text-xs text-[#52656B]">
+                  <span>Resolution Rate</span>
+                  <CheckCircle2 className="h-4 w-4 text-[#0E7C57]" />
+                </div>
+                <div className="text-2xl font-black text-[#0E7C57]">
+                  {analyticsOverview.overall_resolution_rate}%
+                </div>
+                <div className="text-[11px] text-[#52656B]">
+                  QA resolution velocity
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#F6F5ED] border border-[#DCE7E3] space-y-1">
+                <div className="flex items-center justify-between text-xs text-[#52656B]">
+                  <span>Reward Capital</span>
+                  <Coins className="h-4 w-4 text-[#087C80]" />
+                </div>
+                <div className="text-2xl font-black text-[#102A35]">
+                  ₹{analyticsOverview.total_payout_pool.toLocaleString()}
+                </div>
+                <div className="text-[11px] text-[#07545A] font-semibold">
+                  Avg Tester ATS: {analyticsOverview.average_tester_ats}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Feature Showcase Card */}
         <div className="rounded-3xl bg-white border border-[#DCE7E3] p-6 sm:p-8 space-y-6 shadow-sm">

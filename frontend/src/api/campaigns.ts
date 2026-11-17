@@ -2,7 +2,7 @@
  * TryLo Campaign API Client & TypeScript Types
  */
 
-import { apiClient } from './client';
+import { apiClient, API_BASE_URL } from './client';
 
 export type RewardType = 'unpaid' | 'monetary' | 'perk';
 export type CampaignStatus = 'draft' | 'published' | 'closed' | 'archived';
@@ -282,4 +282,133 @@ export async function listPublicCampaigns(
   return apiClient<CampaignPublicListResponse>(`/api/public/campaigns${queryString}`, {
     method: 'GET',
   });
+}
+
+// ==============================================================================
+// Founder Intelligence & Analytics Types & Endpoints (Version 2)
+// ==============================================================================
+
+export interface FunnelMetrics {
+  applicants_total: number;
+  applicants_accepted: number;
+  applicants_pending: number;
+  applicants_rejected: number;
+  testers_in_progress: number;
+  testers_completed: number;
+  acceptance_rate: number;
+  completion_rate: number;
+}
+
+export interface SeverityBreakdown {
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+  total_bugs: number;
+  resolution_rate: number;
+  resolved_count: number;
+  open_count: number;
+}
+
+export interface DeviceMetric {
+  name: string;
+  count: number;
+  percentage: number;
+}
+
+export interface TaskCompletionMetric {
+  task_id: string;
+  title: string;
+  is_required: boolean;
+  completed_count: number;
+  in_progress_count: number;
+  completion_percentage: number;
+}
+
+export interface CampaignAnalytics {
+  campaign_id: string;
+  campaign_title: string;
+  campaign_slug: string;
+  startup_name: string;
+  startup_slug: string;
+  status: string;
+  product_type: string | null;
+  quota_target: number;
+  quota_filled: number;
+  quota_percentage: number;
+  total_reward_allocated: number;
+  total_reward_currency: string;
+  reward_per_tester: number;
+  payout_disbursed: number;
+  payout_pending: number;
+  funnel: FunnelMetrics;
+  severity: SeverityBreakdown;
+  feedback_types: Record<string, number>;
+  device_matrix: DeviceMetric[];
+  os_matrix: DeviceMetric[];
+  browser_matrix: DeviceMetric[];
+  task_velocity: TaskCompletionMetric[];
+  average_ats_score: number | null;
+  dpiit_registered: boolean;
+  cin_number: string | null;
+  generated_at: string;
+}
+
+export interface FounderAnalyticsOverview {
+  total_campaigns: number;
+  active_campaigns: number;
+  total_testers_engaged: number;
+  total_bugs_reported: number;
+  critical_bugs_count: number;
+  overall_resolution_rate: number;
+  total_payout_pool: number;
+  average_tester_ats: number;
+  top_performing_campaigns: {
+    id: string;
+    title: string;
+    status: string;
+    testers_count: number;
+    bugs_count: number;
+  }[];
+}
+
+/**
+ * Fetch detailed QA intelligence, funnel, and environment metrics for a campaign.
+ */
+export async function getCampaignAnalytics(campaignId: string): Promise<CampaignAnalytics> {
+  return apiClient<CampaignAnalytics>(`/api/campaigns/${campaignId}/analytics`, {
+    method: 'GET',
+  });
+}
+
+/**
+ * Fetch macro founder intelligence overview across all owned campaigns.
+ */
+export async function getFounderAnalyticsOverview(): Promise<FounderAnalyticsOverview> {
+  return apiClient<FounderAnalyticsOverview>('/api/founder/analytics/overview', {
+    method: 'GET',
+  });
+}
+
+/**
+ * Download the comprehensive campaign QA audit and compliance summary in CSV format.
+ */
+export async function downloadCampaignAuditCsv(campaignId: string, campaignSlug: string): Promise<void> {
+  const url = `${API_BASE_URL}/api/campaigns/${campaignId}/export/audit-summary`;
+  const res = await fetch(url, {
+    method: 'GET',
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    throw new Error('Failed to export campaign audit summary');
+  }
+  const blob = await res.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = downloadUrl;
+  a.download = `TryLo_Audit_Summary_${campaignSlug || 'campaign'}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(downloadUrl);
+  document.body.removeChild(a);
 }

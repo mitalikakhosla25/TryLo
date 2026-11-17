@@ -11,12 +11,16 @@ import {
   getPublicCampaignById,
   getPublicCampaignBySlug,
   listPublicCampaigns,
+  getCampaignAnalytics,
+  getFounderAnalyticsOverview,
   type Campaign,
   type CampaignPublic,
   type CampaignPublicListResponse,
   type PublicCampaignFilters,
   type CampaignCreatePayload,
   type CampaignUpdatePayload,
+  type CampaignAnalytics,
+  type FounderAnalyticsOverview,
 } from '../api/campaigns';
 import { useAuth } from './useAuth';
 
@@ -165,5 +169,31 @@ export function useCloseCampaign(defaultCampaignId?: string) {
       queryClient.invalidateQueries({ queryKey: ['campaigns', 'my'] });
       queryClient.invalidateQueries({ queryKey: ['campaign', closed.id] });
     },
+  });
+}
+
+export function useCampaignAnalytics(campaignId: string | undefined) {
+  const { user } = useAuth();
+  const isAuthorized = user?.role === 'founder';
+
+  return useQuery<CampaignAnalytics, Error>({
+    queryKey: ['campaign', campaignId, 'analytics'],
+    queryFn: () => getCampaignAnalytics(campaignId!),
+    enabled: !!user && isAuthorized && !!campaignId,
+    staleTime: 15000,
+    retry: 1,
+  });
+}
+
+export function useFounderAnalyticsOverview() {
+  const { user } = useAuth();
+  const isAuthorized = user?.role === 'founder';
+
+  return useQuery<FounderAnalyticsOverview, Error>({
+    queryKey: ['founder', 'analytics', 'overview', user?.id],
+    queryFn: getFounderAnalyticsOverview,
+    enabled: !!user && isAuthorized,
+    staleTime: 15000,
+    retry: 1,
   });
 }

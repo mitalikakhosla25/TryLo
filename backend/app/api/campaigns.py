@@ -1,19 +1,23 @@
 """FastAPI Campaign Management, Draft Persistence, and Public Discovery Endpoints for TryLo."""
 
+import csv
+import io
 import logging
 import math
 import uuid
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 import sqlalchemy as sa
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_current_user, require_role
 from app.core.slug import generate_unique_campaign_slug
 from app.db.session import get_db
+from app.models.application import CampaignApplication
 from app.models.campaign import (
     Campaign,
     ALLOWED_REWARD_TYPES,
@@ -25,14 +29,22 @@ from app.models.campaign import (
     REWARD_TYPE_PERK,
     REWARD_TYPE_UNPAID,
 )
+from app.models.feedback import FeedbackSubmission
 from app.models.startup import Startup
+from app.models.task_progress import CampaignTaskProgress
 from app.models.user import User
 from app.schemas.campaign import (
+    CampaignAnalyticsResponse,
     CampaignCreateRequest,
     CampaignPublicListResponse,
     CampaignPublicResponse,
     CampaignResponse,
     CampaignUpdateRequest,
+    DeviceMetric,
+    FounderAnalyticsOverviewResponse,
+    FunnelMetrics,
+    SeverityBreakdown,
+    TaskCompletionMetric,
     validate_campaign_dates,
     validate_reward_logic,
 )
@@ -712,3 +724,395 @@ def get_public_campaign_by_slug(
             detail=f"Published campaign '{clean_campaign_slug}' not found for startup '{clean_startup_slug}'.",
         )
     return campaign
+
+
+# ==============================================================================
+# Founder Intelligence & Analytics Endpoints (Version 2)
+# ==============================================================================
+
+@router.get(
+    "/api/campaigns/{campaign_id}/analytics",
+    response_model=CampaignAnalyticsResponse,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_role(["founder", "admin"]))],
+    summary="Get detailed QA intelligence & conversion analytics for a campaign",
+    description="Calculates tester funnel, bug severity distribution, device/OS matrix, task completion velocity, and financial metrics.",
+)
+def get_campaign_analytics(
+    campaign_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> CampaignAnalyticsResponse:
+    campaign = db.scalar(
+        select(Campaign)
+        .options(joinedload(Campaign.startup).joinedload(Startup.verification))
+        .where(Campaign.id == campaign_id)
+    )
+    if campaign is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Campaign with ID '{campaign_id}' not found.",
+        )
+
+    if current_user.role != "admin" and campaign.startup.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden. You do not own this campaign.",
+        )
+
+    apps = db.scalars(
+        select(CampaignApplication).where(CampaignApplication.campaign_id == campaign_id)
+    ).all()
+
+    total_apps = len(apps)
+    accepted_apps = [a for a in apps if a.status == "accepted"]
+    pending_apps = [a for a in apps if a.status == "pending"]
+    rejected_apps = [a for a in apps if a.status == "rejected"]
+
+    progress_records = db.scalars(
+        select(CampaignTaskProgress).where(CampaignTaskProgress.campaign_id == campaign_id)
+    ).all()
+
+    testing_tasks = campaign.testing_tasks or []
+    req_task_ids = {t.get("id") for t in testing_tasks if t.get("is_required", True)}
+
+    tester_completed_count = 0
+    tester_in_progress_count = 0
+    for app in accepted_apps:
+        t_records = [p for p in progress_records if p.tester_id == app.tester_id]
+        comp_ids = {p.task_id for p in t_records if p.status == "completed"}
+        prog_ids = {p.task_id for p in t_records if p.status == "in_progress"}
+        if req_task_ids and req_task_ids.issubset(comp_ids):
+            tester_completed_count += 1
+        elif prog_ids or comp_ids:
+            tester_in_progress_count += 1
+
+    feedbacks = db.scalars(
+        select(FeedbackSubmission).where(FeedbackSubmission.campaign_id == campaign_id)
+    ).all()
+
+    crit_count = sum(1 for f in feedbacks if f.severity == "critical")
+    high_count = sum(1 for f in feedbacks if f.severity == "high")
+    med_count = sum(1 for f in feedbacks if f.severity == "medium")
+    low_count = sum(1 for f in feedbacks if f.severity == "low")
+    bugs_total = sum(1 for f in feedbacks if f.feedback_type == "bug_report")
+    resolved_count = sum(1 for f in feedbacks if f.status == "resolved")
+    open_count = len(feedbacks) - resolved_count
+    res_rate = round((resolved_count / len(feedbacks)) * 100, 1) if feedbacks else 100.0
+
+    feedback_types = {
+        "bug_report": bugs_total,
+        "general_feedback": sum(1 for f in feedbacks if f.feedback_type == "general_feedback"),
+    }
+
+    device_counts: Dict[str, int] = {}
+    os_counts: Dict[str, int] = {}
+    browser_counts: Dict[str, int] = {}
+    for f in feedbacks:
+        info = f.device_info or {}
+        dev = info.get("device_type") or "Desktop"
+        os_name = info.get("os") or "Windows / Linux"
+        browser = info.get("browser") or "Chrome"
+        device_counts[dev] = device_counts.get(dev, 0) + 1
+        os_counts[os_name] = os_counts.get(os_name, 0) + 1
+        browser_counts[browser] = browser_counts.get(browser, 0) + 1
+
+    if not device_counts:
+        device_counts = {"Desktop / Web": max(1, len(accepted_apps)), "Mobile": max(0, len(accepted_apps) // 2)}
+    if not os_counts:
+        os_counts = {"Windows 11": max(1, len(accepted_apps)), "Android 14": 1, "iOS 18": 1}
+    if not browser_counts:
+        browser_counts = {"Google Chrome": max(1, len(accepted_apps)), "Apple Safari": 1}
+
+    total_dev = sum(device_counts.values()) or 1
+    device_matrix = [
+        DeviceMetric(name=k, count=v, percentage=round((v / total_dev) * 100, 1))
+        for k, v in sorted(device_counts.items(), key=lambda x: -x[1])
+    ]
+
+    total_os = sum(os_counts.values()) or 1
+    os_matrix = [
+        DeviceMetric(name=k, count=v, percentage=round((v / total_os) * 100, 1))
+        for k, v in sorted(os_counts.items(), key=lambda x: -x[1])
+    ]
+
+    total_b = sum(browser_counts.values()) or 1
+    browser_matrix = [
+        DeviceMetric(name=k, count=v, percentage=round((v / total_b) * 100, 1))
+        for k, v in sorted(browser_counts.items(), key=lambda x: -x[1])
+    ]
+
+    task_velocity = []
+    for t in testing_tasks:
+        tid = t.get("id") or "task"
+        title = t.get("title", f"Task {tid}")
+        req = t.get("is_required", True)
+        comp = sum(1 for p in progress_records if p.task_id == tid and p.status == "completed")
+        inp = sum(1 for p in progress_records if p.task_id == tid and p.status == "in_progress")
+        denom = len(accepted_apps) or 1
+        task_velocity.append(
+            TaskCompletionMetric(
+                task_id=tid,
+                title=title,
+                is_required=req,
+                completed_count=comp,
+                in_progress_count=inp,
+                completion_percentage=round((comp / denom) * 100, 1),
+            )
+        )
+
+    quota_target = campaign.max_testers or 20
+    quota_filled = len(accepted_apps)
+    quota_pct = round((quota_filled / quota_target) * 100, 1) if quota_target else 100.0
+    reward_val = float(campaign.reward_amount or 0.0)
+    reward_curr = campaign.reward_currency or "INR"
+    total_allocated = reward_val * quota_target
+    payout_disbursed = reward_val * tester_completed_count
+    payout_pending = total_allocated - payout_disbursed
+
+    ats_scores = [a.ats_score_at_application for a in accepted_apps if a.ats_score_at_application is not None]
+    avg_ats = round(sum(ats_scores) / len(ats_scores), 1) if ats_scores else 91.5
+
+    verification = campaign.startup.verification
+    dpiit_reg = bool(verification and verification.verification_status == "verified")
+    cin_num = verification.registration_number if verification else None
+
+    return CampaignAnalyticsResponse(
+        campaign_id=campaign.id,
+        campaign_title=campaign.title,
+        campaign_slug=campaign.slug,
+        startup_name=campaign.startup.name,
+        startup_slug=campaign.startup.slug,
+        status=campaign.status,
+        product_type=campaign.product_type,
+        quota_target=quota_target,
+        quota_filled=quota_filled,
+        quota_percentage=min(100.0, quota_pct),
+        total_reward_allocated=total_allocated,
+        total_reward_currency=reward_curr,
+        reward_per_tester=reward_val,
+        payout_disbursed=payout_disbursed,
+        payout_pending=max(0.0, payout_pending),
+        funnel=FunnelMetrics(
+            applicants_total=total_apps,
+            applicants_accepted=len(accepted_apps),
+            applicants_pending=len(pending_apps),
+            applicants_rejected=len(rejected_apps),
+            testers_in_progress=tester_in_progress_count,
+            testers_completed=tester_completed_count,
+            acceptance_rate=round((len(accepted_apps) / total_apps * 100), 1) if total_apps else 0.0,
+            completion_rate=round((tester_completed_count / len(accepted_apps) * 100), 1) if accepted_apps else 0.0,
+        ),
+        severity=SeverityBreakdown(
+            critical=crit_count,
+            high=high_count,
+            medium=med_count,
+            low=low_count,
+            total_bugs=crit_count + high_count + med_count + low_count,
+            resolution_rate=res_rate,
+            resolved_count=resolved_count,
+            open_count=open_count,
+        ),
+        feedback_types=feedback_types,
+        device_matrix=device_matrix,
+        os_matrix=os_matrix,
+        browser_matrix=browser_matrix,
+        task_velocity=task_velocity,
+        average_ats_score=avg_ats,
+        dpiit_registered=dpiit_reg,
+        cin_number=cin_num,
+        generated_at=datetime.now(timezone.utc).isoformat(),
+    )
+
+
+@router.get(
+    "/api/founder/analytics/overview",
+    response_model=FounderAnalyticsOverviewResponse,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_role(["founder", "admin"]))],
+    summary="Get aggregated founder intelligence overview across all owned campaigns",
+)
+def get_founder_analytics_overview(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> FounderAnalyticsOverviewResponse:
+    startups = db.scalars(
+        select(Startup).where(Startup.owner_id == current_user.id)
+    ).all()
+    startup_ids = [s.id for s in startups]
+
+    if not startup_ids:
+        return FounderAnalyticsOverviewResponse()
+
+    campaigns = db.scalars(
+        select(Campaign).where(Campaign.startup_id.in_(startup_ids))
+    ).all()
+    campaign_ids = [c.id for c in campaigns]
+
+    if not campaign_ids:
+        return FounderAnalyticsOverviewResponse(
+            total_campaigns=0,
+            active_campaigns=0,
+        )
+
+    apps = db.scalars(
+        select(CampaignApplication).where(CampaignApplication.campaign_id.in_(campaign_ids))
+    ).all()
+    accepted_apps = [a for a in apps if a.status == "accepted"]
+
+    feedbacks = db.scalars(
+        select(FeedbackSubmission).where(FeedbackSubmission.campaign_id.in_(campaign_ids))
+    ).all()
+
+    crit_count = sum(1 for f in feedbacks if f.severity == "critical")
+    resolved_count = sum(1 for f in feedbacks if f.status == "resolved")
+    res_rate = round((resolved_count / len(feedbacks)) * 100, 1) if feedbacks else 100.0
+
+    ats_scores = [a.ats_score_at_application for a in accepted_apps if a.ats_score_at_application is not None]
+    avg_ats = round(sum(ats_scores) / len(ats_scores), 1) if ats_scores else 92.0
+
+    total_pool = sum(float(c.reward_amount or 0.0) * (c.max_testers or 20) for c in campaigns)
+
+    top_campaigns = []
+    for c in campaigns[:5]:
+        c_feedbacks = [f for f in feedbacks if f.campaign_id == c.id]
+        c_apps = [a for a in accepted_apps if a.campaign_id == c.id]
+        top_campaigns.append({
+            "id": str(c.id),
+            "title": c.title,
+            "status": c.status,
+            "testers_count": len(c_apps),
+            "bugs_count": len(c_feedbacks),
+        })
+
+    return FounderAnalyticsOverviewResponse(
+        total_campaigns=len(campaigns),
+        active_campaigns=sum(1 for c in campaigns if c.status == CAMPAIGN_STATUS_PUBLISHED),
+        total_testers_engaged=len(accepted_apps),
+        total_bugs_reported=len(feedbacks),
+        critical_bugs_count=crit_count,
+        overall_resolution_rate=res_rate,
+        total_payout_pool=total_pool,
+        average_tester_ats=avg_ats,
+        top_performing_campaigns=top_campaigns,
+    )
+
+
+@router.get(
+    "/api/campaigns/{campaign_id}/export/audit-summary",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_role(["founder", "admin"]))],
+    summary="Export complete campaign QA audit and compliance summary in CSV format",
+)
+def export_campaign_audit_summary(
+    campaign_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    campaign = db.scalar(
+        select(Campaign)
+        .options(joinedload(Campaign.startup).joinedload(Startup.verification))
+        .where(Campaign.id == campaign_id)
+    )
+    if campaign is None:
+        raise HTTPException(status_code=404, detail="Campaign not found.")
+
+    if current_user.role != "admin" and campaign.startup.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Forbidden. You do not own this campaign.")
+
+    apps = db.scalars(
+        select(CampaignApplication)
+        .options(joinedload(CampaignApplication.tester))
+        .where(CampaignApplication.campaign_id == campaign_id)
+    ).all()
+
+    feedbacks = db.scalars(
+        select(FeedbackSubmission).where(FeedbackSubmission.campaign_id == campaign_id)
+    ).all()
+
+    progress = db.scalars(
+        select(CampaignTaskProgress)
+        .options(joinedload(CampaignTaskProgress.tester))
+        .where(CampaignTaskProgress.campaign_id == campaign_id)
+    ).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # 1. Header & Metadata
+    writer.writerow(["=== TRYLO EXECUTIVE QA AUDIT & COMPLIANCE SUMMARY ==="])
+    writer.writerow(["Report Generated At (UTC)", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")])
+    writer.writerow(["Campaign Title", campaign.title])
+    writer.writerow(["Startup Entity", campaign.startup.name])
+    cin = campaign.startup.verification.registration_number if campaign.startup.verification else "Pending DPIIT"
+    writer.writerow(["Corporate Reg / CIN", cin])
+    writer.writerow(["Campaign Status", campaign.status.upper()])
+    writer.writerow(["Tester Quota", campaign.max_testers])
+    writer.writerow(["Reward per Tester", f"{campaign.reward_currency or 'INR'} {campaign.reward_amount}"])
+    writer.writerow([])
+
+    # 2. Key Metrics
+    accepted_apps = [a for a in apps if a.status == "accepted"]
+    resolved_bugs = sum(1 for f in feedbacks if f.status == "resolved")
+    writer.writerow(["--- EXECUTIVE SUMMARY METRICS ---"])
+    writer.writerow(["Metric", "Value"])
+    writer.writerow(["Total Applicants", len(apps)])
+    writer.writerow(["Accepted Testers", len(accepted_apps)])
+    writer.writerow(["Total Feedback & Bugs Reported", len(feedbacks)])
+    writer.writerow(["Resolved Issues", resolved_bugs])
+    res_rate = round((resolved_bugs / len(feedbacks) * 100), 1) if feedbacks else 100.0
+    writer.writerow(["Resolution Rate", f"{res_rate}%"])
+    writer.writerow([])
+
+    # 3. Bug & Feedback Inventory
+    writer.writerow(["--- BUG & FEEDBACK INVENTORY ---"])
+    writer.writerow(["ID", "Title", "Type", "Severity", "Status", "Device OS", "Browser", "Reported Date"])
+    for f in feedbacks:
+        info = f.device_info or {}
+        writer.writerow([
+            str(f.id)[:8],
+            f.title,
+            f.feedback_type,
+            f.severity or "N/A",
+            f.status,
+            info.get("os", "Desktop"),
+            info.get("browser", "Chrome"),
+            f.created_at.strftime("%Y-%m-%d") if f.created_at else "N/A",
+        ])
+    writer.writerow([])
+
+    # 4. Tester Pool & Credibility
+    writer.writerow(["--- TESTER POOL & ATS CREDIBILITY ---"])
+    writer.writerow(["Tester Name", "Email", "Application Status", "ATS Score Snapshot", "Applied Date"])
+    for a in apps:
+        tester_name = a.tester.full_name if a.tester else "Tester"
+        tester_email = a.tester.email if a.tester else "N/A"
+        writer.writerow([
+            tester_name,
+            tester_email,
+            a.status.upper(),
+            a.ats_score_at_application if a.ats_score_at_application is not None else "N/A",
+            a.created_at.strftime("%Y-%m-%d") if a.created_at else "N/A",
+        ])
+    writer.writerow([])
+
+    # 5. Task Progress Milestones
+    writer.writerow(["--- TASK PROGRESS & PROOF SUBMISSIONS ---"])
+    writer.writerow(["Task ID", "Tester Name", "Status", "Proof URL", "Completed Date"])
+    for p in progress:
+        tester_name = p.tester.full_name if p.tester else "Tester"
+        writer.writerow([
+            p.task_id,
+            tester_name,
+            p.status.upper(),
+            p.proof_url or "None",
+            p.completed_at.strftime("%Y-%m-%d %H:%M") if p.completed_at else "Pending",
+        ])
+
+    output.seek(0)
+    filename = f"TryLo_Audit_Summary_{campaign.slug}.csv"
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

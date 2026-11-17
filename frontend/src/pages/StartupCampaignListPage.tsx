@@ -25,8 +25,10 @@ import {
   Sliders,
   Send,
   Users,
+  TrendingUp,
 } from 'lucide-react';
 import type { Campaign, CampaignStatus } from '../api/campaigns';
+import { CampaignAnalyticsModal } from '../components/campaigns/CampaignAnalyticsModal';
 
 export const StartupCampaignListPage: React.FC = () => {
   const { startupId } = useParams<{ startupId: string }>();
@@ -44,6 +46,7 @@ export const StartupCampaignListPage: React.FC = () => {
   const [closingId, setClosingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [analyticsModalCampaign, setAnalyticsModalCampaign] = useState<Campaign | null>(null);
 
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
@@ -480,6 +483,16 @@ export const StartupCampaignListPage: React.FC = () => {
                       <span>Applications</span>
                     </Link>
 
+                    <button
+                      type="button"
+                      onClick={() => setAnalyticsModalCampaign(campaign)}
+                      className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-[#07545A] hover:bg-[#087C80] text-white shadow-xs transition-colors cursor-pointer"
+                      title="View QA Intelligence, Funnel & Audit Report"
+                    >
+                      <TrendingUp className="h-3.5 w-3.5" />
+                      <span>Analytics & Audit</span>
+                    </button>
+
                     {/* Edit allowed for Draft and Published */}
                     {campaign.status !== 'closed' && (
                       <Link
@@ -606,6 +619,17 @@ export const StartupCampaignListPage: React.FC = () => {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Founder Campaign Intelligence & Audit Modal (Version 2) */}
+        {analyticsModalCampaign && (
+          <CampaignAnalyticsModal
+            isOpen={!!analyticsModalCampaign}
+            onClose={() => setAnalyticsModalCampaign(null)}
+            campaignId={analyticsModalCampaign.id}
+            campaignTitle={analyticsModalCampaign.title}
+            campaignSlug={analyticsModalCampaign.slug}
+          />
         )}
       </div>
     </div>

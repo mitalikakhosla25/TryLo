@@ -317,3 +317,92 @@ class CampaignPublicListResponse(BaseModel):
     page_size: int
     total_pages: int
 
+
+# ==============================================================================
+# Founder Intelligence & Analytics Schemas (Version 2)
+# ==============================================================================
+
+class FunnelMetrics(BaseModel):
+    """Tester conversion funnel metrics for a campaign."""
+    applicants_total: int = 0
+    applicants_accepted: int = 0
+    applicants_pending: int = 0
+    applicants_rejected: int = 0
+    testers_in_progress: int = 0
+    testers_completed: int = 0
+    acceptance_rate: float = 0.0
+    completion_rate: float = 0.0
+
+
+class SeverityBreakdown(BaseModel):
+    """Bug severity distribution and resolution metrics."""
+    critical: int = 0
+    high: int = 0
+    medium: int = 0
+    low: int = 0
+    total_bugs: int = 0
+    resolution_rate: float = 0.0
+    resolved_count: int = 0
+    open_count: int = 0
+
+
+class DeviceMetric(BaseModel):
+    """Device, OS, or Browser distribution item."""
+    name: str
+    count: int
+    percentage: float
+
+
+class TaskCompletionMetric(BaseModel):
+    """Per-task execution velocity and progress."""
+    task_id: str
+    title: str
+    is_required: bool = True
+    completed_count: int = 0
+    in_progress_count: int = 0
+    completion_percentage: float = 0.0
+
+
+class CampaignAnalyticsResponse(BaseModel):
+    """Comprehensive Founder Analytics and QA Intelligence for a single campaign."""
+    campaign_id: uuid.UUID
+    campaign_title: str
+    campaign_slug: str
+    startup_name: str
+    startup_slug: str
+    status: str
+    product_type: Optional[str] = None
+    quota_target: int = 0
+    quota_filled: int = 0
+    quota_percentage: float = 0.0
+    total_reward_allocated: float = 0.0
+    total_reward_currency: str = "INR"
+    reward_per_tester: float = 0.0
+    payout_disbursed: float = 0.0
+    payout_pending: float = 0.0
+    funnel: FunnelMetrics
+    severity: SeverityBreakdown
+    feedback_types: Dict[str, int] = Field(default_factory=dict)
+    device_matrix: List[DeviceMetric] = Field(default_factory=list)
+    os_matrix: List[DeviceMetric] = Field(default_factory=list)
+    browser_matrix: List[DeviceMetric] = Field(default_factory=list)
+    task_velocity: List[TaskCompletionMetric] = Field(default_factory=list)
+    average_ats_score: Optional[float] = None
+    dpiit_registered: bool = False
+    cin_number: Optional[str] = None
+    generated_at: str
+
+
+class FounderAnalyticsOverviewResponse(BaseModel):
+    """High-level portfolio analytics across all founder campaigns."""
+    total_campaigns: int = 0
+    active_campaigns: int = 0
+    total_testers_engaged: int = 0
+    total_bugs_reported: int = 0
+    critical_bugs_count: int = 0
+    overall_resolution_rate: float = 0.0
+    total_payout_pool: float = 0.0
+    average_tester_ats: float = 0.0
+    top_performing_campaigns: List[Dict[str, Any]] = Field(default_factory=list)
+
+
