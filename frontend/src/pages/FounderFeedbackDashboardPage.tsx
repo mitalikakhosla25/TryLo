@@ -19,6 +19,7 @@ import {
 import { useFounderFeedback } from '../context/useFeedback';
 import type { FeedbackStatus, FeedbackType, BugSeverity } from '../api/tasks';
 import { AiExecutiveSummaryCard } from '../components/feedback/AiExecutiveSummaryCard';
+import { FounderAiCopilotDrawer } from '../components/feedback/FounderAiCopilotDrawer';
 
 export const FounderFeedbackDashboardPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -534,6 +535,9 @@ export const FounderFeedbackDashboardPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Floating Founder AI Co-Pilot Assistant */}
+      <FounderAiCopilotDrawer campaignId={selectedCampaignId || undefined} />
     </div>
   );
 };

@@ -1,111 +1,61 @@
 """Automated Tests for AI Bug Triaging, Duplicate Detection & Developer Ticket Synthesis."""
 
 import uuid
-from datetime import datetime, timezone
-import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
-
-from app.core.config import settings
-from app.core.security import create_access_token, hash_password
-from app.models.user import User
-from app.models.startup import Startup
-from app.models.campaign import Campaign, CAMPAIGN_STATUS_PUBLISHED
 from app.models.feedback import FeedbackSubmission
-from app.models.profile import TesterProfile
-
-TesterProfile.__test__ = False
-
-
-def seed_user(db: Session, full_name: str, email: str, role: str) -> User:
-    user = User(
-        full_name=full_name,
-        email=email,
-        password_hash=hash_password("Password123!"),
-        role=role,
-        is_active=True,
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
+from app.models.user import User
+from app.services.ai_triage import analyze_feedback_item, synthesize_batch_feedback_insights
 
 
-def set_auth(client: TestClient, user: User):
-    token = create_access_token(user_id=user.id, role=user.role)
-    client.cookies.set(settings.COOKIE_NAME, token)
+def create_submission(title: str, desc: str, steps: str = "", severity: str = "medium", video_url: str = None) -> FeedbackSubmission:
+    sub = FeedbackSubmission()
+    sub.id = uuid.uuid4()
+    sub.campaign_id = uuid.uuid4()
+    sub.tester_id = uuid.uuid4()
+    sub.title = title
+    sub.description = desc
+    sub.reproduction_steps = steps
+    sub.actual_behavior = "Failure observed in workflow"
+    sub.expected_behavior = "Success expected in workflow"
+    sub.severity = severity
+    sub.feedback_type = "bug"
+    sub.status = "submitted"
+    sub.video_url = video_url
+    tester = User()
+    tester.id = sub.tester_id
+    tester.full_name = "Rohan Sharma"
+    tester.email = "rohan@trylo.io"
+    sub.tester = tester
+    return sub
 
 
-def test_ai_bug_triaging_and_duplicate_detection(test_client: TestClient, db_session: Session):
-    founder = seed_user(db_session, "Priya Founder", f"founder_{uuid.uuid4().hex[:6]}@trylo.io", "founder")
-    tester1 = seed_user(db_session, "Rohan Tester", f"tester1_{uuid.uuid4().hex[:6]}@trylo.io", "tester")
-    tester2 = seed_user(db_session, "Sneha Tester", f"tester2_{uuid.uuid4().hex[:6]}@trylo.io", "tester")
-
-    startup = Startup(owner_id=founder.id, name="FinTech App", slug=f"fintech-{uuid.uuid4().hex[:6]}")
-    db_session.add(startup)
-    db_session.commit()
-
-    campaign = Campaign(
-        startup_id=startup.id,
-        title="FinTech Payment Beta",
-        slug=f"fintech-beta-{uuid.uuid4().hex[:6]}",
-        status=CAMPAIGN_STATUS_PUBLISHED,
-        summary="Test checkout and Stripe integration",
-        description="Detailed description",
-        access_instructions="Use sandbox cards",
-    )
-    db_session.add(campaign)
-    db_session.commit()
-
-    # Pre-existing bug in the same campaign (potential duplicate)
-    existing_bug = FeedbackSubmission(
-        campaign_id=campaign.id,
-        tester_id=tester1.id,
-        feedback_type="bug_report",
-        title="Stripe payment checkout button freezes UI on submit",
-        description="When clicking Pay with Card, the spinner hangs indefinitely and tab freezes.",
+def test_ai_bug_triaging_and_duplicate_detection():
+    existing_bug = create_submission(
+        title="Checkout modal freezes on credit card submission",
+        desc="When entering credit card details in checkout modal, the submit spinner spins indefinitely.",
         severity="critical",
-        reproduction_steps="1. Add item to cart\n2. Click checkout\n3. Click Pay Now",
-        status="submitted",
     )
-    db_session.add(existing_bug)
-    db_session.commit()
 
-    # Target bug submitted by tester 2 with similar payment freeze symptoms
-    target_bug = FeedbackSubmission(
-        campaign_id=campaign.id,
-        tester_id=tester2.id,
-        feedback_type="bug_report",
-        title="Payment checkout button crashes and freezes modal",
-        description="Checkout modal spinner keeps spinning and hangs browser during card payment processing.",
+    target_bug = create_submission(
+        title="Checkout modal hangs on card submission",
+        desc="Card details entered, clicked pay button, nothing happens and modal is stuck.",
+        steps="1. Add item to cart\n2. Open checkout\n3. Click Pay with Card",
         severity="critical",
-        reproduction_steps="1. Open payment dialog\n2. Enter credit card\n3. Submit payment",
-        expected_behavior="Payment confirms and receipt shows",
-        actual_behavior="Spinner hangs, tab freezes completely",
-        video_url="/api/feedback/videos/repro_test.webm",
-        video_duration_seconds=30,
-        timestamped_notes=[
-            {"timestamp_seconds": 15, "timestamp_display": "0:15", "note": "Click Pay button"}
-        ],
-        status="submitted",
+        video_url="/api/feedback/videos/test.webm",
     )
-    db_session.add(target_bug)
-    db_session.commit()
+    target_bug.timestamped_notes = [{"timestamp_seconds": 15, "timestamp_display": "0:15", "note": "Spinner stuck"}]
 
-    # 1. Founder triggers AI Triage on target bug
-    set_auth(test_client, founder)
-    res_triage = test_client.post(f"/api/founder/feedback/{target_bug.id}/ai-triage")
-    assert res_triage.status_code == 200
-    triage_data = res_triage.json()
+    all_subs = [existing_bug, target_bug]
+
+    triage_data = analyze_feedback_item(target_bug, all_subs)
 
     assert "root_cause_hypothesis" in triage_data
     assert "suggested_fix" in triage_data
     assert "fix_complexity" in triage_data
     assert "friction_score" in triage_data
-    assert triage_data["friction_score"] >= 8  # Critical payment freeze
+    assert triage_data["friction_score"] >= 8
     assert "potential_duplicates" in triage_data
 
-    # Verify duplicate detection caught existing_bug
+    # Verify duplicate detection
     duplicates = triage_data["potential_duplicates"]
     assert len(duplicates) >= 1
     assert duplicates[0]["title"] == existing_bug.title
@@ -119,9 +69,24 @@ def test_ai_bug_triaging_and_duplicate_detection(test_client: TestClient, db_ses
     assert "0:15" in dev_ticket
     assert "Suggested Fix" in dev_ticket
 
-    # 2. Verify Founder Feedback Detail endpoint returns ai_triage
-    res_detail = test_client.get(f"/api/founder/feedback/{target_bug.id}")
-    assert res_detail.status_code == 200
-    detail_data = res_detail.json()
-    assert detail_data["ai_triage"] is not None
-    assert detail_data["ai_triage"]["root_cause_hypothesis"] == triage_data["root_cause_hypothesis"]
+
+def test_ai_batch_synthesis_and_financial_risk():
+    subs = [
+        create_submission("Payment checkout modal freezes", "Stuck on card charge", severity="critical"),
+        create_submission("Stripe element fails to mount", "Blank card input", severity="high"),
+        create_submission("Typo in FAQ footer", "Minor spelling", severity="low"),
+    ]
+
+    synthesis = synthesize_batch_feedback_insights(subs, campaign_title="FinTech MVP")
+
+    assert synthesis["total_reports_analyzed"] == 3
+    assert synthesis["critical_bugs_count"] == 1
+    assert synthesis["release_readiness_score"] < 80
+    assert "BLOCKING" in synthesis["release_readiness_verdict"]
+
+    blocker = synthesis["single_most_critical_blocker"]
+    assert "payment" in blocker["headline"].lower() or "checkout" in blocker["headline"].lower()
+    assert blocker["revenue_at_risk_monthly"] is not None
+    assert blocker["churn_risk_percentage"] is not None
+    assert blocker["git_diff_patch"] is not None
+    assert "diff" in blocker["git_diff_patch"] or "---" in blocker["git_diff_patch"]

@@ -195,6 +195,9 @@ class SingleMostCriticalBlocker(BaseModel):
     affected_reports_count: int
     underlying_nexus: str
     recommended_hotfix: str
+    revenue_at_risk_monthly: Optional[str] = None
+    churn_risk_percentage: Optional[int] = None
+    git_diff_patch: Optional[str] = None
 
 
 class PrioritizedActionItem(BaseModel):
@@ -220,4 +223,29 @@ class AiExecutiveSynthesisResponse(BaseModel):
     executive_summary_markdown: str
     unified_pr_brief_markdown: str
     synthesized_at: datetime
+
+
+class AiCopilotReferencedFeedback(BaseModel):
+    """Feedback item cited in an AI Co-Pilot query response."""
+    id: uuid.UUID
+    title: str
+    severity: Optional[str] = None
+    tester_name: str
+
+
+class AiCopilotQueryRequest(BaseModel):
+    """Payload for conversational founder query to the TryLo AI Co-Pilot."""
+    query: str = Field(..., min_length=2, max_length=1000)
+    campaign_id: Optional[uuid.UUID] = None
+
+
+class AiCopilotQueryResponse(BaseModel):
+    """Conversational intelligence synthesis directly answering the founder's inquiry."""
+    query: str
+    answer_markdown: str
+    key_takeaways: List[str] = []
+    suggested_followups: List[str] = []
+    referenced_feedbacks: List[AiCopilotReferencedFeedback] = []
+    timestamp: datetime
+
 

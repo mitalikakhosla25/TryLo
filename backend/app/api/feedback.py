@@ -45,8 +45,11 @@ from app.schemas.feedback import (
     TimestampedNoteAddRequest,
     AiTriageResponse,
     AiExecutiveSynthesisResponse,
+    AiCopilotQueryRequest,
+    AiCopilotQueryResponse,
 )
 from app.services.ai_triage import analyze_feedback_item, synthesize_batch_feedback_insights
+from app.services.ai_copilot import query_ai_copilot
 from app.api.tasks import (
     validate_tester_profile_completed,
     verify_accepted_tester_for_campaign,
@@ -1063,6 +1066,76 @@ def generate_executive_feedback_synthesis(
     )
 
     return AiExecutiveSynthesisResponse(**synthesis_dict)
+
+
+@router.post(
+    "/api/founder/ai-copilot/query",
+    response_model=AiCopilotQueryResponse,
+    summary="Ask TryLo AI Co-Pilot a conversational query across campaign feedback",
+)
+def query_founder_ai_copilot(
+    payload: AiCopilotQueryRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("founder")),
+):
+    """
+    Synthesize natural language answers to founder inquiries across all
+    campaign feedback submissions, bug reports, and video proof notes.
+    """
+    # 1. Resolve accessible campaigns
+    camp_stmt = (
+        select(Campaign)
+        .join(Startup, Campaign.startup_id == Startup.id)
+        .where(Startup.owner_id == current_user.id)
+    )
+    if payload.campaign_id:
+        camp_stmt = camp_stmt.where(Campaign.id == payload.campaign_id)
+
+    campaigns = db.scalars(camp_stmt).all()
+    if payload.campaign_id and not campaigns:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Campaign not found or not owned by founder",
+        )
+
+    if not campaigns:
+        copilot_dict = query_ai_copilot(
+            query=payload.query,
+            submissions=[],
+            campaign_title=None,
+        )
+        return AiCopilotQueryResponse(**copilot_dict)
+
+    campaign_ids = [c.id for c in campaigns]
+    campaign_title = campaigns[0].title if len(campaigns) == 1 else "All Active Campaigns"
+
+    # Fetch submissions
+    stmt = (
+        select(FeedbackSubmission)
+        .options(
+            joinedload(FeedbackSubmission.campaign),
+            joinedload(FeedbackSubmission.tester),
+        )
+        .where(FeedbackSubmission.campaign_id.in_(campaign_ids))
+        .order_by(FeedbackSubmission.created_at.desc())
+    )
+    submissions = db.scalars(stmt).all()
+
+    copilot_dict = query_ai_copilot(
+        query=payload.query,
+        submissions=submissions,
+        campaign_title=campaign_title,
+    )
+
+    logger.info(
+        "Founder %s queried AI Co-Pilot (query='%s', matches=%d)",
+        current_user.id,
+        payload.query[:60],
+        len(copilot_dict.get("referenced_feedbacks", [])),
+    )
+
+    return AiCopilotQueryResponse(**copilot_dict)
+
 
 
 

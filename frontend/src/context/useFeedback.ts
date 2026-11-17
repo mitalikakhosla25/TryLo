@@ -7,6 +7,7 @@ import {
   addTimestampedVideoNote,
   runAiFeedbackTriage,
   generateExecutiveFeedbackSynthesis,
+  queryAiCopilot,
   type FounderFeedbackFilters,
   type FounderFeedbackListResponse,
   type FounderFeedbackDetail,
@@ -16,6 +17,8 @@ import {
   type TimestampedNoteCreatePayload,
   type AiTriageResponse,
   type AiExecutiveSynthesisResponse,
+  type AiCopilotQueryRequest,
+  type AiCopilotQueryResponse,
 } from '../api/feedback';
 import { useAuth } from './useAuth';
 
@@ -146,5 +149,11 @@ export function useGenerateExecutiveFeedbackSynthesis() {
       });
       queryClient.invalidateQueries({ queryKey: ['founder-feedback'] });
     },
+  });
+}
+
+export function useQueryAiCopilot() {
+  return useMutation<AiCopilotQueryResponse, Error, AiCopilotQueryRequest>({
+    mutationFn: (payload) => queryAiCopilot(payload),
   });
 }

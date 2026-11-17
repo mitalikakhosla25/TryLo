@@ -263,6 +263,9 @@ export interface SingleMostCriticalBlocker {
   affected_reports_count: number;
   underlying_nexus: string;
   recommended_hotfix: string;
+  revenue_at_risk_monthly?: string | null;
+  churn_risk_percentage?: number | null;
+  git_diff_patch?: string | null;
 }
 
 export interface PrioritizedActionItem {
@@ -310,4 +313,37 @@ export async function generateExecutiveFeedbackSynthesis(
       method: 'POST',
     }
   );
+}
+
+export interface AiCopilotReferencedFeedback {
+  id: string;
+  title: string;
+  severity?: BugSeverity | null;
+  tester_name: string;
+}
+
+export interface AiCopilotQueryRequest {
+  query: string;
+  campaign_id?: string | null;
+}
+
+export interface AiCopilotQueryResponse {
+  query: string;
+  answer_markdown: string;
+  key_takeaways: string[];
+  suggested_followups: string[];
+  referenced_feedbacks: AiCopilotReferencedFeedback[];
+  timestamp: string;
+}
+
+/**
+ * Send natural language query to TryLo Founder AI Co-Pilot
+ */
+export async function queryAiCopilot(
+  payload: AiCopilotQueryRequest
+): Promise<AiCopilotQueryResponse> {
+  return apiClient<AiCopilotQueryResponse>('/api/founder/ai-copilot/query', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 }

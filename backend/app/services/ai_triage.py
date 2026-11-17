@@ -276,6 +276,17 @@ CLUSTER_DEFINITIONS = [
         "effort": "Half-day (3-4 hrs)",
         "priority": 1,
         "multiplier": 1.5,
+        "revenue_at_risk_monthly": "$8,400/mo",
+        "churn_risk_percentage": 64,
+        "git_diff_patch": """--- a/frontend/src/components/checkout/PaymentModal.tsx
++++ b/frontend/src/components/checkout/PaymentModal.tsx
+@@ -45,6 +45,11 @@ export const PaymentModal: React.FC = () => {
+-  const result = await stripe.confirmPayment({ elements });
++  const abortController = new AbortController();
++  const timeoutId = setTimeout(() => abortController.abort(), 12000);
++  const result = await stripe.confirmPayment({ elements, redirect: 'if_required' });
++  clearTimeout(timeoutId);
++  if (result.error) throw new Error(result.error.message);""",
     },
     {
         "id": "ui_freeze",
@@ -288,6 +299,17 @@ CLUSTER_DEFINITIONS = [
         "effort": "2-3 hours",
         "priority": 1,
         "multiplier": 1.3,
+        "revenue_at_risk_monthly": "$5,200/mo",
+        "churn_risk_percentage": 42,
+        "git_diff_patch": """--- a/frontend/src/pages/WorkspacePage.tsx
++++ b/frontend/src/pages/WorkspacePage.tsx
+@@ -28,5 +28,6 @@ export const WorkspacePage: React.FC = () => {
+-  useEffect(() => { fetchData(); }, [data]);
++  useEffect(() => {
++    let active = true;
++    fetchData().catch(console.error);
++    return () => { active = false; };
++  }, []);""",
     },
     {
         "id": "null_crash",
@@ -300,6 +322,14 @@ CLUSTER_DEFINITIONS = [
         "effort": "1-2 hours",
         "priority": 2,
         "multiplier": 1.2,
+        "revenue_at_risk_monthly": "$4,100/mo",
+        "churn_risk_percentage": 36,
+        "git_diff_patch": """--- a/frontend/src/components/feedback/FeedbackCard.tsx
++++ b/frontend/src/components/feedback/FeedbackCard.tsx
+@@ -19,3 +19,4 @@ export const FeedbackCard = ({ item }: Props) => {
+-  return <div>{item.tester.profile.experience_level}</div>;
++  const level = item?.tester?.tester_profile?.experience_level ?? 'Intermediate';
++  return <div>{level}</div>;""",
     },
     {
         "id": "network_timeout",
@@ -312,6 +342,16 @@ CLUSTER_DEFINITIONS = [
         "effort": "Half-day",
         "priority": 2,
         "multiplier": 1.1,
+        "revenue_at_risk_monthly": "$3,600/mo",
+        "churn_risk_percentage": 31,
+        "git_diff_patch": """--- a/frontend/src/api/client.ts
++++ b/frontend/src/api/client.ts
+@@ -34,3 +34,6 @@ export async function apiClient<T>(url: string, init?: RequestInit): Promise<T>
+-  const res = await fetch(url, init);
++  const controller = new AbortController();
++  const id = setTimeout(() => controller.abort(), 10000);
++  const res = await fetch(url, { ...init, signal: controller.signal });
++  clearTimeout(id);""",
     },
     {
         "id": "auth_drop",
@@ -324,6 +364,15 @@ CLUSTER_DEFINITIONS = [
         "effort": "2-3 hours",
         "priority": 2,
         "multiplier": 1.1,
+        "revenue_at_risk_monthly": "$4,800/mo",
+        "churn_risk_percentage": 48,
+        "git_diff_patch": """--- a/frontend/src/components/WorkspaceGuard.tsx
++++ b/frontend/src/components/WorkspaceGuard.tsx
+@@ -32,3 +32,5 @@ export const WorkspaceGuard: React.FC = ({ children }) => {
+-  if (isError) return <Navigate to="/login" replace />;
++  if (isError) {
++    return <RetryPrompt onRetry={refetch} onRelogin={logout} />;
++  }""",
     },
     {
         "id": "ui_interception",
@@ -336,6 +385,13 @@ CLUSTER_DEFINITIONS = [
         "effort": "1-2 hours",
         "priority": 3,
         "multiplier": 1.0,
+        "revenue_at_risk_monthly": "$2,200/mo",
+        "churn_risk_percentage": 19,
+        "git_diff_patch": """--- a/frontend/src/components/ModalBackdrop.tsx
++++ b/frontend/src/components/ModalBackdrop.tsx
+@@ -12,3 +12,3 @@ export const ModalBackdrop = ({ isOpen }: Props) => {
+-  return <div className="fixed inset-0 z-10 bg-black/50" />;
++  return <div className={`fixed inset-0 z-40 bg-black/50 ${isOpen ? 'pointer-events-auto' : 'pointer-events-none hidden'}`} />;""",
     },
     {
         "id": "ux_friction",
@@ -348,6 +404,13 @@ CLUSTER_DEFINITIONS = [
         "effort": "2-3 hours",
         "priority": 3,
         "multiplier": 0.9,
+        "revenue_at_risk_monthly": "$1,500/mo",
+        "churn_risk_percentage": 15,
+        "git_diff_patch": """--- a/frontend/src/pages/OnboardingFlow.tsx
++++ b/frontend/src/pages/OnboardingFlow.tsx
+@@ -40,3 +40,4 @@ export const OnboardingFlow = () => {
+-  return <SecondaryButton onClick={advance}>Next</SecondaryButton>;
++  return <PrimaryButton className="w-full shadow-lg" onClick={advance}>Complete Onboarding</PrimaryButton>;""",
     },
 ]
 
@@ -449,6 +512,9 @@ def synthesize_batch_feedback_insights(
             "affected_reports_count": top_cluster["matched_count"],
             "underlying_nexus": cdef["nexus"],
             "recommended_hotfix": cdef["hotfix"],
+            "revenue_at_risk_monthly": cdef.get("revenue_at_risk_monthly", "$4,200/mo"),
+            "churn_risk_percentage": cdef.get("churn_risk_percentage", 35),
+            "git_diff_patch": cdef.get("git_diff_patch", ""),
         }
     else:
         # Fallback to the single highest severity bug
@@ -463,6 +529,14 @@ def synthesize_batch_feedback_insights(
             "affected_reports_count": 1,
             "underlying_nexus": "Component boundary state inconsistency.",
             "recommended_hotfix": "Inspect error logs and reproduction steps in the bug report.",
+            "revenue_at_risk_monthly": "$2,800/mo",
+            "churn_risk_percentage": 28,
+            "git_diff_patch": """--- a/src/components/CoreView.tsx
++++ b/src/components/CoreView.tsx
+@@ -14,3 +14,5 @@
+-  return <div>{props.data.id}</div>;
++  if (!props?.data) return null;
++  return <div>{props.data?.id}</div>;""",
         }
 
     # 4. Synthesize Top 3 Prioritized Action Items

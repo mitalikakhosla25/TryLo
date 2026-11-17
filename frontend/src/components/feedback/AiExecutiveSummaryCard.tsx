@@ -19,6 +19,9 @@ import {
   FileText,
   Activity,
   ShieldAlert,
+  TrendingDown,
+  DollarSign,
+  Code2,
 } from 'lucide-react';
 import {
   useExecutiveFeedbackSynthesis,
@@ -37,10 +40,11 @@ export const AiExecutiveSummaryCard: React.FC<AiExecutiveSummaryCardProps> = ({
   const { data: synthesis, isLoading, isError, error } = useExecutiveFeedbackSynthesis(campaignId);
   const { mutate: runBatchSynthesis, isPending: isSynthesizing } = useGenerateExecutiveFeedbackSynthesis();
 
-  const [copiedType, setCopiedType] = useState<'brief' | 'pr' | null>(null);
+  const [copiedType, setCopiedType] = useState<'brief' | 'pr' | 'patch' | null>(null);
   const [showPreview, setShowPreview] = useState<'brief' | 'pr' | null>(null);
+  const [showDiffPatch, setShowDiffPatch] = useState<boolean>(false);
 
-  const handleCopy = (text: string, type: 'brief' | 'pr') => {
+  const handleCopy = (text: string, type: 'brief' | 'pr' | 'patch') => {
     navigator.clipboard.writeText(text);
     setCopiedType(type);
     setTimeout(() => setCopiedType(null), 2200);
@@ -212,6 +216,27 @@ export const AiExecutiveSummaryCard: React.FC<AiExecutiveSummaryCardProps> = ({
           <p className="text-xs sm:text-sm text-[#102A35] leading-relaxed">
             <strong>Business Impact:</strong> {blocker.business_impact}
           </p>
+
+          {/* Predictive Risk & Financial Modeling */}
+          {(blocker.revenue_at_risk_monthly || blocker.churn_risk_percentage) && (
+            <div className="flex flex-wrap items-center gap-2 pt-1.5">
+              {blocker.revenue_at_risk_monthly && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-amber-100/90 text-amber-900 border border-amber-300 shadow-2xs">
+                  <DollarSign className="h-3.5 w-3.5 text-amber-700" />
+                  <span>Est. {blocker.revenue_at_risk_monthly} Revenue at Risk</span>
+                </span>
+              )}
+              {blocker.churn_risk_percentage && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-rose-100 text-rose-900 border border-rose-300 shadow-2xs">
+                  <TrendingDown className="h-3.5 w-3.5 text-rose-700" />
+                  <span>{blocker.churn_risk_percentage}% Projected Churn</span>
+                </span>
+              )}
+              <span className="text-[11px] text-[#52656B] font-medium">
+                Correlated from conversion drop-off &amp; feedback frequency
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Root Cause & Hotfix Grid */}
@@ -235,6 +260,47 @@ export const AiExecutiveSummaryCard: React.FC<AiExecutiveSummaryCardProps> = ({
             </p>
           </div>
         </div>
+
+        {/* Ready-to-Apply Git Diff Patch */}
+        {blocker.git_diff_patch && (
+          <div className="pt-3 border-t border-rose-100/80 space-y-2">
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setShowDiffPatch(!showDiffPatch)}
+                className="inline-flex items-center space-x-1.5 text-xs font-bold text-[#07545A] hover:text-[#087C80] transition-colors cursor-pointer"
+              >
+                <Code2 className="h-3.5 w-3.5" />
+                <span>{showDiffPatch ? 'Hide Ready-to-Apply Git Patch' : 'View Ready-to-Apply Git Diff Patch'}</span>
+                {showDiffPatch ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleCopy(blocker.git_diff_patch || '', 'patch')}
+                className="inline-flex items-center space-x-1 px-3 py-1 rounded-lg text-xs font-bold bg-white hover:bg-slate-50 text-[#102A35] border border-[#DCE7E3] transition-colors cursor-pointer shadow-2xs"
+              >
+                {copiedType === 'patch' ? (
+                  <>
+                    <Check className="h-3 w-3 text-emerald-600" />
+                    <span className="text-emerald-700">Copied Patch!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3 w-3 text-[#52656B]" />
+                    <span>Copy Git Diff</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {showDiffPatch && (
+              <pre className="p-4 rounded-2xl bg-[#0F172A] text-[#38BDF8] font-mono text-xs overflow-x-auto leading-relaxed border border-slate-700 select-all shadow-inner">
+                <code>{blocker.git_diff_patch}</code>
+              </pre>
+            )}
+          </div>
+        )}
       </div>
 
       {/* TOP 3 PRIORITIZED ACTIONS */}
