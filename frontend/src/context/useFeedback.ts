@@ -5,6 +5,7 @@ import {
   updateFeedbackStatus,
   addFeedbackInternalNote,
   addTimestampedVideoNote,
+  runAiFeedbackTriage,
   type FounderFeedbackFilters,
   type FounderFeedbackListResponse,
   type FounderFeedbackDetail,
@@ -12,6 +13,7 @@ import {
   type FeedbackInternalNote,
   type TimestampedNote,
   type TimestampedNoteCreatePayload,
+  type AiTriageResponse,
 } from '../api/feedback';
 import { useAuth } from './useAuth';
 
@@ -58,6 +60,24 @@ export function useUpdateFeedbackStatus(feedbackId?: string) {
       });
       // Also invalidate tester feedback queries in case tester is active
       queryClient.invalidateQueries({ queryKey: ['my-feedback'] });
+    },
+  });
+}
+
+export function useRunAiFeedbackTriage(feedbackId?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation<AiTriageResponse, Error, string | undefined>({
+    mutationFn: (targetId) => {
+      const id = targetId || feedbackId;
+      if (!id) throw new Error('Feedback ID is required to run AI triage.');
+      return runAiFeedbackTriage(id);
+    },
+    onSuccess: (_, targetId) => {
+      const id = targetId || feedbackId;
+      queryClient.invalidateQueries({
+        queryKey: ['founder-feedback-detail', id],
+      });
     },
   });
 }

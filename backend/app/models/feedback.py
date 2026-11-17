@@ -165,6 +165,11 @@ class FeedbackSubmission(Base):
         nullable=False,
         default=list,
     )
+    ai_triage_data: Mapped[Optional[dict]] = mapped_column(
+        JsonStructureType,
+        nullable=True,
+        default=None,
+    )
     created_at: Mapped[datetime] = mapped_column(
         sa.DateTime(timezone=True),
         nullable=False,

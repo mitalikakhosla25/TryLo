@@ -14,7 +14,6 @@ import {
   Shield,
   X,
   Plus,
-  Sparkles,
   Star,
   ThumbsUp,
   Award,
@@ -34,6 +33,7 @@ import {
   TESTER_SPECIALIZATIONS,
 } from '../api/verification';
 import { TimestampedVideoPlayer } from '../components/feedback/TimestampedVideoPlayer';
+import { AiTriageCard } from '../components/feedback/AiTriageCard';
 
 export const FounderFeedbackDetailPage: React.FC = () => {
   const { feedbackId } = useParams<{ feedbackId: string }>();
@@ -648,21 +648,8 @@ export const FounderFeedbackDetailPage: React.FC = () => {
           />
         )}
 
-        {/* AI Automated Synthesis Card (Explicitly marked Coming Soon per V1 scope) */}
-        <div className="rounded-3xl bg-white border border-[#DCE7E3] p-5 space-y-2 shadow-xs">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2 text-[#102A35] font-semibold text-xs">
-              <Sparkles className="h-4 w-4 text-[#07545A]" />
-              <span>AI Automated Root Cause &amp; Sentiment Analysis</span>
-            </div>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
-              Coming Soon
-            </span>
-          </div>
-          <p className="text-xs text-[#52656B] leading-relaxed">
-            Automated root cause clustering, error categorization, and duplicate detection are coming soon. Current feedback review is conducted directly by founders.
-          </p>
-        </div>
+        {/* AI Automated Bug Triaging & Root Cause Intelligence Card */}
+        <AiTriageCard feedback={feedback} />
 
         {/* Tester Credibility & Recognition Card */}
         <div className="rounded-3xl bg-white border border-[#DCE7E3] p-6 sm:p-7 space-y-4 shadow-sm">

@@ -95,10 +95,33 @@ export interface FounderFeedbackDetail {
   video_duration_seconds?: number | null;
   video_format?: string | null;
   timestamped_notes?: TimestampedNote[];
+  ai_triage?: AiTriageResponse | null;
   created_at: string;
   updated_at: string;
   internal_notes: FeedbackInternalNote[];
   status_history: FeedbackStatusHistory[];
+}
+
+export interface DuplicateFeedbackMatch {
+  id: string;
+  title: string;
+  similarity_score: number;
+  severity?: BugSeverity | null;
+  status: FeedbackStatus;
+  tester_name: string;
+  created_at: string;
+}
+
+export interface AiTriageResponse {
+  root_cause_hypothesis: string;
+  fix_complexity: string;
+  suggested_fix: string;
+  technical_tags: string[];
+  sentiment_label: string;
+  friction_score: number;
+  potential_duplicates: DuplicateFeedbackMatch[];
+  dev_ticket_markdown: string;
+  analyzed_at: string;
 }
 
 
@@ -231,5 +254,14 @@ export async function addTimestampedVideoNote(
   return apiClient(`/api/feedback/${feedbackId}/video-notes`, {
     method: 'POST',
     body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * Execute AI Automated Bug Triaging & Root-Cause Clustering
+ */
+export async function runAiFeedbackTriage(feedbackId: string): Promise<AiTriageResponse> {
+  return apiClient<AiTriageResponse>(`/api/founder/feedback/${feedbackId}/ai-triage`, {
+    method: 'POST',
   });
 }

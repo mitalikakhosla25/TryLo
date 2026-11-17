@@ -112,6 +112,30 @@ class FounderFeedbackListResponse(BaseModel):
     items: List[FounderFeedbackListItemResponse]
 
 
+class DuplicateFeedbackMatch(BaseModel):
+    """Potential duplicate issue detected via semantic and keyword correlation."""
+    id: uuid.UUID
+    title: str
+    similarity_score: int
+    severity: Optional[str] = None
+    status: str
+    tester_name: str
+    created_at: datetime
+
+
+class AiTriageResponse(BaseModel):
+    """AI synthesis of root cause, complexity, user friction, duplicates, and dev ticket."""
+    root_cause_hypothesis: str
+    fix_complexity: str
+    suggested_fix: str
+    technical_tags: List[str]
+    sentiment_label: str
+    friction_score: int
+    potential_duplicates: List[DuplicateFeedbackMatch] = []
+    dev_ticket_markdown: str
+    analyzed_at: datetime
+
+
 class FounderFeedbackDetailResponse(BaseModel):
     """Complete founder review response for a single feedback submission."""
     id: uuid.UUID
@@ -147,6 +171,7 @@ class FounderFeedbackDetailResponse(BaseModel):
     video_duration_seconds: Optional[int] = None
     video_format: Optional[str] = None
     timestamped_notes: List[dict] = Field(default_factory=list)
+    ai_triage: Optional[AiTriageResponse] = None
     created_at: datetime
     updated_at: datetime
     internal_notes: List[FeedbackInternalNoteResponse] = []

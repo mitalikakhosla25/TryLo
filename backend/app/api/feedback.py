@@ -43,7 +43,9 @@ from app.schemas.feedback import (
     FounderFeedbackListResponse,
     FounderFeedbackDetailResponse,
     TimestampedNoteAddRequest,
+    AiTriageResponse,
 )
+from app.services.ai_triage import analyze_feedback_item
 from app.api.tasks import (
     validate_tester_profile_completed,
     verify_accepted_tester_for_campaign,
@@ -553,6 +555,13 @@ def get_founder_feedback_detail(
         for h in (submission.status_history or [])
     ]
 
+    ai_triage_obj = None
+    if submission.ai_triage_data:
+        try:
+            ai_triage_obj = AiTriageResponse(**submission.ai_triage_data)
+        except Exception:
+            ai_triage_obj = None
+
     return FounderFeedbackDetailResponse(
         id=submission.id,
         campaign_id=submission.campaign_id,
@@ -587,6 +596,7 @@ def get_founder_feedback_detail(
         video_duration_seconds=submission.video_duration_seconds,
         video_format=submission.video_format,
         timestamped_notes=submission.timestamped_notes or [],
+        ai_triage=ai_triage_obj,
         created_at=submission.created_at,
         updated_at=submission.updated_at,
         internal_notes=notes_response,
@@ -916,4 +926,63 @@ def add_timestamped_video_note(
         "note": new_note,
         "timestamped_notes": current_notes,
     }
+
+
+@router.post(
+    "/api/founder/feedback/{feedback_id}/ai-triage",
+    response_model=AiTriageResponse,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_role(["founder"]))],
+    summary="Run AI Bug Triaging & Root-Cause Clustering",
+    description="Synthesizes root causes, complexity, user friction, duplicate detection, and dev ticket markdown.",
+)
+def run_ai_feedback_triage(
+    feedback_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> AiTriageResponse:
+    """Executes heuristic and AI bug triaging on the feedback submission."""
+    submission = db.scalar(
+        select(FeedbackSubmission)
+        .options(
+            joinedload(FeedbackSubmission.campaign).joinedload(Campaign.startup),
+            joinedload(FeedbackSubmission.tester),
+        )
+        .where(FeedbackSubmission.id == feedback_id)
+    )
+
+    if submission is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Feedback submission not found.",
+        )
+
+    camp = submission.campaign
+    if not camp or not camp.startup or camp.startup.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not authorized to triage feedback for this campaign.",
+        )
+
+    # Fetch all campaign feedback for semantic duplicate detection
+    all_campaign_feedback = db.scalars(
+        select(FeedbackSubmission)
+        .options(joinedload(FeedbackSubmission.tester))
+        .where(FeedbackSubmission.campaign_id == submission.campaign_id)
+    ).all()
+
+    triage_result = analyze_feedback_item(submission, all_campaign_feedback)
+    submission.ai_triage_data = triage_result
+    db.commit()
+
+    logger.info(
+        "Founder %s ran AI triage on feedback %s (complexity=%s, duplicates=%d)",
+        current_user.id,
+        feedback_id,
+        triage_result.get("fix_complexity"),
+        len(triage_result.get("potential_duplicates", [])),
+    )
+
+    return AiTriageResponse(**triage_result)
+
 
