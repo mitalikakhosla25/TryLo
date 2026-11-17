@@ -177,19 +177,28 @@ def test_tester_resume_crud(test_client: TestClient, db_session: Session):
     tester = create_user(db_session, "Sam Tester", "sam@testers.io", "tester")
     set_auth(test_client, tester)
 
+    sample_latex = r"""\documentclass{article}
+\begin{document}
+\section{Experience}
+Senior QA Automation Engineer with 5+ years of experience in API testing, Postman, Selenium.
+\end{document}"""
+
     resume_payload = {
-        "resume_url": "https://storage.example.com/resumes/sam_cv.pdf",
-        "file_name": "sam_cv.pdf",
+        "resume_url": "https://storage.example.com/resumes/sam_cv.tex",
+        "file_name": "sam_cv.tex",
         "github_url": "https://github.com/samtester",
         "portfolio_url": "https://samtester.dev",
+        "latex_source": sample_latex,
         "specializations": ["Manual Functional Testing", "API & Backend Testing (Postman/REST/GraphQL)"],
     }
 
     res = test_client.put("/api/testers/me/resume", json=resume_payload)
     assert res.status_code == 200
     data = res.json()
-    assert data["file_name"] == "sam_cv.pdf"
+    assert data["file_name"] == "sam_cv.tex"
     assert "Manual Functional Testing" in data["specializations"]
+    assert data["is_latex_verified"] is True
+    assert data["ats_score"] is not None
 
 
 def test_tester_certifications(test_client: TestClient, db_session: Session):
