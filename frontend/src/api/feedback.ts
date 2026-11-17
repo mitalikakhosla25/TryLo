@@ -257,6 +257,37 @@ export async function addTimestampedVideoNote(
   });
 }
 
+export interface SingleMostCriticalBlocker {
+  headline: string;
+  business_impact: string;
+  affected_reports_count: number;
+  underlying_nexus: string;
+  recommended_hotfix: string;
+}
+
+export interface PrioritizedActionItem {
+  priority: number;
+  action_title: string;
+  rationale: string;
+  estimated_effort: string;
+  affected_reports_count: number;
+}
+
+export interface AiExecutiveSynthesisResponse {
+  campaign_id?: string | null;
+  campaign_title?: string | null;
+  total_reports_analyzed: number;
+  critical_bugs_count: number;
+  high_bugs_count: number;
+  release_readiness_score: number;
+  release_readiness_verdict: string;
+  single_most_critical_blocker: SingleMostCriticalBlocker;
+  top_prioritized_actions: PrioritizedActionItem[];
+  executive_summary_markdown: string;
+  unified_pr_brief_markdown: string;
+  synthesized_at: string;
+}
+
 /**
  * Execute AI Automated Bug Triaging & Root-Cause Clustering
  */
@@ -264,4 +295,19 @@ export async function runAiFeedbackTriage(feedbackId: string): Promise<AiTriageR
   return apiClient<AiTriageResponse>(`/api/founder/feedback/${feedbackId}/ai-triage`, {
     method: 'POST',
   });
+}
+
+/**
+ * Generate Holistic AI Executive Synthesis across All Feedbacks & Logs
+ */
+export async function generateExecutiveFeedbackSynthesis(
+  campaignId?: string
+): Promise<AiExecutiveSynthesisResponse> {
+  const query = campaignId ? `?campaign_id=${encodeURIComponent(campaignId)}` : '';
+  return apiClient<AiExecutiveSynthesisResponse>(
+    `/api/founder/feedback/executive-synthesis${query}`,
+    {
+      method: 'POST',
+    }
+  );
 }

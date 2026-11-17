@@ -6,6 +6,7 @@ import {
   addFeedbackInternalNote,
   addTimestampedVideoNote,
   runAiFeedbackTriage,
+  generateExecutiveFeedbackSynthesis,
   type FounderFeedbackFilters,
   type FounderFeedbackListResponse,
   type FounderFeedbackDetail,
@@ -14,6 +15,7 @@ import {
   type TimestampedNote,
   type TimestampedNoteCreatePayload,
   type AiTriageResponse,
+  type AiExecutiveSynthesisResponse,
 } from '../api/feedback';
 import { useAuth } from './useAuth';
 
@@ -116,6 +118,33 @@ export function useAddTimestampedVideoNote(feedbackId?: string) {
         queryKey: ['founder-feedback-detail', variables.feedbackId || feedbackId],
       });
       queryClient.invalidateQueries({ queryKey: ['my-feedback'] });
+    },
+  });
+}
+
+export function useExecutiveFeedbackSynthesis(campaignId?: string) {
+  const { user } = useAuth();
+  const isFounder = user?.role === 'founder';
+
+  return useQuery<AiExecutiveSynthesisResponse, Error>({
+    queryKey: ['executive-feedback-synthesis', campaignId || 'all'],
+    queryFn: () => generateExecutiveFeedbackSynthesis(campaignId),
+    enabled: !!user && isFounder,
+    staleTime: 30000,
+    retry: 1,
+  });
+}
+
+export function useGenerateExecutiveFeedbackSynthesis() {
+  const queryClient = useQueryClient();
+
+  return useMutation<AiExecutiveSynthesisResponse, Error, string | undefined>({
+    mutationFn: (campaignId) => generateExecutiveFeedbackSynthesis(campaignId),
+    onSuccess: (_, campaignId) => {
+      queryClient.invalidateQueries({
+        queryKey: ['executive-feedback-synthesis', campaignId || 'all'],
+      });
+      queryClient.invalidateQueries({ queryKey: ['founder-feedback'] });
     },
   });
 }

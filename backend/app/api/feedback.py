@@ -44,8 +44,9 @@ from app.schemas.feedback import (
     FounderFeedbackDetailResponse,
     TimestampedNoteAddRequest,
     AiTriageResponse,
+    AiExecutiveSynthesisResponse,
 )
-from app.services.ai_triage import analyze_feedback_item
+from app.services.ai_triage import analyze_feedback_item, synthesize_batch_feedback_insights
 from app.api.tasks import (
     validate_tester_profile_completed,
     verify_accepted_tester_for_campaign,
@@ -984,5 +985,84 @@ def run_ai_feedback_triage(
     )
 
     return AiTriageResponse(**triage_result)
+
+
+@router.post(
+    "/api/founder/feedback/executive-synthesis",
+    response_model=AiExecutiveSynthesisResponse,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_role(["founder"]))],
+    summary="Generate Holistic AI Executive Synthesis across All Feedback",
+    description="Aggregates and synthesizes dozens of feedback reports, deriving the #1 single most critical issue, readiness verdict, and PR brief.",
+)
+def generate_executive_feedback_synthesis(
+    campaign_id: Optional[uuid.UUID] = Query(None, description="Scope synthesis to a specific campaign"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> AiExecutiveSynthesisResponse:
+    """Aggregates all feedback submissions into one holistic executive report and derives the #1 critical blocker."""
+    # Query campaigns owned by founder
+    camp_stmt = (
+        select(Campaign)
+        .join(Startup, Campaign.startup_id == Startup.id)
+        .where(Startup.owner_id == current_user.id)
+    )
+    if campaign_id:
+        camp_stmt = camp_stmt.where(Campaign.id == campaign_id)
+
+    campaigns = db.scalars(camp_stmt).all()
+    if not campaigns:
+        return AiExecutiveSynthesisResponse(
+            campaign_id=campaign_id,
+            campaign_title="No campaigns found",
+            total_reports_analyzed=0,
+            critical_bugs_count=0,
+            high_bugs_count=0,
+            release_readiness_score=100,
+            release_readiness_verdict="READY FOR RELEASE",
+            single_most_critical_blocker={
+                "headline": "No Campaigns or Submissions Available",
+                "business_impact": "Create and publish a campaign to start gathering tester feedback.",
+                "affected_reports_count": 0,
+                "underlying_nexus": "N/A",
+                "recommended_hotfix": "Launch a beta test campaign on TryLo.",
+            },
+            top_prioritized_actions=[],
+            executive_summary_markdown="# Executive Health Verdict\n\nNo campaigns or submissions found.",
+            unified_pr_brief_markdown="# PR Brief\n\nNo issues found.",
+            synthesized_at=datetime.now(timezone.utc),
+        )
+
+    campaign_ids = [c.id for c in campaigns]
+    campaign_title = campaigns[0].title if len(campaigns) == 1 else "All Active Campaigns"
+
+    # Fetch all feedback across these campaigns
+    stmt = (
+        select(FeedbackSubmission)
+        .options(
+            joinedload(FeedbackSubmission.campaign),
+            joinedload(FeedbackSubmission.tester),
+        )
+        .where(FeedbackSubmission.campaign_id.in_(campaign_ids))
+        .order_by(FeedbackSubmission.created_at.desc())
+    )
+    submissions = db.scalars(stmt).all()
+
+    synthesis_dict = synthesize_batch_feedback_insights(
+        submissions=submissions,
+        campaign_title=campaign_title,
+        campaign_id=campaign_id if len(campaigns) == 1 else None,
+    )
+
+    logger.info(
+        "Founder %s generated AI executive synthesis for %d submissions (verdict=%s, score=%d)",
+        current_user.id,
+        len(submissions),
+        synthesis_dict.get("release_readiness_verdict"),
+        synthesis_dict.get("release_readiness_score"),
+    )
+
+    return AiExecutiveSynthesisResponse(**synthesis_dict)
+
 
 

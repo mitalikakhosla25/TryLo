@@ -262,3 +262,314 @@ def analyze_feedback_item(
         "dev_ticket_markdown": ticket_md.strip(),
         "analyzed_at": datetime.now(timezone.utc).isoformat(),
     }
+
+
+CLUSTER_DEFINITIONS = [
+    {
+        "id": "monetization",
+        "name": "Payment & Checkout Failure",
+        "keywords": ["stripe", "payment", "checkout", "card", "billing", "invoice", "price"],
+        "headline": "Critical Blocker: Payment Checkout Modal Freezes on Card Submission",
+        "business_impact": "Direct monetization blocker. Users encountering this cannot complete transactions, resulting in 100% checkout churn.",
+        "nexus": "Frontend Stripe Element unmount/remount race condition causing an unresolved Promise in the payment intent confirmation cycle.",
+        "hotfix": "Verify Stripe public key initialization; wrap the payment submission in an explicit timeout guard with error fallback.",
+        "effort": "Half-day (3-4 hrs)",
+        "priority": 1,
+        "multiplier": 1.5,
+    },
+    {
+        "id": "ui_freeze",
+        "name": "Async UI Thread State Lock",
+        "keywords": ["freeze", "hang", "unresponsive", "stuck", "infinite loop", "spinner"],
+        "headline": "High-Severity Blocker: Unhandled Async State Machine Locks Browser Thread",
+        "business_impact": "Causes complete UI unresponsiveness. Forces users to hard-refresh or abandon the session.",
+        "nexus": "Missing dependency array or circular reactive state updates inside useEffect triggering an infinite rendering loop.",
+        "hotfix": "Audit state setters in the affected view; isolate async actions into dedicated handlers with try/finally reset states.",
+        "effort": "2-3 hours",
+        "priority": 1,
+        "multiplier": 1.3,
+    },
+    {
+        "id": "null_crash",
+        "name": "Client-Side Null Reference Crash",
+        "keywords": ["crash", "white screen", "blank", "uncaught", "typeerror", "cannot read property", "undefined"],
+        "headline": "High-Severity Failure: Uncaught Null Reference Triggers White-Screen Crash",
+        "business_impact": "Leaves users on a blank page with zero recovery action, destroying trust in beta stability.",
+        "nexus": "Direct property access on deeply nested async responses before data hydration completes.",
+        "hotfix": "Enforce optional chaining (?.) across component properties and wrap the route in a React ErrorBoundary.",
+        "effort": "1-2 hours",
+        "priority": 2,
+        "multiplier": 1.2,
+    },
+    {
+        "id": "network_timeout",
+        "name": "API Gateway & Downstream Timeout",
+        "keywords": ["timeout", "504", "502", "bad gateway", "network", "slow", "failed to fetch", "econnrefused"],
+        "headline": "Infrastructure Blocker: Gateway Drop & Network Request Timeouts",
+        "business_impact": "Causes intermittent failure across operations and misleads users into multiple retry submissions.",
+        "nexus": "Backend worker thread starvation or reverse proxy connection timeout on long-running queries.",
+        "hotfix": "Increase proxy timeout limits, add request pooling, and provide an instant user-facing retry button.",
+        "effort": "Half-day",
+        "priority": 2,
+        "multiplier": 1.1,
+    },
+    {
+        "id": "auth_drop",
+        "name": "Authentication & Session Expiry",
+        "keywords": ["login", "token", "401", "403", "unauthorized", "forbidden", "logged out", "cookie", "session"],
+        "headline": "Access Blocker: Unexpected Session Drop During User Workflow",
+        "business_impact": "Interrupts active user testing and discards uncommitted user inputs.",
+        "nexus": "Premature access token expiration or cross-origin SameSite cookie restrictions.",
+        "hotfix": "Implement transparent silent token refresh and verify Cookie SameSite=Lax flags.",
+        "effort": "2-3 hours",
+        "priority": 2,
+        "multiplier": 1.1,
+    },
+    {
+        "id": "ui_interception",
+        "name": "UI Layout & Click Interception",
+        "keywords": ["button", "click", "tap", "modal", "overlay", "dropdown", "z-index", "behind", "invisible"],
+        "headline": "Usability Defect: Stacking Context Intercepts Clicks on Primary CTAs",
+        "business_impact": "Frustrates users by making buttons appear clickable while receiving no response.",
+        "nexus": "Modal backdrop or transparent floating overlay capturing pointer events due to incorrect z-index.",
+        "hotfix": "Set pointer-events: none on passive background elements and portal active dialogs to document root.",
+        "effort": "1-2 hours",
+        "priority": 3,
+        "multiplier": 1.0,
+    },
+    {
+        "id": "ux_friction",
+        "name": "Onboarding & Navigation Discoverability",
+        "keywords": ["confusing", "unclear", "hard to find", "where is", "expected", "intuitive", "navigation"],
+        "headline": "Friction Warning: Discoverability Roadblock in Primary Navigation",
+        "business_impact": "Increases time-to-value and causes early tester drop-off during onboarding tasks.",
+        "nexus": "Hidden tertiary navigation and lack of contextual empty states.",
+        "hotfix": "Add onboarding tooltips and elevate the primary action button to primary visual hierarchy.",
+        "effort": "2-3 hours",
+        "priority": 3,
+        "multiplier": 0.9,
+    },
+]
+
+
+def synthesize_batch_feedback_insights(
+    submissions: List[FeedbackSubmission],
+    campaign_title: Optional[str] = None,
+    campaign_id: Optional[uuid.UUID] = None,
+) -> Dict[str, Any]:
+    """
+    Synthesize dozens of individual feedback submissions and bug reports into
+    one single executive verdict: The #1 Most Critical Issue To Take Care Of,
+    a Release Readiness Score, and a Unified Developer PR Brief.
+    """
+    total = len(submissions)
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    if total == 0:
+        return {
+            "campaign_id": campaign_id,
+            "campaign_title": campaign_title or "All Campaigns",
+            "total_reports_analyzed": 0,
+            "critical_bugs_count": 0,
+            "high_bugs_count": 0,
+            "release_readiness_score": 100,
+            "release_readiness_verdict": "READY FOR RELEASE",
+            "single_most_critical_blocker": {
+                "headline": "No Issues Recorded - System Clean",
+                "business_impact": "Zero bug reports or usability friction items have been filed. Testing workspace is clean.",
+                "affected_reports_count": 0,
+                "underlying_nexus": "No failures detected across accepted tester activities.",
+                "recommended_hotfix": "Invite additional testers to stress-test your core workflows.",
+            },
+            "top_prioritized_actions": [
+                {
+                    "priority": 1,
+                    "action_title": "Onboard More Testers",
+                    "rationale": "Gather more diverse browser and device feedback.",
+                    "estimated_effort": "Immediate",
+                    "affected_reports_count": 0,
+                }
+            ],
+            "executive_summary_markdown": "# Executive Health Verdict: Ready For Testing\n\nNo issues or blockers currently filed.",
+            "unified_pr_brief_markdown": "# Engineering Brief\n\nNo outstanding defects.",
+            "synthesized_at": now_iso,
+        }
+
+    critical_count = sum(1 for s in submissions if s.severity == "critical")
+    high_count = sum(1 for s in submissions if s.severity == "high")
+    medium_count = sum(1 for s in submissions if s.severity == "medium")
+    low_count = sum(1 for s in submissions if s.severity == "low")
+    video_count = sum(1 for s in submissions if s.video_url)
+
+    # 1. Calculate Release Readiness Score (0 to 100)
+    deductions = (critical_count * 35) + (high_count * 18) + (medium_count * 6) + (low_count * 2)
+    score = max(5, min(100, 100 - deductions))
+
+    if score < 50 or critical_count >= 1:
+        verdict = "BLOCKING - DO NOT SHIP"
+    elif score < 80 or high_count >= 2:
+        verdict = "PROCEED WITH CAUTION"
+    else:
+        verdict = "READY FOR RELEASE"
+
+    # 2. Cluster all submissions into failure modes
+    cluster_scores = []
+    for cdef in CLUSTER_DEFINITIONS:
+        matching_reports = []
+        for s in submissions:
+            text = f"{s.title or ''} {s.description or ''} {s.reproduction_steps or ''}".lower()
+            if any(kw in text for kw in cdef["keywords"]):
+                matching_reports.append(s)
+
+        matched_count = len(matching_reports)
+        crit_in_cluster = sum(1 for s in matching_reports if s.severity == "critical")
+        high_in_cluster = sum(1 for s in matching_reports if s.severity == "high")
+
+        if matched_count > 0:
+            raw_risk = (crit_in_cluster * 12) + (high_in_cluster * 7) + (matched_count * 3)
+            weighted_risk = raw_risk * cdef["multiplier"]
+            cluster_scores.append({
+                "definition": cdef,
+                "matching_reports": matching_reports,
+                "matched_count": matched_count,
+                "weighted_risk": weighted_risk,
+                "critical_count": crit_in_cluster,
+            })
+
+    # Sort clusters by highest risk
+    cluster_scores.sort(key=lambda x: x["weighted_risk"], reverse=True)
+
+    # 3. Identify The Single Most Critical Issue
+    if cluster_scores:
+        top_cluster = cluster_scores[0]
+        cdef = top_cluster["definition"]
+        single_blocker = {
+            "headline": cdef["headline"],
+            "business_impact": cdef["business_impact"],
+            "affected_reports_count": top_cluster["matched_count"],
+            "underlying_nexus": cdef["nexus"],
+            "recommended_hotfix": cdef["hotfix"],
+        }
+    else:
+        # Fallback to the single highest severity bug
+        highest_bug = sorted(
+            submissions,
+            key=lambda s: 3 if s.severity == "critical" else (2 if s.severity == "high" else 1),
+            reverse=True,
+        )[0]
+        single_blocker = {
+            "headline": f"Priority Failure: {highest_bug.title}",
+            "business_impact": "Dominant user experience defect reported by testers.",
+            "affected_reports_count": 1,
+            "underlying_nexus": "Component boundary state inconsistency.",
+            "recommended_hotfix": "Inspect error logs and reproduction steps in the bug report.",
+        }
+
+    # 4. Synthesize Top 3 Prioritized Action Items
+    actions = []
+    action_idx = 1
+    for citem in cluster_scores[:3]:
+        c = citem["definition"]
+        actions.append({
+            "priority": action_idx,
+            "action_title": f"Fix {c['name']}: {c['headline'].split(':')[0]}",
+            "rationale": c["business_impact"],
+            "estimated_effort": c["effort"],
+            "affected_reports_count": citem["matched_count"],
+        })
+        action_idx += 1
+
+    # Fill remaining actions if fewer than 3 clusters
+    if len(actions) < 3:
+        actions.append({
+            "priority": len(actions) + 1,
+            "action_title": "Run Regression Verification on Resolved Reports",
+            "rationale": "Verify that recent bug fixes did not introduce side-effects in connected user flows.",
+            "estimated_effort": "1-2 hours",
+            "affected_reports_count": total,
+        })
+
+    # 5. Build Executive Summary Report Markdown
+    camp_name = campaign_title or "All Active Campaigns"
+    video_pct = int(round((video_count / total) * 100)) if total else 0
+
+    executive_md = f"""# Executive Product Health Verdict: {camp_name}
+
+**Status Verdict**: `{verdict}`  
+**Release Readiness Score**: `{score}/100`  
+**Total Reports Synthesized**: `{total}` (`{critical_count}` Critical, `{high_count}` High, `{medium_count}` Medium)  
+**Video Proof Evidence Coverage**: `{video_pct}%` ({video_count} recordings)  
+**Synthesized At**: `{now_iso[:19]}Z`
+
+---
+
+## 1. The Single Most Critical Issue To Address
+
+> ### **{single_blocker['headline']}**
+>
+> **Business Impact**: {single_blocker['business_impact']}  
+> **Affected Reports**: `{single_blocker['affected_reports_count']}` of `{total}` total submissions correlate directly to this failure mode.  
+> **Architectural Nexus**: {single_blocker['underlying_nexus']}  
+> **Recommended Hotfix**: {single_blocker['recommended_hotfix']}
+
+---
+
+## 2. Top Prioritized Engineering Actions
+
+| Priority | Action Item | Target Effort | Impacted Reports | Rationale |
+| :---: | :--- | :---: | :---: | :--- |
+"""
+    for a in actions:
+        executive_md += f"| **P{a['priority']}** | **{a['action_title']}** | `{a['estimated_effort']}` | `{a['affected_reports_count']}` reports | {a['rationale']} |\n"
+
+    executive_md += f"""
+---
+
+## 3. Executive Decision Guidance
+
+- **If Shipping Soon**: {"HOLD SHIPMENT until the single critical blocker above is resolved and verified by testers." if score < 70 else "Ship with caution; resolve the top blocker and monitor error telemetry in production."}
+- **Tester Engagement**: {total} verified observations provided solid signal. {video_count} recordings offer step-by-step video proof for the engineering team.
+"""
+
+    # 6. Build Unified Developer Fix PR Brief
+    unified_pr_md = f"""### [Unified Fix]: {single_blocker['headline']}
+
+**Synthesized from {total} Tester Feedback Reports across TryLo**
+- **Priority**: `P0 - RELEASE BLOCKER`
+- **Release Verdict**: `{verdict}` (`{score}/100` Readiness)
+- **Target Effort**: `{actions[0]['estimated_effort'] if actions else 'Half-day'}`
+
+---
+
+#### 1. Problem Statement
+{single_blocker['business_impact']}
+
+#### 2. Root Cause Nexus
+{single_blocker['underlying_nexus']}
+
+#### 3. Scope of Work (Unified Resolution)
+1. **Apply Hotfix**: {single_blocker['recommended_hotfix']}
+2. **Regression Check**: Verify related flows across the `{single_blocker['affected_reports_count']}` affected bug reports.
+3. **Telemetry**: Add structured logging to monitor this failure mode post-deploy.
+
+#### 4. Correlated Tester Submissions
+"""
+    for s in submissions[:6]:
+        v_tag = " [Video Proof Attached]" if s.video_url else ""
+        unified_pr_md += f"- **[{s.severity.upper() if s.severity else 'FEEDBACK'}]** {s.title}{v_tag}\n"
+
+    return {
+        "campaign_id": campaign_id,
+        "campaign_title": campaign_title or "All Campaigns",
+        "total_reports_analyzed": total,
+        "critical_bugs_count": critical_count,
+        "high_bugs_count": high_count,
+        "release_readiness_score": score,
+        "release_readiness_verdict": verdict,
+        "single_most_critical_blocker": single_blocker,
+        "top_prioritized_actions": actions,
+        "executive_summary_markdown": executive_md.strip(),
+        "unified_pr_brief_markdown": unified_pr_md.strip(),
+        "synthesized_at": now_iso,
+    }
+

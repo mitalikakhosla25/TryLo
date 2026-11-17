@@ -186,3 +186,38 @@ class TimestampedNoteAddRequest(BaseModel):
     timestamp_display: str = Field(..., min_length=1, max_length=10)
     note: str = Field(..., min_length=2, max_length=1000)
     tag: Optional[str] = Field(None, max_length=50)
+
+
+class SingleMostCriticalBlocker(BaseModel):
+    """The single most critical failure mode or bottleneck derived from all feedback."""
+    headline: str
+    business_impact: str
+    affected_reports_count: int
+    underlying_nexus: str
+    recommended_hotfix: str
+
+
+class PrioritizedActionItem(BaseModel):
+    """Ranked high-ROI engineering action item to unblock the product."""
+    priority: int
+    action_title: str
+    rationale: str
+    estimated_effort: str
+    affected_reports_count: int
+
+
+class AiExecutiveSynthesisResponse(BaseModel):
+    """Holistic AI executive synthesis summarizing dozens of feedbacks into the primary blocker and release verdict."""
+    campaign_id: Optional[uuid.UUID] = None
+    campaign_title: Optional[str] = None
+    total_reports_analyzed: int
+    critical_bugs_count: int
+    high_bugs_count: int
+    release_readiness_score: int
+    release_readiness_verdict: str
+    single_most_critical_blocker: SingleMostCriticalBlocker
+    top_prioritized_actions: List[PrioritizedActionItem]
+    executive_summary_markdown: str
+    unified_pr_brief_markdown: str
+    synthesized_at: datetime
+
