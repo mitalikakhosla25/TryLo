@@ -79,6 +79,15 @@ from app.schemas.tester_verification import (
     TesterEmployerReviewResponse,
     TesterVerificationOverviewResponse,
 )
+from app.schemas.payout import (
+    EscrowResponse,
+    FundEscrowRequest,
+    DisbursePayoutRequest,
+    PayoutResponse,
+    TesterEarningsOverviewResponse,
+    FounderEscrowOverviewResponse,
+    UpdateUpiRequest,
+)
 
 __all__ = [
     "UserRegisterRequest",
@@ -135,4 +144,11 @@ __all__ = [
     "TesterEmployerReviewCreateRequest",
     "TesterEmployerReviewResponse",
     "TesterVerificationOverviewResponse",
+    "EscrowResponse",
+    "FundEscrowRequest",
+    "DisbursePayoutRequest",
+    "PayoutResponse",
+    "TesterEarningsOverviewResponse",
+    "FounderEscrowOverviewResponse",
+    "UpdateUpiRequest",
 ]

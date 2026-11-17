@@ -150,6 +150,10 @@ class TesterProfile(Base):
         sa.String(500),
         nullable=True,
     )
+    upi_id: Mapped[Optional[str]] = mapped_column(
+        sa.String(100),
+        nullable=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         sa.DateTime(timezone=True),
         nullable=False,

@@ -20,15 +20,18 @@ import {
   TrendingUp,
   Bug,
   Coins,
+  ShieldCheck,
 } from 'lucide-react';
 import type { FounderProfile } from '../api/profile';
 import { useFounderAnalyticsOverview } from '../context/useCampaigns';
+import { useFounderEscrowOverview } from '../context/usePayouts';
 
 export const FounderWorkspace: React.FC = () => {
   const { user, logout } = useAuth();
   const { profileData } = useProfile();
   const { data: startups, isLoading: isLoadingStartups } = useMyStartups();
   const { data: analyticsOverview } = useFounderAnalyticsOverview();
+  const { data: escrowOverview } = useFounderEscrowOverview();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -373,6 +376,102 @@ export const FounderWorkspace: React.FC = () => {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Founder Escrow Vault Portfolio Summary (Version 2) */}
+        {escrowOverview && (
+          <div className="rounded-3xl bg-white border border-[#DCE7E3] p-6 sm:p-7 space-y-5 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-[#DCE7E3]">
+              <div className="flex items-center space-x-3">
+                <div className="h-10 w-10 rounded-2xl bg-[#E6F4F1] border border-[#BCE1D8] flex items-center justify-center text-[#07545A] shadow-xs">
+                  <ShieldCheck className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base sm:text-lg font-bold text-[#102A35]">
+                      Escrow Vault &amp; UPI Payout Ledger
+                    </h2>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#087C80] text-white">
+                      Fintech V2
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#52656B]">
+                    Live trust escrow accounting and simulated NPCI instant UPI disbursements.
+                  </p>
+                </div>
+              </div>
+
+              {startups && startups.length > 0 && (
+                <Link
+                  to={`/founder/startups/${startups[0].id}/campaigns`}
+                  className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-[#E6F4F1] hover:bg-[#D4EBE7] border border-[#BCE1D8] text-[#07545A] transition-colors"
+                >
+                  <Coins className="h-3.5 w-3.5 text-[#087C80]" />
+                  <span>Manage Campaign Vaults</span>
+                </Link>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+              <div className="p-4 rounded-2xl bg-[#F6F5ED]/60 border border-[#DCE7E3] space-y-1">
+                <span className="text-[11px] font-bold text-[#52656B]">Total Escrow Funded</span>
+                <p className="text-xl sm:text-2xl font-extrabold text-[#102A35]">
+                  ₹{escrowOverview.total_escrow_funded.toLocaleString()}
+                </p>
+                <p className="text-[10px] text-[#52656B]">{escrowOverview.active_escrow_campaigns_count} active escrow pools</p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#E6F4F1]/60 border border-[#BCE1D8] space-y-1">
+                <span className="text-[11px] font-bold text-[#07545A]">Vault Liquidity</span>
+                <p className="text-xl sm:text-2xl font-extrabold text-[#07545A]">
+                  ₹{escrowOverview.total_escrow_remaining.toLocaleString()}
+                </p>
+                <p className="text-[10px] text-[#07545A]">Available for disbursements</p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#F6F5ED]/60 border border-[#DCE7E3] space-y-1">
+                <span className="text-[11px] font-bold text-[#52656B]">Disbursed to Testers</span>
+                <p className="text-xl sm:text-2xl font-extrabold text-[#102A35]">
+                  ₹{escrowOverview.total_escrow_disbursed.toLocaleString()}
+                </p>
+                <p className="text-[10px] text-[#52656B]">Instant settled rewards</p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#F6F5ED]/60 border border-[#DCE7E3] space-y-1">
+                <span className="text-[11px] font-bold text-[#52656B]">Recent Payouts</span>
+                <p className="text-xl sm:text-2xl font-extrabold text-[#102A35]">
+                  {escrowOverview.recent_disbursements.length}
+                </p>
+                <p className="text-[10px] text-[#52656B]">100% verified settlement</p>
+              </div>
+            </div>
+
+            {escrowOverview.recent_disbursements.length > 0 && (
+              <div className="space-y-2 pt-1">
+                <span className="text-xs font-bold text-[#102A35]">Recent Simulated UPI Receipts</span>
+                <div className="divide-y divide-[#DCE7E3] border border-[#DCE7E3] rounded-2xl overflow-hidden bg-white max-h-48 overflow-y-auto">
+                  {escrowOverview.recent_disbursements.map((d) => (
+                    <div key={d.id} className="p-3 flex items-center justify-between text-xs hover:bg-[#F6F5ED]/40 transition-colors">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-bold text-[#102A35]">{d.tester_name || 'Tester'}</span>
+                          <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-[#E6F4F1] text-[#07545A]">
+                            {d.milestone_type.replace('_', ' ')}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[#52656B]">
+                          To: <span className="font-mono">{d.upi_id}</span> • UTR: <span className="font-mono font-medium">{d.utr_number}</span>
+                        </p>
+                      </div>
+                      <span className="font-bold text-[#07545A] text-sm">
+                        ₹{d.amount.toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

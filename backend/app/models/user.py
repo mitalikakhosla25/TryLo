@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from app.models.application import CampaignApplication
     from app.models.task_progress import CampaignTaskProgress
     from app.models.feedback import FeedbackSubmission
+    from app.models.escrow import TesterPayout
     from app.models.tester_verification import (
         TesterResume,
         TesterCertification,
@@ -156,6 +157,11 @@ class User(Base):
         "TesterEmployerReview",
         foreign_keys="[TesterEmployerReview.reviewer_id]",
         back_populates="reviewer",
+    )
+    payouts: Mapped[List["TesterPayout"]] = relationship(
+        "TesterPayout",
+        back_populates="tester",
+        cascade="all, delete-orphan",
     )
 
     def __repr__(self) -> str:

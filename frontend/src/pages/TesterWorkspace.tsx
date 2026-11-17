@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 import { useProfile } from '../context/useProfile';
+import { useTesterEarnings } from '../context/usePayouts';
 import {
   ShieldCheck,
   LogOut,
@@ -14,14 +15,18 @@ import {
   ClipboardList,
   ListChecks,
   MessageSquare,
+  Coins,
 } from 'lucide-react';
 import type { TesterProfile } from '../api/profile';
 import { TesterTierBadge } from '../components/ui/VerificationBadge';
 import { TesterCredibilityHub } from '../components/tester/TesterCredibilityHub';
+import { TesterEarningsModal } from '../components/tester/TesterEarningsModal';
 
 export const TesterWorkspace: React.FC = () => {
   const { user, logout } = useAuth();
   const { profileData } = useProfile();
+  const { data: earnings } = useTesterEarnings();
+  const [showEarningsModal, setShowEarningsModal] = useState<boolean>(false);
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -217,6 +222,38 @@ export const TesterWorkspace: React.FC = () => {
           </div>
         </div>
 
+        {/* Tester Earnings & UPI Vault Widget (Version 2) */}
+        <div className="rounded-3xl bg-white border border-[#DCE7E3] p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div className="flex items-center space-x-4">
+            <div className="h-12 w-12 rounded-2xl bg-[#E6F4F1] border border-[#BCE1D8] flex items-center justify-center text-[#07545A] shrink-0">
+              <Coins className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="text-xs font-bold text-[#52656B] uppercase tracking-wider">Disbursed Bounty Earnings</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E6F4F1] text-[#07545A]">Simulated NPCI UPI</span>
+              </div>
+              <div className="flex items-baseline space-x-2 mt-0.5">
+                <span className="text-2xl sm:text-3xl font-extrabold text-[#07545A]">
+                  ₹{(earnings?.lifetime_earnings || 0).toLocaleString()}
+                </span>
+                <span className="text-xs text-[#52656B]">
+                  • {earnings?.completed_payouts_count || 0} rewards settled • VPA: <span className="font-mono font-medium text-[#102A35]">{earnings?.saved_upi_id || 'tester@okhdfcbank'}</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowEarningsModal(true)}
+            className="inline-flex items-center justify-center space-x-2 px-5 py-2.5 rounded-full text-xs font-bold bg-[#07545A] text-white hover:bg-[#087C80] transition-colors shadow-xs cursor-pointer self-start sm:self-auto shrink-0"
+          >
+            <Coins className="h-3.5 w-3.5" />
+            <span>Earnings &amp; Payout Vault</span>
+          </button>
+        </div>
+
         {/* Early Access Hub Card */}
         <div className="rounded-3xl bg-white border border-[#DCE7E3] p-6 sm:p-8 space-y-6 shadow-xs">
           <div className="flex items-center space-x-3 text-[#07545A]">
@@ -309,6 +346,11 @@ export const TesterWorkspace: React.FC = () => {
             </Link>
           </div>
         </div>
+
+        {/* Tester Earnings & UPI Vault Modal */}
+        {showEarningsModal && (
+          <TesterEarningsModal onClose={() => setShowEarningsModal(false)} />
+        )}
       </div>
     </div>
   );

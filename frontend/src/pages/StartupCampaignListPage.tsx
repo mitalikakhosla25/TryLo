@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import type { Campaign, CampaignStatus } from '../api/campaigns';
 import { CampaignAnalyticsModal } from '../components/campaigns/CampaignAnalyticsModal';
+import { EscrowVaultModal } from '../components/campaigns/EscrowVaultModal';
 
 export const StartupCampaignListPage: React.FC = () => {
   const { startupId } = useParams<{ startupId: string }>();
@@ -47,6 +48,7 @@ export const StartupCampaignListPage: React.FC = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [analyticsModalCampaign, setAnalyticsModalCampaign] = useState<Campaign | null>(null);
+  const [escrowModalCampaign, setEscrowModalCampaign] = useState<Campaign | null>(null);
 
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
@@ -493,6 +495,16 @@ export const StartupCampaignListPage: React.FC = () => {
                       <span>Analytics & Audit</span>
                     </button>
 
+                    <button
+                      type="button"
+                      onClick={() => setEscrowModalCampaign(campaign)}
+                      className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-[#E6F4F1] hover:bg-[#D4EBE7] border border-[#BCE1D8] text-[#07545A] transition-colors cursor-pointer"
+                      title="Manage Escrow Vault & Disburse UPI Rewards"
+                    >
+                      <Coins className="h-3.5 w-3.5 text-[#087C80]" />
+                      <span>Escrow & Payouts</span>
+                    </button>
+
                     {/* Edit allowed for Draft and Published */}
                     {campaign.status !== 'closed' && (
                       <Link
@@ -629,6 +641,16 @@ export const StartupCampaignListPage: React.FC = () => {
             campaignId={analyticsModalCampaign.id}
             campaignTitle={analyticsModalCampaign.title}
             campaignSlug={analyticsModalCampaign.slug}
+          />
+        )}
+
+        {/* Founder Escrow Vault & UPI Payout Modal (Version 2) */}
+        {escrowModalCampaign && (
+          <EscrowVaultModal
+            campaignId={escrowModalCampaign.id}
+            campaignTitle={escrowModalCampaign.title}
+            rewardAmount={escrowModalCampaign.reward_amount}
+            onClose={() => setEscrowModalCampaign(null)}
           />
         )}
       </div>

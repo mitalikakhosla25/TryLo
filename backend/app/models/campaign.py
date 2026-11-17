@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from app.models.application import CampaignApplication
     from app.models.task_progress import CampaignTaskProgress
     from app.models.feedback import FeedbackSubmission
+    from app.models.escrow import CampaignEscrow, TesterPayout
 
 # Controlled lifecycle statuses
 CAMPAIGN_STATUS_DRAFT = "draft"
@@ -210,6 +211,17 @@ class Campaign(Base):
     )
     feedback_submissions: Mapped[List["FeedbackSubmission"]] = relationship(
         "FeedbackSubmission",
+        back_populates="campaign",
+        cascade="all, delete-orphan",
+    )
+    escrow: Mapped[Optional["CampaignEscrow"]] = relationship(
+        "CampaignEscrow",
+        back_populates="campaign",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    payouts: Mapped[List["TesterPayout"]] = relationship(
+        "TesterPayout",
         back_populates="campaign",
         cascade="all, delete-orphan",
     )
