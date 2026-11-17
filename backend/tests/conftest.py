@@ -15,8 +15,8 @@ from app.db.session import get_db
 @pytest.fixture
 def client():
     """Create a FastAPI TestClient instance."""
-    with TestClient(fastapi_app) as test_client:
-        yield test_client
+    client = TestClient(fastapi_app)
+    yield client
 
 
 @pytest.fixture
@@ -53,6 +53,6 @@ def test_client(db_session: Session):
             pass
 
     fastapi_app.dependency_overrides[get_db] = override_get_db
-    with TestClient(fastapi_app) as client:
-        yield client
+    client = TestClient(fastapi_app)
+    yield client
     fastapi_app.dependency_overrides.clear()

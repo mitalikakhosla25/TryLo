@@ -183,3 +183,4 @@ export const BarVelocityChart: React.FC<BarChartProps> = ({
     </div>
   );
 };
+
