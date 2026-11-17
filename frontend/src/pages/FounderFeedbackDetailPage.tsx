@@ -17,12 +17,18 @@ import {
   Star,
   ThumbsUp,
   Award,
+  Sparkles,
+  ExternalLink,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
 import {
   useFounderFeedbackDetail,
   useUpdateFeedbackStatus,
   useAddFeedbackInternalNote,
+  useRetestProtocol,
+  useExportFeedbackTicket,
 } from '../context/useFeedback';
 import type { FeedbackStatus } from '../api/tasks';
 import { TesterTierBadge } from '../components/ui/VerificationBadge';
@@ -56,6 +62,32 @@ export const FounderFeedbackDetailPage: React.FC = () => {
   const [reopenReason, setReopenReason] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+
+  const { mutateAsync: fetchRetestProtocol, isPending: isGeneratingRetest } = useRetestProtocol();
+  const { mutateAsync: exportTicket, isPending: isExportingTicket } = useExportFeedbackTicket();
+  const [copiedLinear, setCopiedLinear] = useState(false);
+
+  const handleSyncGitHub = async () => {
+    if (!feedbackId) return;
+    try {
+      const res = await exportTicket({ feedbackId });
+      window.open(res.github_issue_url, '_blank');
+    } catch (err) {
+      console.error('Failed to sync to GitHub', err);
+    }
+  };
+
+  const handleCopyLinear = async () => {
+    if (!feedbackId) return;
+    try {
+      const res = await exportTicket({ feedbackId });
+      navigator.clipboard.writeText(res.linear_markdown);
+      setCopiedLinear(true);
+      setTimeout(() => setCopiedLinear(false), 2200);
+    } catch (err) {
+      console.error('Failed to export to Linear', err);
+    }
+  };
 
   // Internal Note form state
   const [noteBody, setNoteBody] = useState('');
@@ -464,6 +496,42 @@ export const FounderFeedbackDetailPage: React.FC = () => {
                 <span>Reopen Issue</span>
               </button>
             )}
+
+            <div className="h-6 w-px bg-[#DCE7E3] mx-1 hidden sm:block" />
+
+            {/* 1-Click Sprint Sync to GitHub & Linear */}
+            <div className="flex items-center space-x-1.5">
+              <button
+                type="button"
+                onClick={handleSyncGitHub}
+                disabled={isExportingTicket}
+                title="Create pre-filled GitHub Issue in new tab"
+                className="inline-flex items-center space-x-1 px-3 py-2 rounded-full text-xs font-bold bg-[#24292F] hover:bg-[#1B1F23] text-white transition-colors cursor-pointer shadow-xs disabled:opacity-50"
+              >
+                <span>Sync to GitHub</span>
+                <ExternalLink className="h-3 w-3" />
+              </button>
+
+              <button
+                type="button"
+                onClick={handleCopyLinear}
+                disabled={isExportingTicket}
+                title="Copy Linear formatted issue template"
+                className="inline-flex items-center space-x-1 px-3 py-2 rounded-full text-xs font-bold bg-[#5E6AD2] hover:bg-[#4E5AC0] text-white transition-colors cursor-pointer shadow-xs disabled:opacity-50"
+              >
+                {copiedLinear ? (
+                  <>
+                    <Check className="h-3 w-3 text-emerald-300" />
+                    <span>Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3 w-3" />
+                    <span>Linear Ticket</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -874,15 +942,34 @@ export const FounderFeedbackDetailPage: React.FC = () => {
               </p>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-[#102A35] block">
-                  Retest Instructions for Tester (Optional):
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-[#102A35] block">
+                    Retest Instructions for Tester (Optional):
+                  </label>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!feedbackId) return;
+                      try {
+                        const res = await fetchRetestProtocol(feedbackId);
+                        setRetestInstructions(res.retest_instructions_markdown);
+                      } catch (err) {
+                        console.error('Failed to generate retest protocol', err);
+                      }
+                    }}
+                    disabled={isGeneratingRetest}
+                    className="inline-flex items-center space-x-1 text-[11px] font-bold text-[#07545A] hover:text-[#087C80] transition-colors cursor-pointer bg-[#E6F4F1] px-2.5 py-1 rounded-lg border border-[#BCE1D8]"
+                  >
+                    <Sparkles className="h-3 w-3 text-[#168B98]" />
+                    <span>{isGeneratingRetest ? 'Synthesizing...' : 'Generate AI Retest Protocol'}</span>
+                  </button>
+                </div>
                 <textarea
                   id="retest-instructions-textarea"
                   value={retestInstructions}
                   onChange={(e) => setRetestInstructions(e.target.value)}
                   placeholder="Explain what has been updated or what steps to verify (e.g., 'Deployed patch to staging. Please repeat step 2 on Chrome and confirm button responds')."
-                  rows={4}
+                  rows={6}
                   maxLength={3000}
                   className="w-full p-3.5 rounded-xl bg-white border border-[#DCE7E3] text-xs text-[#102A35] placeholder-[#52656B]/60 focus:outline-none focus:border-[#087C80]"
                 />

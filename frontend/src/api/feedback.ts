@@ -347,3 +347,155 @@ export async function queryAiCopilot(
     body: JSON.stringify(payload),
   });
 }
+
+export interface AiE2eReproductionRequest {
+  framework?: 'playwright' | 'cypress';
+  target_base_url?: string | null;
+}
+
+export interface AiE2eReproductionResponse {
+  feedback_id: string;
+  framework: 'playwright' | 'cypress';
+  filename: string;
+  test_script_code: string;
+  setup_instructions: string;
+  cli_command: string;
+  generated_at: string;
+}
+
+/**
+ * Generate autonomous Playwright or Cypress E2E reproduction script for feedback
+ */
+export async function generateE2eReproductionScript(
+  feedbackId: string,
+  payload?: AiE2eReproductionRequest
+): Promise<AiE2eReproductionResponse> {
+  return apiClient<AiE2eReproductionResponse>(
+    `/api/founder/feedback/${feedbackId}/generate-e2e-script`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload || { framework: 'playwright' }),
+    }
+  );
+}
+
+export interface UserJourneyStageItem {
+  stage_id: string;
+  stage_name: string;
+  order: number;
+  testers_reached: number;
+  pass_rate_percentage: number;
+  drop_off_percentage: number;
+  status: 'healthy' | 'warning' | 'critical_bottleneck';
+  reported_defects_count: number;
+  top_defect_headline?: string | null;
+  ai_recommendation: string;
+}
+
+export interface AiUserJourneyFunnelResponse {
+  campaign_id?: string | null;
+  campaign_title: string;
+  overall_funnel_efficiency_score: number;
+  critical_drop_off_stage: string;
+  total_testers_evaluated: number;
+  stages: UserJourneyStageItem[];
+  executive_funnel_takeaway: string;
+  reconstructed_at: string;
+}
+
+/**
+ * Reconstruct interactive AI user journey funnel and drop-off analysis
+ */
+export async function getUserJourneyFunnel(
+  campaignId?: string
+): Promise<AiUserJourneyFunnelResponse> {
+  const query = campaignId ? `?campaign_id=${encodeURIComponent(campaignId)}` : '';
+  return apiClient<AiUserJourneyFunnelResponse>(`/api/founder/feedback/journey-funnel${query}`);
+}
+
+export interface FrustrationHeatmapSegment {
+  timestamp_seconds: number;
+  timestamp_display: string;
+  frustration_intensity: number;
+  sentiment: 'calm' | 'hesitant' | 'frustrated' | 'blocked';
+  spoken_transcript: string;
+  ui_friction_flag?: string | null;
+}
+
+export interface AiVideoIntelligenceResponse {
+  feedback_id: string;
+  video_url: string;
+  video_duration_seconds: number;
+  total_segments: number;
+  average_frustration_score: number;
+  peak_frustration_timestamp: string;
+  executive_voice_summary: string;
+  segments: FrustrationHeatmapSegment[];
+  analyzed_at: string;
+}
+
+/**
+ * Generate multimodal video audio speech-to-text transcript and frustration heatmap
+ */
+export async function getVideoAiInsights(
+  feedbackId: string
+): Promise<AiVideoIntelligenceResponse> {
+  return apiClient<AiVideoIntelligenceResponse>(
+    `/api/founder/feedback/${feedbackId}/video-ai-insights`,
+    {
+      method: 'POST',
+    }
+  );
+}
+
+export interface AiRetestProtocolResponse {
+  feedback_id: string;
+  title: string;
+  target_failure_condition: string;
+  expected_resolution_state: string;
+  regression_watchpoints: string[];
+  verification_steps: string[];
+  retest_instructions_markdown: string;
+  generated_at: string;
+}
+
+export interface AiIssueExportResponse {
+  feedback_id: string;
+  title: string;
+  labels: string[];
+  severity: string;
+  github_issue_url: string;
+  linear_markdown: string;
+  dev_brief_markdown: string;
+  generated_at: string;
+}
+
+/**
+ * Generate AI verification protocol and regression watchpoints for bug retesting
+ */
+export async function getRetestProtocol(
+  feedbackId: string
+): Promise<AiRetestProtocolResponse> {
+  return apiClient<AiRetestProtocolResponse>(
+    `/api/founder/feedback/${feedbackId}/retest-protocol`,
+    {
+      method: 'POST',
+    }
+  );
+}
+
+/**
+ * Export AI-triaged bug report to GitHub Issues and Linear formatted templates
+ */
+export async function exportFeedbackTicket(
+  feedbackId: string,
+  targetRepo?: string
+): Promise<AiIssueExportResponse> {
+  const query = targetRepo ? `?target_repo=${encodeURIComponent(targetRepo)}` : '';
+  return apiClient<AiIssueExportResponse>(
+    `/api/founder/feedback/${feedbackId}/export-ticket${query}`,
+    {
+      method: 'POST',
+    }
+  );
+}

@@ -249,3 +249,97 @@ class AiCopilotQueryResponse(BaseModel):
     timestamp: datetime
 
 
+class AiE2eReproductionRequest(BaseModel):
+    """Payload for generating an autonomous E2E reproduction script."""
+    framework: str = Field(default="playwright", pattern="^(playwright|cypress)$")
+    target_base_url: Optional[str] = Field(None, max_length=500)
+
+
+class AiE2eReproductionResponse(BaseModel):
+    """Generated autonomous reproduction test code for local headless execution."""
+    feedback_id: uuid.UUID
+    framework: str
+    filename: str
+    test_script_code: str
+    setup_instructions: str
+    cli_command: str
+    generated_at: datetime
+
+
+class UserJourneyStageItem(BaseModel):
+    """A distinct milestone in the tester user journey with telemetry drop-off metrics."""
+    stage_id: str
+    stage_name: str
+    order: int
+    testers_reached: int
+    pass_rate_percentage: int
+    drop_off_percentage: int
+    status: str  # healthy | warning | critical_bottleneck
+    reported_defects_count: int
+    top_defect_headline: Optional[str] = None
+    ai_recommendation: str
+
+
+class AiUserJourneyFunnelResponse(BaseModel):
+    """Synthesized end-to-end user journey drop-off and conversion funnel."""
+    campaign_id: Optional[uuid.UUID] = None
+    campaign_title: str
+    overall_funnel_efficiency_score: int
+    critical_drop_off_stage: str
+    total_testers_evaluated: int
+    stages: List[UserJourneyStageItem]
+    executive_funnel_takeaway: str
+    reconstructed_at: datetime
+
+
+class FrustrationHeatmapSegment(BaseModel):
+    """Timestamped audio window with speech transcript, vocal hesitation, and friction score."""
+    timestamp_seconds: int
+    timestamp_display: str
+    frustration_intensity: int  # 1 to 10
+    sentiment: str  # calm | hesitant | frustrated | blocked
+    spoken_transcript: str
+    ui_friction_flag: Optional[str] = None
+
+
+class AiVideoIntelligenceResponse(BaseModel):
+    """Synthesized multimodal video transcription, voice tone analysis, and frustration heatmap."""
+    feedback_id: uuid.UUID
+    video_url: str
+    video_duration_seconds: int
+    total_segments: int
+    average_frustration_score: float
+    peak_frustration_timestamp: str
+    executive_voice_summary: str
+    segments: List[FrustrationHeatmapSegment]
+    analyzed_at: datetime
+
+
+class AiRetestProtocolResponse(BaseModel):
+    """Synthesized quality control verification checklist and false-positive prevention protocol."""
+    feedback_id: uuid.UUID
+    title: str
+    target_failure_condition: str
+    expected_resolution_state: str
+    regression_watchpoints: List[str]
+    verification_steps: List[str]
+    retest_instructions_markdown: str
+    generated_at: datetime
+
+
+class AiIssueExportResponse(BaseModel):
+    """Structured export payload for 1-click synchronization to GitHub Issues and Linear."""
+    feedback_id: uuid.UUID
+    title: str
+    labels: List[str]
+    severity: str
+    github_issue_url: str
+    linear_markdown: str
+    dev_brief_markdown: str
+    generated_at: datetime
+
+
+
+
+
+

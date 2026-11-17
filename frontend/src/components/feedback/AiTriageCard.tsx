@@ -21,9 +21,13 @@ import {
   Smile,
   Frown,
   Meh,
+  Terminal,
+  Download,
+  Play,
+  Loader2,
 } from 'lucide-react';
-import type { FounderFeedbackDetail } from '../../api/feedback';
-import { useRunAiFeedbackTriage } from '../../context/useFeedback';
+import type { FounderFeedbackDetail, AiE2eReproductionResponse } from '../../api/feedback';
+import { useRunAiFeedbackTriage, useGenerateE2eReproductionScript } from '../../context/useFeedback';
 
 interface AiTriageCardProps {
   feedback: FounderFeedbackDetail;
@@ -34,6 +38,44 @@ export const AiTriageCard: React.FC<AiTriageCardProps> = ({ feedback }) => {
   const { mutate: runTriage, isPending: isRunningTriage } = useRunAiFeedbackTriage(feedback.id);
   const [copiedTicket, setCopiedTicket] = useState(false);
   const [showRawTicket, setShowRawTicket] = useState(false);
+
+  const { mutateAsync: generateE2e, isPending: isGeneratingE2e } = useGenerateE2eReproductionScript();
+  const [selectedFramework, setSelectedFramework] = useState<'playwright' | 'cypress'>('playwright');
+  const [e2eData, setE2eData] = useState<AiE2eReproductionResponse | null>(null);
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [showE2eSection, setShowE2eSection] = useState(false);
+
+  const handleGenerateE2e = async (framework: 'playwright' | 'cypress' = selectedFramework) => {
+    setSelectedFramework(framework);
+    try {
+      const res = await generateE2e({
+        feedbackId: feedback.id,
+        payload: { framework },
+      });
+      setE2eData(res);
+      setShowE2eSection(true);
+    } catch (err) {
+      console.error('Failed to generate E2E script', err);
+    }
+  };
+
+  const handleCopyCode = () => {
+    if (!e2eData?.test_script_code) return;
+    navigator.clipboard.writeText(e2eData.test_script_code);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2200);
+  };
+
+  const handleDownloadCode = () => {
+    if (!e2eData) return;
+    const blob = new Blob([e2eData.test_script_code], { type: 'text/typescript' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = e2eData.filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const handleCopyTicket = () => {
     if (!triage?.dev_ticket_markdown) return;
@@ -304,6 +346,141 @@ export const AiTriageCard: React.FC<AiTriageCardProps> = ({ feedback }) => {
               <pre className="p-4 bg-[#102A35] text-white rounded-xl text-[11px] font-mono leading-relaxed overflow-x-auto whitespace-pre-wrap max-h-64 border border-[#07545A]">
                 {triage.dev_ticket_markdown}
               </pre>
+            )}
+          </div>
+
+          {/* Autonomous E2E Reproduction Code Generator */}
+          <div className="pt-3 border-t border-[#DCE7E3] space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="space-y-0.5">
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs font-bold text-[#102A35] flex items-center gap-1.5">
+                    <Terminal className="h-3.5 w-3.5 text-[#07545A]" />
+                    <span>Autonomous E2E Reproduction Script</span>
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    Playwright &amp; Cypress
+                  </span>
+                </div>
+                <p className="text-[10px] text-[#52656B]">
+                  Auto-generates runnable browser automation tests to replicate this defect locally in headless Chrome.
+                </p>
+              </div>
+
+              {/* Framework Toggle & Generate Button */}
+              <div className="flex items-center space-x-2 shrink-0">
+                <div className="inline-flex rounded-lg border border-[#DCE7E3] p-0.5 bg-[#FAF9F5]">
+                  <button
+                    type="button"
+                    onClick={() => handleGenerateE2e('playwright')}
+                    className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all cursor-pointer ${
+                      selectedFramework === 'playwright'
+                        ? 'bg-[#07545A] text-white shadow-2xs'
+                        : 'text-[#52656B] hover:text-[#102A35]'
+                    }`}
+                  >
+                    Playwright
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleGenerateE2e('cypress')}
+                    className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all cursor-pointer ${
+                      selectedFramework === 'cypress'
+                        ? 'bg-[#07545A] text-white shadow-2xs'
+                        : 'text-[#52656B] hover:text-[#102A35]'
+                    }`}
+                  >
+                    Cypress
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleGenerateE2e(selectedFramework)}
+                  disabled={isGeneratingE2e}
+                  className="px-3.5 py-1.5 rounded-lg text-[11px] font-bold bg-[#102A35] hover:bg-[#1E3A4B] text-white transition-colors cursor-pointer inline-flex items-center space-x-1.5 shadow-xs disabled:opacity-50"
+                >
+                  {isGeneratingE2e ? (
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin text-[#7DE3DA]" />
+                      <span>Synthesizing Script...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-3 w-3 text-emerald-400 fill-emerald-400" />
+                      <span>{e2eData ? 'Regenerate Script' : 'Generate Test Code'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Generated E2E Script Box */}
+            {e2eData && showE2eSection && (
+              <div className="rounded-2xl bg-[#0B132B] border border-slate-800 p-4 space-y-3 shadow-inner">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800">
+                  <div className="flex items-center space-x-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    <span className="text-xs font-mono font-bold text-slate-300">
+                      {e2eData.filename}
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      ({e2eData.framework.toUpperCase()})
+                    </span>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={handleCopyCode}
+                      className="px-3 py-1 rounded-md text-[11px] font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors cursor-pointer inline-flex items-center space-x-1.5"
+                    >
+                      {copiedCode ? (
+                        <>
+                          <Check className="h-3 w-3 text-emerald-400" />
+                          <span className="text-emerald-400">Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3 w-3 text-slate-400" />
+                          <span>Copy Script</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleDownloadCode}
+                      className="px-3 py-1 rounded-md text-[11px] font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors cursor-pointer inline-flex items-center space-x-1.5"
+                    >
+                      <Download className="h-3 w-3 text-slate-400" />
+                      <span>Download File</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Code Block */}
+                <pre className="text-[11px] font-mono text-emerald-300 leading-relaxed overflow-x-auto max-h-72 p-2 bg-slate-950/70 rounded-xl select-all">
+                  <code>{e2eData.test_script_code}</code>
+                </pre>
+
+                {/* Execution CLI Command */}
+                <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Execution Command
+                  </span>
+                  <div className="flex items-center justify-between font-mono text-xs text-sky-300">
+                    <code>{e2eData.cli_command}</code>
+                    <button
+                      type="button"
+                      onClick={() => navigator.clipboard.writeText(e2eData.cli_command)}
+                      className="text-[10px] text-slate-400 hover:text-white transition-colors cursor-pointer underline ml-2"
+                    >
+                      copy cmd
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>

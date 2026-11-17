@@ -19,6 +19,7 @@ import {
 import { useFounderFeedback } from '../context/useFeedback';
 import type { FeedbackStatus, FeedbackType, BugSeverity } from '../api/tasks';
 import { AiExecutiveSummaryCard } from '../components/feedback/AiExecutiveSummaryCard';
+import { AiUserJourneyFunnel } from '../components/feedback/AiUserJourneyFunnel';
 import { FounderAiCopilotDrawer } from '../components/feedback/FounderAiCopilotDrawer';
 
 export const FounderFeedbackDashboardPage: React.FC = () => {
@@ -167,6 +168,11 @@ export const FounderFeedbackDashboardPage: React.FC = () => {
               ? allFeedback[0]?.campaign_title || 'Selected Campaign'
               : 'All Active Campaigns'
           }
+        />
+
+        {/* AI User Journey Funnel & Conversion Drop-off Reconstruction */}
+        <AiUserJourneyFunnel
+          campaignId={selectedCampaignId && selectedCampaignId !== 'all' ? selectedCampaignId : undefined}
         />
 
         {/* Filter & Search Bar */}

@@ -8,6 +8,11 @@ import {
   runAiFeedbackTriage,
   generateExecutiveFeedbackSynthesis,
   queryAiCopilot,
+  generateE2eReproductionScript,
+  getUserJourneyFunnel,
+  getVideoAiInsights,
+  getRetestProtocol,
+  exportFeedbackTicket,
   type FounderFeedbackFilters,
   type FounderFeedbackListResponse,
   type FounderFeedbackDetail,
@@ -19,6 +24,12 @@ import {
   type AiExecutiveSynthesisResponse,
   type AiCopilotQueryRequest,
   type AiCopilotQueryResponse,
+  type AiE2eReproductionRequest,
+  type AiE2eReproductionResponse,
+  type AiUserJourneyFunnelResponse,
+  type AiVideoIntelligenceResponse,
+  type AiRetestProtocolResponse,
+  type AiIssueExportResponse,
 } from '../api/feedback';
 import { useAuth } from './useAuth';
 
@@ -155,5 +166,57 @@ export function useGenerateExecutiveFeedbackSynthesis() {
 export function useQueryAiCopilot() {
   return useMutation<AiCopilotQueryResponse, Error, AiCopilotQueryRequest>({
     mutationFn: (payload) => queryAiCopilot(payload),
+  });
+}
+
+export function useGenerateE2eReproductionScript() {
+  return useMutation<
+    AiE2eReproductionResponse,
+    Error,
+    { feedbackId: string; payload?: AiE2eReproductionRequest }
+  >({
+    mutationFn: ({ feedbackId, payload }) => generateE2eReproductionScript(feedbackId, payload),
+  });
+}
+
+export function useUserJourneyFunnel(campaignId?: string) {
+  const { user } = useAuth();
+  const isFounder = user?.role === 'founder';
+
+  return useQuery<AiUserJourneyFunnelResponse, Error>({
+    queryKey: ['user-journey-funnel', campaignId || 'all'],
+    queryFn: () => getUserJourneyFunnel(campaignId),
+    enabled: !!user && isFounder,
+    staleTime: 30000,
+    retry: 1,
+  });
+}
+
+export function useVideoAiInsights(feedbackId?: string) {
+  const { user } = useAuth();
+  const isFounder = user?.role === 'founder';
+
+  return useQuery<AiVideoIntelligenceResponse, Error>({
+    queryKey: ['video-ai-insights', feedbackId],
+    queryFn: () => getVideoAiInsights(feedbackId!),
+    enabled: !!user && isFounder && !!feedbackId,
+    staleTime: 60000,
+    retry: 1,
+  });
+}
+
+export function useRetestProtocol() {
+  return useMutation<AiRetestProtocolResponse, Error, string>({
+    mutationFn: (feedbackId) => getRetestProtocol(feedbackId),
+  });
+}
+
+export function useExportFeedbackTicket() {
+  return useMutation<
+    AiIssueExportResponse,
+    Error,
+    { feedbackId: string; targetRepo?: string }
+  >({
+    mutationFn: ({ feedbackId, targetRepo }) => exportFeedbackTicket(feedbackId, targetRepo),
   });
 }

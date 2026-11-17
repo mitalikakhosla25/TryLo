@@ -52,3 +52,4 @@ def test_query_ai_copilot_readiness_verdict():
     result = query_ai_copilot(query="Is the app ready for release?", submissions=subs)
     assert "release readiness synthesis" in result["answer_markdown"].lower()
     assert len(result["suggested_followups"]) >= 2
+
