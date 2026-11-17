@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useCampaignAnalytics } from '../../context/useCampaigns';
 import { downloadCampaignAuditCsv } from '../../api/campaigns';
+import { DonutChart, BarVelocityChart } from '../ui/ChartWidgets';
 
 interface CampaignAnalyticsModalProps {
   isOpen: boolean;
@@ -282,8 +283,24 @@ export const CampaignAnalyticsModal: React.FC<CampaignAnalyticsModalProps> = ({
                     </span>
                   </div>
 
+                  {/* SVG Donut Chart */}
+                  <div className="py-2">
+                    <DonutChart
+                      data={[
+                        { label: 'Critical', value: analytics.severity.critical, color: '#DC2626' },
+                        { label: 'High', value: analytics.severity.high, color: '#D97706' },
+                        { label: 'Medium', value: analytics.severity.medium, color: '#0284C7' },
+                        { label: 'Low', value: analytics.severity.low, color: '#0D9488' },
+                      ]}
+                      centerLabel="Bugs"
+                      centerValue={String(analytics.severity.total_bugs)}
+                      size={150}
+                      strokeWidth={20}
+                    />
+                  </div>
+
                   {/* Segmented Color Bar */}
-                  <div className="w-full h-3 rounded-full bg-[#DCE7E3] overflow-hidden flex">
+                  <div className="w-full h-2.5 rounded-full bg-[#DCE7E3] overflow-hidden flex">
                     <div
                       className="bg-rose-600 h-full transition-all"
                       style={{
@@ -316,19 +333,19 @@ export const CampaignAnalyticsModal: React.FC<CampaignAnalyticsModalProps> = ({
 
                   {/* Severity Labels */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs">
-                    <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200">
+                    <div className="p-2 rounded-xl bg-rose-50 border border-rose-200">
                       <div className="font-bold text-rose-700">Critical</div>
                       <div className="text-lg font-black text-rose-800">{analytics.severity.critical}</div>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200">
+                    <div className="p-2 rounded-xl bg-amber-50 border border-amber-200">
                       <div className="font-bold text-amber-700">High</div>
                       <div className="text-lg font-black text-amber-800">{analytics.severity.high}</div>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-sky-50 border border-sky-200">
+                    <div className="p-2 rounded-xl bg-sky-50 border border-sky-200">
                       <div className="font-bold text-sky-700">Medium</div>
                       <div className="text-lg font-black text-sky-800">{analytics.severity.medium}</div>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-teal-50 border border-teal-200">
+                    <div className="p-2 rounded-xl bg-teal-50 border border-teal-200">
                       <div className="font-bold text-teal-700">Low</div>
                       <div className="text-lg font-black text-teal-800">{analytics.severity.low}</div>
                     </div>
@@ -396,40 +413,56 @@ export const CampaignAnalyticsModal: React.FC<CampaignAnalyticsModalProps> = ({
                 {analytics.task_velocity.length === 0 ? (
                   <p className="text-xs text-[#52656B] italic">No structured tasks assigned yet.</p>
                 ) : (
-                  <div className="space-y-3">
-                    {analytics.task_velocity.map((t) => (
-                      <div
-                        key={t.task_id}
-                        className="p-3 rounded-xl bg-[#F6F5ED] border border-[#DCE7E3] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
-                      >
-                        <div className="space-y-0.5">
-                          <div className="font-bold text-[#102A35] flex items-center gap-2">
-                            <span>{t.title}</span>
-                            {t.is_required && (
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
-                                Required
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-[11px] text-[#52656B]">
-                            {t.completed_count} completed • {t.in_progress_count} in progress
-                          </div>
-                        </div>
+                  <>
+                    {/* Visual Bar Velocity Chart */}
+                    <div className="pb-2">
+                      <BarVelocityChart
+                        data={analytics.task_velocity.map((t) => ({
+                          label: t.title.length > 15 ? t.title.slice(0, 15) + '…' : t.title,
+                          value: t.completion_percentage,
+                          sublabel: `${t.completed_count} done`,
+                          color: '#087C80',
+                        }))}
+                        valuePrefix="%"
+                        height={130}
+                      />
+                    </div>
 
-                        <div className="flex items-center gap-3 shrink-0">
-                          <div className="w-28 sm:w-36 bg-[#DCE7E3] h-2 rounded-full overflow-hidden">
-                            <div
-                              className="bg-[#07545A] h-full transition-all"
-                              style={{ width: `${Math.min(100, t.completion_percentage)}%` }}
-                            />
+                    <div className="space-y-3">
+                      {analytics.task_velocity.map((t) => (
+                        <div
+                          key={t.task_id}
+                          className="p-3 rounded-xl bg-[#F6F5ED] border border-[#DCE7E3] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                        >
+                          <div className="space-y-0.5">
+                            <div className="font-bold text-[#102A35] flex items-center gap-2">
+                              <span>{t.title}</span>
+                              {t.is_required && (
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                                  Required
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-[#52656B]">
+                              {t.completed_count} completed • {t.in_progress_count} in progress
+                            </div>
                           </div>
-                          <span className="font-bold text-xs text-[#07545A] w-12 text-right">
-                            {t.completion_percentage}%
-                          </span>
+
+                          <div className="flex items-center gap-3 shrink-0">
+                            <div className="w-28 sm:w-36 bg-[#DCE7E3] h-2 rounded-full overflow-hidden">
+                              <div
+                                className="bg-[#07545A] h-full transition-all"
+                                style={{ width: `${Math.min(100, t.completion_percentage)}%` }}
+                              />
+                            </div>
+                            <span className="font-bold text-xs text-[#07545A] w-12 text-right">
+                              {t.completion_percentage}%
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  </>
                 )}
               </div>
             </>

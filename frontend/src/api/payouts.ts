@@ -2,7 +2,18 @@
  * TryLo Escrow Vault and Simulated UPI Payout API Module
  */
 
-import { apiClient } from './client';
+import { apiClient, API_BASE_URL } from './client';
+
+export interface EscrowAnalyticsResponse {
+  campaign_id: string;
+  total_funded: number;
+  disbursed_amount: number;
+  remaining_balance: number;
+  burn_rate_pct: number;
+  milestone_breakdown: Record<string, { count: number; amount: number }>;
+  daily_velocity: Array<{ date: string; amount: number; count: number }>;
+  payouts: PayoutResponse[];
+}
 
 export interface EscrowResponse {
   id: string;
@@ -136,3 +147,49 @@ export async function getFounderEscrowOverview(): Promise<FounderEscrowOverviewR
     method: 'GET',
   });
 }
+
+/**
+ * Fetch campaign escrow financial analytics, burn rate, and velocity chart data.
+ */
+export async function getCampaignEscrowAnalytics(campaignId: string): Promise<EscrowAnalyticsResponse> {
+  return apiClient<EscrowAnalyticsResponse>(`/api/campaigns/${campaignId}/escrow/analytics`, {
+    method: 'GET',
+  });
+}
+
+/**
+ * Download campaign financial payout audit ledger CSV.
+ */
+export async function downloadCampaignPayoutsCsv(campaignId: string, campaignSlug: string): Promise<void> {
+  const url = `${API_BASE_URL}/api/campaigns/${campaignId}/export/payouts-csv`;
+  const response = await fetch(url, { credentials: 'include' });
+  if (!response.ok) throw new Error('Failed to download payouts CSV');
+  const blob = await response.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = downloadUrl;
+  link.download = `trylo_payouts_${campaignSlug}_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(downloadUrl);
+}
+
+/**
+ * Download founder portfolio financial payout audit ledger CSV.
+ */
+export async function downloadFounderPayoutsCsv(): Promise<void> {
+  const url = `${API_BASE_URL}/api/founder/export/payouts-csv`;
+  const response = await fetch(url, { credentials: 'include' });
+  if (!response.ok) throw new Error('Failed to download portfolio payouts CSV');
+  const blob = await response.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = downloadUrl;
+  link.download = `trylo_portfolio_payouts_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(downloadUrl);
+}
+

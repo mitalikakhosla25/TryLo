@@ -10,6 +10,7 @@ import {
   getTesterEarnings,
   updateTesterUpi,
   getFounderEscrowOverview,
+  getCampaignEscrowAnalytics,
   type EscrowResponse,
   type FundEscrowRequest,
   type DisbursePayoutRequest,
@@ -17,6 +18,7 @@ import {
   type TesterEarningsOverviewResponse,
   type FounderEscrowOverviewResponse,
   type UpdateUpiRequest,
+  type EscrowAnalyticsResponse,
 } from '../api/payouts';
 import { useAuth } from './useAuth';
 
@@ -85,3 +87,13 @@ export function useFounderEscrowOverview() {
     staleTime: 10000,
   });
 }
+
+export function useCampaignEscrowAnalytics(campaignId?: string) {
+  return useQuery<EscrowAnalyticsResponse, Error>({
+    queryKey: ['campaign-escrow-analytics', campaignId],
+    queryFn: () => getCampaignEscrowAnalytics(campaignId!),
+    enabled: Boolean(campaignId),
+    staleTime: 10000,
+  });
+}
+

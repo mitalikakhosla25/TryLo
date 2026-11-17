@@ -87,6 +87,7 @@ from app.schemas.payout import (
     TesterEarningsOverviewResponse,
     FounderEscrowOverviewResponse,
     UpdateUpiRequest,
+    EscrowAnalyticsResponse,
 )
 
 __all__ = [
@@ -151,4 +152,5 @@ __all__ = [
     "TesterEarningsOverviewResponse",
     "FounderEscrowOverviewResponse",
     "UpdateUpiRequest",
+    "EscrowAnalyticsResponse",
 ]

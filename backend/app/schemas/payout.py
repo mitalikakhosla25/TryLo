@@ -98,3 +98,16 @@ class UpdateUpiRequest(BaseModel):
     @classmethod
     def check_upi(cls, v: str) -> str:
         return validate_upi_format(v)
+
+
+class EscrowAnalyticsResponse(BaseModel):
+    campaign_id: str
+    total_funded: float
+    disbursed_amount: float
+    remaining_balance: float
+    burn_rate_pct: float
+    milestone_breakdown: dict
+    daily_velocity: list
+    payouts: List[PayoutResponse]
+
+

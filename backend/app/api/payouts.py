@@ -3,9 +3,12 @@
 import logging
 import random
 import uuid
+import csv
+import io
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
 
@@ -32,6 +35,7 @@ from app.schemas.payout import (
     TesterEarningsOverviewResponse,
     FounderEscrowOverviewResponse,
     UpdateUpiRequest,
+    EscrowAnalyticsResponse,
 )
 
 logger = logging.getLogger("trylo.payouts")
@@ -434,3 +438,233 @@ def get_founder_escrow_overview(
         active_escrow_campaigns_count=active_escrows_count,
         recent_disbursements=payout_responses,
     )
+
+
+@router.get(
+    "/campaigns/{campaign_id}/escrow/analytics",
+    response_model=EscrowAnalyticsResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get campaign escrow financial analytics, burn rate, and velocity chart data",
+)
+def get_campaign_escrow_analytics(
+    campaign_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> EscrowAnalyticsResponse:
+    try:
+        camp_uuid = uuid.UUID(campaign_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid campaign UUID format.")
+
+    campaign = db.scalar(select(Campaign).where(Campaign.id == camp_uuid))
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campaign not found.")
+
+    escrow = _get_or_create_escrow(db, campaign)
+    payouts = db.scalars(
+        select(TesterPayout)
+        .where(TesterPayout.campaign_id == camp_uuid)
+        .order_by(TesterPayout.disbursed_at.desc())
+    ).all()
+
+    total_funded = float(escrow.total_funded)
+    disbursed = float(escrow.disbursed_amount)
+    remaining = escrow.remaining_balance
+    burn_rate_pct = round((disbursed / total_funded * 100), 1) if total_funded > 0 else 0.0
+
+    # Milestone breakdown
+    milestones: Dict[str, Dict[str, Any]] = {
+        "task_completion": {"count": 0, "amount": 0.0},
+        "bug_bounty": {"count": 0, "amount": 0.0},
+        "campaign_reward": {"count": 0, "amount": 0.0},
+    }
+    # Daily velocity
+    daily_map: Dict[str, Dict[str, Any]] = {}
+
+    payout_responses: List[PayoutResponse] = []
+    startup_name = campaign.startup.name if campaign.startup else None
+
+    for p in payouts:
+        m_type = p.milestone_type if p.milestone_type in milestones else "task_completion"
+        milestones[m_type]["count"] += 1
+        milestones[m_type]["amount"] += float(p.amount)
+
+        day_str = p.disbursed_at.strftime("%Y-%m-%d")
+        if day_str not in daily_map:
+            daily_map[day_str] = {"date": day_str, "amount": 0.0, "count": 0}
+        daily_map[day_str]["amount"] += float(p.amount)
+        daily_map[day_str]["count"] += 1
+
+        tester = db.scalar(select(User).where(User.id == p.tester_id))
+        payout_responses.append(
+            PayoutResponse(
+                id=str(p.id),
+                campaign_id=str(p.campaign_id),
+                campaign_title=campaign.title,
+                startup_name=startup_name,
+                tester_id=str(p.tester_id),
+                tester_name=tester.full_name if tester else None,
+                amount=float(p.amount),
+                currency=p.currency,
+                upi_id=p.upi_id,
+                reference_id=p.reference_id,
+                utr_number=p.utr_number,
+                status=p.status,
+                milestone_type=p.milestone_type,
+                notes=p.notes,
+                disbursed_at=p.disbursed_at,
+                created_at=p.created_at,
+            )
+        )
+
+    # Sort daily velocity chronologically
+    daily_velocity = sorted(daily_map.values(), key=lambda x: x["date"])
+
+    return EscrowAnalyticsResponse(
+        campaign_id=str(campaign.id),
+        total_funded=total_funded,
+        disbursed_amount=disbursed,
+        remaining_balance=remaining,
+        burn_rate_pct=burn_rate_pct,
+        milestone_breakdown=milestones,
+        daily_velocity=daily_velocity,
+        payouts=payout_responses,
+    )
+
+
+@router.get(
+    "/campaigns/{campaign_id}/export/payouts-csv",
+    summary="Download campaign financial payout audit ledger CSV",
+)
+def export_campaign_payouts_csv(
+    campaign_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("founder")),
+):
+    try:
+        camp_uuid = uuid.UUID(campaign_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid campaign UUID format.")
+
+    campaign = db.scalar(select(Campaign).where(Campaign.id == camp_uuid))
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campaign not found.")
+
+    payouts = db.scalars(
+        select(TesterPayout)
+        .where(TesterPayout.campaign_id == camp_uuid)
+        .order_by(TesterPayout.disbursed_at.desc())
+    ).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "TryLo Simulated NPCI UPI Payout Audit Report",
+        f"Campaign: {campaign.title}",
+        f"Exported At: {datetime.now(timezone.utc).isoformat()}",
+    ])
+    writer.writerow([])
+    writer.writerow([
+        "Transaction Reference",
+        "Disbursed At (UTC)",
+        "Milestone Reason",
+        "Amount (INR)",
+        "Recipient Name",
+        "Recipient UPI VPA",
+        "NPCI 12-Digit UTR",
+        "Status",
+        "Internal Notes",
+    ])
+
+    for p in payouts:
+        tester = db.scalar(select(User).where(User.id == p.tester_id))
+        writer.writerow([
+            p.reference_id,
+            p.disbursed_at.strftime("%Y-%m-%d %H:%M:%S"),
+            p.milestone_type,
+            f"{float(p.amount):.2f}",
+            tester.full_name if tester else "N/A",
+            p.upi_id,
+            p.utr_number,
+            p.status.upper(),
+            p.notes or "",
+        ])
+
+    output.seek(0)
+    filename = f"trylo_payouts_{campaign.slug}_{datetime.now().strftime('%Y%m%d')}.csv"
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@router.get(
+    "/founder/export/payouts-csv",
+    summary="Download founder portfolio financial payout audit ledger CSV",
+)
+def export_founder_payouts_csv(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("founder")),
+):
+    startups = db.scalars(select(Startup).where(Startup.owner_id == current_user.id)).all()
+    startup_ids = [s.id for s in startups]
+    campaigns = db.scalars(select(Campaign).where(Campaign.startup_id.in_(startup_ids))).all() if startup_ids else []
+    camp_map = {c.id: c for c in campaigns}
+    startup_map = {s.id: s for s in startups}
+
+    payouts = db.scalars(
+        select(TesterPayout)
+        .where(TesterPayout.campaign_id.in_(list(camp_map.keys())))
+        .order_by(TesterPayout.disbursed_at.desc())
+    ).all() if camp_map else []
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "TryLo Executive Portfolio Financial & UPI Settlement Audit Report",
+        f"Founder: {current_user.full_name} ({current_user.email})",
+        f"Exported At: {datetime.now(timezone.utc).isoformat()}",
+    ])
+    writer.writerow([])
+    writer.writerow([
+        "Startup",
+        "Campaign Title",
+        "Transaction Reference",
+        "Disbursed At (UTC)",
+        "Milestone Reason",
+        "Amount (INR)",
+        "Recipient Name",
+        "Recipient UPI VPA",
+        "NPCI 12-Digit UTR",
+        "Settlement Status",
+        "Notes",
+    ])
+
+    for p in payouts:
+        camp = camp_map.get(p.campaign_id)
+        startup = startup_map.get(camp.startup_id) if camp else None
+        tester = db.scalar(select(User).where(User.id == p.tester_id))
+        writer.writerow([
+            startup.name if startup else "N/A",
+            camp.title if camp else "N/A",
+            p.reference_id,
+            p.disbursed_at.strftime("%Y-%m-%d %H:%M:%S"),
+            p.milestone_type,
+            f"{float(p.amount):.2f}",
+            tester.full_name if tester else "N/A",
+            p.upi_id,
+            p.utr_number,
+            p.status.upper(),
+            p.notes or "",
+        ])
+
+    output.seek(0)
+    filename = f"trylo_portfolio_payouts_{datetime.now().strftime('%Y%m%d')}.csv"
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+

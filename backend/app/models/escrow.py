@@ -242,3 +242,4 @@ class TesterPayout(Base):
             f"<TesterPayout id={self.id!r} campaign_id={self.campaign_id!r} "
             f"tester_id={self.tester_id!r} amount={self.amount!r} utr={self.utr_number!r}>"
         )
+

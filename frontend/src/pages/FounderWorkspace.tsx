@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 import { useProfile } from '../context/useProfile';
@@ -21,10 +21,13 @@ import {
   Bug,
   Coins,
   ShieldCheck,
+  Download,
 } from 'lucide-react';
 import type { FounderProfile } from '../api/profile';
 import { useFounderAnalyticsOverview } from '../context/useCampaigns';
 import { useFounderEscrowOverview } from '../context/usePayouts';
+import { downloadFounderPayoutsCsv } from '../api/payouts';
+import { DonutChart } from '../components/ui/ChartWidgets';
 
 export const FounderWorkspace: React.FC = () => {
   const { user, logout } = useAuth();
@@ -33,6 +36,23 @@ export const FounderWorkspace: React.FC = () => {
   const { data: analyticsOverview } = useFounderAnalyticsOverview();
   const { data: escrowOverview } = useFounderEscrowOverview();
   const navigate = useNavigate();
+
+  const [isExportingMacroCsv, setIsExportingMacroCsv] = useState(false);
+  const [macroExportMsg, setMacroExportMsg] = useState<string | null>(null);
+
+  const handleExportMacroCsv = async () => {
+    try {
+      setIsExportingMacroCsv(true);
+      setMacroExportMsg(null);
+      await downloadFounderPayoutsCsv();
+      setMacroExportMsg('Portfolio financial audit CSV exported successfully.');
+      setTimeout(() => setMacroExportMsg(null), 3500);
+    } catch {
+      setMacroExportMsg('Failed to export portfolio CSV.');
+    } finally {
+      setIsExportingMacroCsv(false);
+    }
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -402,16 +422,36 @@ export const FounderWorkspace: React.FC = () => {
                 </div>
               </div>
 
-              {startups && startups.length > 0 && (
-                <Link
-                  to={`/founder/startups/${startups[0].id}/campaigns`}
-                  className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-[#E6F4F1] hover:bg-[#D4EBE7] border border-[#BCE1D8] text-[#07545A] transition-colors"
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={handleExportMacroCsv}
+                  disabled={isExportingMacroCsv}
+                  className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white hover:bg-[#F6F5ED] border border-[#DCE7E3] text-[#102A35] transition-colors cursor-pointer"
+                  title="Export Portfolio Payouts Audit CSV"
                 >
-                  <Coins className="h-3.5 w-3.5 text-[#087C80]" />
-                  <span>Manage Campaign Vaults</span>
-                </Link>
-              )}
+                  <Download className="h-3.5 w-3.5 text-[#087C80]" />
+                  <span>{isExportingMacroCsv ? 'Exporting...' : 'Export Audit CSV'}</span>
+                </button>
+
+                {startups && startups.length > 0 && (
+                  <Link
+                    to={`/founder/startups/${startups[0].id}/campaigns`}
+                    className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-[#E6F4F1] hover:bg-[#D4EBE7] border border-[#BCE1D8] text-[#07545A] transition-colors"
+                  >
+                    <Coins className="h-3.5 w-3.5 text-[#087C80]" />
+                    <span>Manage Campaign Vaults</span>
+                  </Link>
+                )}
+              </div>
             </div>
+
+            {macroExportMsg && (
+              <div className="p-3 rounded-xl bg-[#E6F4F1] border border-[#BCE1D8] text-[#07545A] text-xs flex items-center space-x-2">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                <span>{macroExportMsg}</span>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
               <div className="p-4 rounded-2xl bg-[#F6F5ED]/60 border border-[#DCE7E3] space-y-1">
@@ -447,31 +487,67 @@ export const FounderWorkspace: React.FC = () => {
               </div>
             </div>
 
-            {escrowOverview.recent_disbursements.length > 0 && (
-              <div className="space-y-2 pt-1">
-                <span className="text-xs font-bold text-[#102A35]">Recent Simulated UPI Receipts</span>
-                <div className="divide-y divide-[#DCE7E3] border border-[#DCE7E3] rounded-2xl overflow-hidden bg-white max-h-48 overflow-y-auto">
-                  {escrowOverview.recent_disbursements.map((d) => (
-                    <div key={d.id} className="p-3 flex items-center justify-between text-xs hover:bg-[#F6F5ED]/40 transition-colors">
-                      <div className="space-y-0.5">
-                        <div className="flex items-center space-x-2">
-                          <span className="font-bold text-[#102A35]">{d.tester_name || 'Tester'}</span>
-                          <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-[#E6F4F1] text-[#07545A]">
-                            {d.milestone_type.replace('_', ' ')}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-[#52656B]">
-                          To: <span className="font-mono">{d.upi_id}</span> • UTR: <span className="font-mono font-medium">{d.utr_number}</span>
-                        </p>
-                      </div>
-                      <span className="font-bold text-[#07545A] text-sm">
-                        ₹{d.amount.toLocaleString()}
-                      </span>
-                    </div>
-                  ))}
+            {/* Visual Portfolio Liquidity Distribution and Receipts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-2">
+              <div className="p-4 rounded-2xl bg-[#F6F5ED]/60 border border-[#DCE7E3] space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-[#102A35]">Portfolio Capital Allocation</span>
+                  <span className="text-[11px] font-semibold text-[#07545A] bg-[#E6F4F1] px-2 py-0.5 rounded-full border border-[#BCE1D8]">
+                    {escrowOverview.total_escrow_funded > 0
+                      ? Math.round((escrowOverview.total_escrow_disbursed / escrowOverview.total_escrow_funded) * 100)
+                      : 0}% Burn Rate
+                  </span>
                 </div>
+                <DonutChart
+                  data={[
+                    {
+                      label: 'Disbursed to Testers',
+                      value: escrowOverview.total_escrow_disbursed,
+                      color: '#087C80',
+                    },
+                    {
+                      label: 'Available Vault Liquidity',
+                      value: escrowOverview.total_escrow_remaining,
+                      color: '#10B981',
+                    },
+                  ]}
+                  centerLabel="Vault"
+                  centerValue={`₹${escrowOverview.total_escrow_funded.toLocaleString()}`}
+                  size={140}
+                  strokeWidth={18}
+                />
               </div>
-            )}
+
+              {escrowOverview.recent_disbursements.length > 0 ? (
+                <div className="p-4 rounded-2xl bg-[#F6F5ED]/40 border border-[#DCE7E3] space-y-2">
+                  <span className="text-xs font-bold text-[#102A35]">Recent Simulated UPI Receipts</span>
+                  <div className="divide-y divide-[#DCE7E3] border border-[#DCE7E3] rounded-xl overflow-hidden bg-white max-h-40 overflow-y-auto">
+                    {escrowOverview.recent_disbursements.map((d) => (
+                      <div key={d.id} className="p-2.5 flex items-center justify-between text-xs hover:bg-[#F6F5ED]/40 transition-colors">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-bold text-[#102A35]">{d.tester_name || 'Tester'}</span>
+                            <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-[#E6F4F1] text-[#07545A]">
+                              {d.milestone_type.replace('_', ' ')}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-[#52656B]">
+                            To: <span className="font-mono">{d.upi_id}</span> • UTR: <span className="font-mono font-medium">{d.utr_number}</span>
+                          </p>
+                        </div>
+                        <span className="font-bold text-[#07545A] text-xs">
+                          ₹{d.amount.toLocaleString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 rounded-2xl bg-[#F6F5ED]/40 border border-[#DCE7E3] flex items-center justify-center text-xs text-[#52656B]">
+                  No disbursements recorded yet.
+                </div>
+              )}
+            </div>
           </div>
         )}
 
