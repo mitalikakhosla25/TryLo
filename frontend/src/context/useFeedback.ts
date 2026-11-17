@@ -4,11 +4,14 @@ import {
   getFounderFeedbackDetail,
   updateFeedbackStatus,
   addFeedbackInternalNote,
+  addTimestampedVideoNote,
   type FounderFeedbackFilters,
   type FounderFeedbackListResponse,
   type FounderFeedbackDetail,
   type FeedbackStatusUpdateRequest,
   type FeedbackInternalNote,
+  type TimestampedNote,
+  type TimestampedNoteCreatePayload,
 } from '../api/feedback';
 import { useAuth } from './useAuth';
 
@@ -74,6 +77,25 @@ export function useAddFeedbackInternalNote(feedbackId?: string) {
         queryKey: ['founder-feedback-detail', variables.feedbackId || feedbackId],
       });
       queryClient.invalidateQueries({ queryKey: ['founder-feedback'] });
+    },
+  });
+}
+
+export function useAddTimestampedVideoNote(feedbackId?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    { message: string; note: TimestampedNote; timestamped_notes: TimestampedNote[] },
+    Error,
+    { feedbackId: string; payload: TimestampedNoteCreatePayload }
+  >({
+    mutationFn: ({ feedbackId: targetId, payload }) =>
+      addTimestampedVideoNote(targetId, payload),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['founder-feedback-detail', variables.feedbackId || feedbackId],
+      });
+      queryClient.invalidateQueries({ queryKey: ['my-feedback'] });
     },
   });
 }

@@ -2,9 +2,12 @@
 
 import logging
 import uuid
+import re
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from starlette.responses import FileResponse
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -39,6 +42,7 @@ from app.schemas.feedback import (
     FounderFeedbackListItemResponse,
     FounderFeedbackListResponse,
     FounderFeedbackDetailResponse,
+    TimestampedNoteAddRequest,
 )
 from app.api.tasks import (
     validate_tester_profile_completed,
@@ -118,6 +122,10 @@ def submit_campaign_feedback(
         status=FEEDBACK_STATUS_SUBMITTED,
         device_info=payload.device_info,
         attachments=payload.attachments or [],
+        video_url=payload.video_url,
+        video_duration_seconds=payload.video_duration_seconds,
+        video_format=payload.video_format,
+        timestamped_notes=payload.timestamped_notes or [],
         created_at=now,
         updated_at=now,
     )
@@ -156,6 +164,10 @@ def submit_campaign_feedback(
         resolution_notes=submission.resolution_notes,
         device_info=submission.device_info,
         attachments=submission.attachments or [],
+        video_url=submission.video_url,
+        video_duration_seconds=submission.video_duration_seconds,
+        video_format=submission.video_format,
+        timestamped_notes=submission.timestamped_notes or [],
         created_at=submission.created_at,
         updated_at=submission.updated_at,
     )
@@ -224,6 +236,12 @@ def list_my_feedback(
                 status=sub.status,
                 retest_instructions=sub.retest_instructions,
                 resolution_notes=sub.resolution_notes,
+                device_info=sub.device_info,
+                attachments=sub.attachments or [],
+                video_url=sub.video_url,
+                video_duration_seconds=sub.video_duration_seconds,
+                video_format=sub.video_format,
+                timestamped_notes=sub.timestamped_notes or [],
                 created_at=sub.created_at,
                 updated_at=sub.updated_at,
             )
@@ -294,6 +312,10 @@ def get_feedback_submission(
         resolution_notes=submission.resolution_notes,
         device_info=submission.device_info,
         attachments=submission.attachments or [],
+        video_url=submission.video_url,
+        video_duration_seconds=submission.video_duration_seconds,
+        video_format=submission.video_format,
+        timestamped_notes=submission.timestamped_notes or [],
         created_at=submission.created_at,
         updated_at=submission.updated_at,
     )
@@ -425,6 +447,8 @@ def list_founder_feedback(
                 status=sub.status,
                 retest_instructions=sub.retest_instructions,
                 resolution_notes=sub.resolution_notes,
+                video_url=sub.video_url,
+                video_duration_seconds=sub.video_duration_seconds,
                 notes_count=len(sub.internal_notes) if sub.internal_notes else 0,
                 created_at=sub.created_at,
                 updated_at=sub.updated_at,
@@ -559,6 +583,10 @@ def get_founder_feedback_detail(
         resolution_notes=submission.resolution_notes,
         device_info=submission.device_info,
         attachments=submission.attachments or [],
+        video_url=submission.video_url,
+        video_duration_seconds=submission.video_duration_seconds,
+        video_format=submission.video_format,
+        timestamped_notes=submission.timestamped_notes or [],
         created_at=submission.created_at,
         updated_at=submission.updated_at,
         internal_notes=notes_response,
@@ -723,3 +751,169 @@ def add_feedback_internal_note(
         body=note.body,
         created_at=note.created_at,
     )
+
+
+# ==============================================================================
+# Screen Recording Video Upload, Streaming & Timestamped Annotation Endpoints
+# ==============================================================================
+
+VIDEOS_DIR = Path(__file__).resolve().parent.parent.parent / "uploads" / "videos"
+VIDEOS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+@router.post(
+    "/api/feedback/upload-video",
+    status_code=status.HTTP_201_CREATED,
+    summary="Upload in-browser screen recording video",
+    description="Accepts video binary stream from tester MediaRecorder and persists it securely.",
+)
+async def upload_feedback_video(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Saves an in-browser WebRTC / MediaRecorder screen recording.
+    Enforces a 100MB max payload limit and generates a collision-free filename.
+    """
+    body = await request.body()
+    if not body:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No video binary payload received.",
+        )
+
+    # 100MB max limit
+    MAX_SIZE = 100 * 1024 * 1024
+    if len(body) > MAX_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="Screen recording video exceeds maximum allowed size of 100MB.",
+        )
+
+    content_type = request.headers.get("content-type", "video/webm")
+    ext = "mp4" if "mp4" in content_type else "webm"
+    filename = f"repro_{uuid.uuid4().hex}.{ext}"
+    target_path = VIDEOS_DIR / filename
+
+    with open(target_path, "wb") as f:
+        f.write(body)
+
+    logger.info(
+        "User %s uploaded screen recording [%s, %d bytes]",
+        current_user.id,
+        filename,
+        len(body),
+    )
+
+    return {
+        "video_url": f"/api/feedback/videos/{filename}",
+        "filename": filename,
+        "format": ext,
+        "size_bytes": len(body),
+    }
+
+
+@router.get(
+    "/api/feedback/videos/{filename}",
+    summary="Stream feedback screen recording video",
+    description="Serves recorded video files with HTTP byte-range seeking support.",
+)
+async def stream_feedback_video(filename: str):
+    """
+    Streams screen recording video with Starlette FileResponse (supporting HTTP 206 Partial Content).
+    Prevents path traversal via strict regex validation.
+    """
+    if not re.match(r"^repro_[a-f0-9]{32}\.(webm|mp4)$", filename):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid video filename format.",
+        )
+
+    target_path = VIDEOS_DIR / filename
+    if not target_path.is_file():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Video recording not found.",
+        )
+
+    media_type = "video/mp4" if filename.endswith(".mp4") else "video/webm"
+    return FileResponse(target_path, media_type=media_type)
+
+
+@router.post(
+    "/api/feedback/{feedback_id}/video-notes",
+    status_code=status.HTTP_201_CREATED,
+    summary="Add a timestamped annotation to a feedback video",
+    description="Allows founders and testers to attach chronological reproduction notes to a video.",
+)
+def add_timestamped_video_note(
+    feedback_id: uuid.UUID,
+    payload: TimestampedNoteAddRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Appends a timestamped note to a feedback submission's recording.
+    Permitted for either:
+    - The author tester who filed the submission.
+    - The founder who owns the campaign.
+    """
+    submission = db.scalar(
+        select(FeedbackSubmission)
+        .options(joinedload(FeedbackSubmission.campaign).joinedload(Campaign.startup))
+        .where(FeedbackSubmission.id == feedback_id)
+    )
+
+    if submission is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Feedback submission not found.",
+        )
+
+    is_author_tester = submission.tester_id == current_user.id
+    is_owner_founder = (
+        submission.campaign
+        and submission.campaign.startup
+        and submission.campaign.startup.owner_id == current_user.id
+    )
+
+    if not is_author_tester and not is_owner_founder:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not authorized to annotate this feedback recording.",
+        )
+
+    new_note = {
+        "id": uuid.uuid4().hex[:8],
+        "timestamp_seconds": payload.timestamp_seconds,
+        "timestamp_display": payload.timestamp_display,
+        "note": payload.note.strip(),
+        "tag": payload.tag.strip() if payload.tag else "repro_marker",
+        "author_id": str(current_user.id),
+        "author_name": current_user.full_name,
+        "author_role": current_user.role,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    current_notes = list(submission.timestamped_notes or [])
+    current_notes.append(new_note)
+    # Maintain chronological order by timestamp_seconds
+    current_notes.sort(key=lambda x: x.get("timestamp_seconds", 0))
+
+    submission.timestamped_notes = current_notes
+    db.commit()
+
+    logger.info(
+        "User %s added timestamped note [%s at %s] to feedback %s",
+        current_user.id,
+        new_note["id"],
+        payload.timestamp_display,
+        feedback_id,
+    )
+
+    return {
+        "message": "Timestamped note added successfully.",
+        "note": new_note,
+        "timestamped_notes": current_notes,
+    }
+

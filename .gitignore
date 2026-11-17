@@ -103,3 +103,8 @@ $RECYCLE.BIN/
 
 # Build artifacts
 build/
+
+# Logs and local uploads
+*.log
+backend/uploads/videos/*
+!backend/uploads/videos/.gitkeep

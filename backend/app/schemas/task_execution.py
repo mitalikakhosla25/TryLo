@@ -134,6 +134,10 @@ class FeedbackCreateRequest(BaseModel):
     severity: Optional[str] = None
     device_info: Optional[dict] = None
     attachments: List[str] = Field(default_factory=list)
+    video_url: Optional[str] = Field(None, max_length=500)
+    video_duration_seconds: Optional[int] = None
+    video_format: Optional[str] = Field(None, max_length=30)
+    timestamped_notes: List[dict] = Field(default_factory=list)
 
     @field_validator("feedback_type")
     @classmethod
@@ -216,6 +220,10 @@ class FeedbackSubmissionResponse(BaseModel):
     resolution_notes: Optional[str] = None
     device_info: Optional[dict] = None
     attachments: List[str] = Field(default_factory=list)
+    video_url: Optional[str] = None
+    video_duration_seconds: Optional[int] = None
+    video_format: Optional[str] = None
+    timestamped_notes: List[dict] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
 

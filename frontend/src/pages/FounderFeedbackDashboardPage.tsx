@@ -15,6 +15,7 @@ import {
   ChevronRight,
   RotateCcw,
   Sparkles,
+  Video,
 } from 'lucide-react';
 import { useFounderFeedback } from '../context/useFeedback';
 import type { FeedbackStatus, FeedbackType, BugSeverity } from '../api/tasks';
@@ -434,6 +435,14 @@ export const FounderFeedbackDashboardPage: React.FC = () => {
 
                       {/* Status Badge */}
                       {getStatusBadge(item.status)}
+
+                      {/* Video Proof Badge */}
+                      {item.video_url && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-800 border-emerald-200 flex items-center gap-1">
+                          <Video className="h-3 w-3 text-emerald-600" />
+                          <span>Video Proof</span>
+                        </span>
+                      )}
 
                       {/* Notes count badge if present */}
                       {item.notes_count > 0 && (

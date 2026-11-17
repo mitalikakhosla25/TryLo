@@ -10,7 +10,8 @@ import {
   Send,
 } from 'lucide-react';
 import { useCampaignTasks, useSubmitFeedback } from '../context/useTasks';
-import type { FeedbackType, BugSeverity } from '../api/tasks';
+import type { FeedbackType, BugSeverity, TimestampedNote } from '../api/tasks';
+import { ScreenRecorderWidget } from '../components/feedback/ScreenRecorderWidget';
 
 export const FeedbackSubmissionPage: React.FC = () => {
   const { campaignId } = useParams<{ campaignId: string }>();
@@ -45,6 +46,12 @@ export const FeedbackSubmissionPage: React.FC = () => {
   const [reproductionSteps, setReproductionSteps] = useState('');
   const [expectedBehavior, setExpectedBehavior] = useState('');
   const [actualBehavior, setActualBehavior] = useState('');
+  const [videoData, setVideoData] = useState<{
+    video_url: string;
+    video_duration_seconds: number;
+    video_format: string;
+    timestamped_notes: TimestampedNote[];
+  } | null>(null);
 
   // UI States
   const [isSubmittedSuccess, setIsSubmittedSuccess] = useState(false);
@@ -76,6 +83,10 @@ export const FeedbackSubmissionPage: React.FC = () => {
         reproduction_steps: reproductionSteps.trim() ? reproductionSteps.trim() : null,
         expected_behavior: expectedBehavior.trim() ? expectedBehavior.trim() : null,
         actual_behavior: actualBehavior.trim() ? actualBehavior.trim() : null,
+        video_url: videoData?.video_url || null,
+        video_duration_seconds: videoData?.video_duration_seconds || null,
+        video_format: videoData?.video_format || null,
+        timestamped_notes: videoData?.timestamped_notes || [],
       });
 
       setIsSubmittedSuccess(true);
@@ -94,6 +105,7 @@ export const FeedbackSubmissionPage: React.FC = () => {
     setReproductionSteps('');
     setExpectedBehavior('');
     setActualBehavior('');
+    setVideoData(null);
     setIsSubmittedSuccess(false);
     setErrorMessage(null);
   };
@@ -383,6 +395,31 @@ export const FeedbackSubmissionPage: React.FC = () => {
                 </div>
               </div>
             )}
+
+            {/* Live In-Browser Screen & Audio Recording */}
+            <div className="pt-4 border-t border-[#DCE7E3] space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-xs font-bold text-[#102A35]">
+                    Interactive Screen &amp; Voice Recording Proof
+                  </h3>
+                  <p className="text-[11px] text-[#52656B]">
+                    Record your browser tab or screen with live voiceover. Add timestamped reproduction markers so founders can jump directly to the issue.
+                  </p>
+                </div>
+                {videoData && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shrink-0">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Video Attached ({Math.floor(videoData.video_duration_seconds)}s)
+                  </span>
+                )}
+              </div>
+
+              <ScreenRecorderWidget
+                onRecordingComplete={(data) => setVideoData(data)}
+                onClear={() => setVideoData(null)}
+              />
+            </div>
 
             {/* Form Actions */}
             <div className="pt-4 border-t border-[#DCE7E3] flex items-center justify-between">

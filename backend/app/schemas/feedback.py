@@ -95,6 +95,8 @@ class FounderFeedbackListItemResponse(BaseModel):
     status: str
     retest_instructions: Optional[str] = None
     resolution_notes: Optional[str] = None
+    video_url: Optional[str] = None
+    video_duration_seconds: Optional[int] = None
     notes_count: int = 0
     created_at: datetime
     updated_at: datetime
@@ -141,9 +143,21 @@ class FounderFeedbackDetailResponse(BaseModel):
     resolution_notes: Optional[str] = None
     device_info: Optional[dict] = None
     attachments: List[str] = Field(default_factory=list)
+    video_url: Optional[str] = None
+    video_duration_seconds: Optional[int] = None
+    video_format: Optional[str] = None
+    timestamped_notes: List[dict] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
     internal_notes: List[FeedbackInternalNoteResponse] = []
     status_history: List[FeedbackStatusHistoryResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class TimestampedNoteAddRequest(BaseModel):
+    """Payload for adding a timestamped annotation to a feedback video."""
+    timestamp_seconds: int = Field(..., ge=0)
+    timestamp_display: str = Field(..., min_length=1, max_length=10)
+    note: str = Field(..., min_length=2, max_length=1000)
+    tag: Optional[str] = Field(None, max_length=50)

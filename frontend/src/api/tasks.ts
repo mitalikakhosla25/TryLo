@@ -79,6 +79,18 @@ export interface TesterTaskListResponse {
   items: TesterCampaignAssignmentItem[];
 }
 
+export interface TimestampedNote {
+  id?: string;
+  timestamp_seconds: number;
+  timestamp_display: string;
+  note: string;
+  tag?: string | null;
+  author_id?: string;
+  author_name?: string;
+  author_role?: string;
+  created_at?: string;
+}
+
 export interface FeedbackCreateRequest {
   feedback_type: FeedbackType;
   title: string;
@@ -88,6 +100,10 @@ export interface FeedbackCreateRequest {
   actual_behavior?: string | null;
   reproduction_steps?: string | null;
   severity?: BugSeverity | null;
+  video_url?: string | null;
+  video_duration_seconds?: number | null;
+  video_format?: string | null;
+  timestamped_notes?: TimestampedNote[];
 }
 
 export interface FeedbackSubmissionResponse {
@@ -110,6 +126,10 @@ export interface FeedbackSubmissionResponse {
   status: FeedbackStatus;
   retest_instructions?: string | null;
   resolution_notes?: string | null;
+  video_url?: string | null;
+  video_duration_seconds?: number | null;
+  video_format?: string | null;
+  timestamped_notes?: TimestampedNote[];
   created_at: string;
   updated_at: string;
 }

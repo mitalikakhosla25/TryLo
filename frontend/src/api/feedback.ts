@@ -3,7 +3,8 @@
  */
 
 import { apiClient } from './client';
-import type { FeedbackStatus, FeedbackType, BugSeverity } from './tasks';
+import type { FeedbackStatus, FeedbackType, BugSeverity, TimestampedNote } from './tasks';
+export type { TimestampedNote };
 
 export interface FeedbackInternalNote {
   id: string;
@@ -48,6 +49,8 @@ export interface FounderFeedbackListItem {
   status: FeedbackStatus;
   retest_instructions?: string | null;
   resolution_notes?: string | null;
+  video_url?: string | null;
+  video_duration_seconds?: number | null;
   notes_count: number;
   created_at: string;
   updated_at: string;
@@ -88,10 +91,22 @@ export interface FounderFeedbackDetail {
   status: FeedbackStatus;
   retest_instructions?: string | null;
   resolution_notes?: string | null;
+  video_url?: string | null;
+  video_duration_seconds?: number | null;
+  video_format?: string | null;
+  timestamped_notes?: TimestampedNote[];
   created_at: string;
   updated_at: string;
   internal_notes: FeedbackInternalNote[];
   status_history: FeedbackStatusHistory[];
+}
+
+
+export interface TimestampedNoteCreatePayload {
+  timestamp_seconds: number;
+  timestamp_display: string;
+  note: string;
+  tag?: string;
 }
 
 export interface FeedbackStatusUpdateRequest {
@@ -180,5 +195,41 @@ export async function addFeedbackInternalNote(
   return apiClient<FeedbackInternalNote>(`/api/founder/feedback/${feedbackId}/notes`, {
     method: 'POST',
     body: JSON.stringify({ body }),
+  });
+}
+
+/**
+ * Upload an in-browser WebRTC screen recording video
+ */
+export async function uploadFeedbackVideo(
+  videoBlob: Blob
+): Promise<{ video_url: string; filename: string; format: string; size_bytes: number }> {
+  const res = await fetch('/api/feedback/upload-video', {
+    method: 'POST',
+    headers: {
+      'Content-Type': videoBlob.type || 'video/webm',
+    },
+    body: videoBlob,
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Failed to upload video recording.' }));
+    throw new Error(err.detail || 'Failed to upload video recording.');
+  }
+
+  return res.json();
+}
+
+/**
+ * Add a timestamped annotation to a feedback video
+ */
+export async function addTimestampedVideoNote(
+  feedbackId: string,
+  payload: TimestampedNoteCreatePayload
+): Promise<{ message: string; note: TimestampedNote; timestamped_notes: TimestampedNote[] }> {
+  return apiClient(`/api/feedback/${feedbackId}/video-notes`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
   });
 }

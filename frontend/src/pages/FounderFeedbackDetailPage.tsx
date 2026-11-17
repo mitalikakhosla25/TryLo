@@ -33,6 +33,7 @@ import {
   createTesterReview,
   TESTER_SPECIALIZATIONS,
 } from '../api/verification';
+import { TimestampedVideoPlayer } from '../components/feedback/TimestampedVideoPlayer';
 
 export const FounderFeedbackDetailPage: React.FC = () => {
   const { feedbackId } = useParams<{ feedbackId: string }>();
@@ -636,6 +637,16 @@ export const FounderFeedbackDetailPage: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Video Reproduction Proof & Timestamped Annotation Theater */}
+        {feedback.video_url && (
+          <TimestampedVideoPlayer
+            feedbackId={feedback.id}
+            videoUrl={feedback.video_url}
+            initialNotes={feedback.timestamped_notes || []}
+            isFounder={true}
+          />
+        )}
 
         {/* AI Automated Synthesis Card (Explicitly marked Coming Soon per V1 scope) */}
         <div className="rounded-3xl bg-white border border-[#DCE7E3] p-5 space-y-2 shadow-xs">

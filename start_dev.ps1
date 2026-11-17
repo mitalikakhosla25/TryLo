@@ -21,3 +21,4 @@ Write-Host "  Both services are running!" -ForegroundColor Green
 Write-Host "  Frontend: http://localhost:5173/" -ForegroundColor White
 Write-Host "  Backend:  http://127.0.0.1:8000/" -ForegroundColor White
 Write-Host "========================================================`n" -ForegroundColor Green
+

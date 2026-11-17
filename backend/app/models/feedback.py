@@ -148,6 +148,23 @@ class FeedbackSubmission(Base):
         nullable=False,
         default=list,
     )
+    video_url: Mapped[Optional[str]] = mapped_column(
+        sa.String(500),
+        nullable=True,
+    )
+    video_duration_seconds: Mapped[Optional[int]] = mapped_column(
+        sa.Integer,
+        nullable=True,
+    )
+    video_format: Mapped[Optional[str]] = mapped_column(
+        sa.String(30),
+        nullable=True,
+    )
+    timestamped_notes: Mapped[List[dict]] = mapped_column(
+        JsonListType,
+        nullable=False,
+        default=list,
+    )
     created_at: Mapped[datetime] = mapped_column(
         sa.DateTime(timezone=True),
         nullable=False,

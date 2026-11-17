@@ -12,9 +12,11 @@ import {
   RotateCcw,
   CheckCircle2,
   ArrowRight,
+  Video,
 } from 'lucide-react';
 import { useMyFeedback } from '../context/useTasks';
 import type { FeedbackSubmissionResponse, FeedbackType, FeedbackStatus } from '../api/tasks';
+import { TimestampedVideoPlayer } from '../components/feedback/TimestampedVideoPlayer';
 
 export const TesterFeedbackHistoryPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -275,6 +277,14 @@ export const TesterFeedbackHistoryPage: React.FC = () => {
                       {/* Real Review Status Pill */}
                       {renderStatusBadge(sub.status)}
 
+                      {/* Video Proof Badge */}
+                      {sub.video_url && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-800 border-emerald-200 flex items-center gap-1">
+                          <Video className="h-3 w-3 text-emerald-600" />
+                          <span>Video Attached</span>
+                        </span>
+                      )}
+
                       {/* Campaign & Startup context */}
                       <span className="text-xs text-[#52656B]">
                         for <span className="text-[#102A35] font-semibold">{sub.campaign_title}</span>{' '}
@@ -487,6 +497,21 @@ export const TesterFeedbackHistoryPage: React.FC = () => {
                       </div>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Screen Recording Video & Notes */}
+              {selectedSubmission.video_url && (
+                <div className="pt-2">
+                  <label className="text-[#52656B] block mb-1.5 font-semibold uppercase tracking-wider text-[10px]">
+                    Recorded Screen Proof &amp; Timestamps
+                  </label>
+                  <TimestampedVideoPlayer
+                    feedbackId={selectedSubmission.id}
+                    videoUrl={selectedSubmission.video_url}
+                    initialNotes={selectedSubmission.timestamped_notes || []}
+                    isFounder={false}
+                  />
                 </div>
               )}
 
