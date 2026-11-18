@@ -109,12 +109,14 @@ def calculate_text_similarity(tokens1: set[str], tokens2: set[str]) -> float:
 
 def analyze_feedback_item(
     feedback: FeedbackSubmission,
-    all_campaign_feedback: List[FeedbackSubmission],
+    all_campaign_feedback: Optional[List[FeedbackSubmission]] = None,
 ) -> Dict[str, Any]:
     """
     Execute AI heuristic triaging, root cause analysis, duplicate detection,
     and developer ticket markdown synthesis.
     """
+    if all_campaign_feedback is None:
+        all_campaign_feedback = [feedback]
     corpus = " ".join([
         feedback.title or "",
         feedback.description or "",
