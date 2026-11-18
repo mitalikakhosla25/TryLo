@@ -59,6 +59,8 @@ from app.schemas.feedback import (
     FeedbackPolishRequest,
     FeedbackPolishResponse,
     SyntheticAuditResponse,
+    LaunchRoiSimulationRequest,
+    LaunchRoiSimulationResponse,
 )
 from app.services.ai_triage import analyze_feedback_item, synthesize_batch_feedback_insights
 from app.services.ai_copilot import query_ai_copilot
@@ -1493,3 +1495,58 @@ def run_campaign_synthetic_audit(
 
     audit_result = run_synthetic_persona_audit(campaign)
     return SyntheticAuditResponse(**audit_result)
+
+
+@router.post(
+    "/api/founder/feedback/simulate-launch-roi",
+    response_model=LaunchRoiSimulationResponse,
+    summary="Interactive What-If launch readiness, protected MRR, and churn simulation",
+)
+def simulate_launch_readiness_roi(
+    payload: LaunchRoiSimulationRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("founder")),
+):
+    """
+    Simulates release readiness score, protected monthly recurring revenue,
+    and reduced churn if specific open feedback/bug items are resolved.
+    """
+    from app.services.ai_simulator import simulate_launch_readiness_and_roi
+
+    # Resolve founder campaigns
+    camp_stmt = (
+        select(Campaign)
+        .join(Startup, Campaign.startup_id == Startup.id)
+        .where(Startup.owner_id == current_user.id)
+    )
+    if payload.campaign_id:
+        camp_stmt = camp_stmt.where(Campaign.id == payload.campaign_id)
+
+    campaigns = db.scalars(camp_stmt).all()
+    if payload.campaign_id and not campaigns:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Campaign not found or not owned by founder",
+        )
+
+    if not campaigns:
+        sim_result = simulate_launch_readiness_and_roi(
+            submissions=[],
+            simulated_resolved_ids=[],
+        )
+        return LaunchRoiSimulationResponse(**sim_result)
+
+    campaign_ids = [c.id for c in campaigns]
+
+    # Fetch feedback
+    stmt = (
+        select(FeedbackSubmission)
+        .where(FeedbackSubmission.campaign_id.in_(campaign_ids))
+    )
+    submissions = list(db.scalars(stmt).all())
+
+    sim_result = simulate_launch_readiness_and_roi(
+        submissions=submissions,
+        simulated_resolved_ids=payload.simulated_resolved_ids,
+    )
+    return LaunchRoiSimulationResponse(**sim_result)

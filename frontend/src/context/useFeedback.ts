@@ -15,7 +15,10 @@ import {
   exportFeedbackTicket,
   fetchAiEngineStatus,
   runSyntheticAudit,
+  simulateLaunchRoi,
   type SyntheticAuditResponse,
+  type LaunchRoiSimulationRequest,
+  type LaunchRoiSimulationResponse,
   type FounderFeedbackFilters,
   type FounderFeedbackListResponse,
   type FounderFeedbackDetail,
@@ -238,5 +241,11 @@ export function useAiEngineStatus() {
 export function useSyntheticAudit() {
   return useMutation<SyntheticAuditResponse, Error, string>({
     mutationFn: (campaignId) => runSyntheticAudit(campaignId),
+  });
+}
+
+export function useSimulateLaunchRoi() {
+  return useMutation<LaunchRoiSimulationResponse, Error, LaunchRoiSimulationRequest>({
+    mutationFn: (payload) => simulateLaunchRoi(payload),
   });
 }

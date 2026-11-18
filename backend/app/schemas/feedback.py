@@ -425,6 +425,38 @@ class SyntheticAuditResponse(BaseModel):
     generated_at: datetime
 
 
+class HighestLeverageFixItem(BaseModel):
+    id: uuid.UUID
+    title: str
+    severity: str
+    marginal_readiness_gain: int
+    marginal_mrr_protection: int
+    marginal_churn_reduction_pct: int
+
+
+class LaunchRoiSimulationRequest(BaseModel):
+    campaign_id: Optional[uuid.UUID] = None
+    simulated_resolved_ids: List[uuid.UUID] = []
+
+
+class LaunchRoiSimulationResponse(BaseModel):
+    total_feedback_count: int
+    simulated_resolved_count: int
+    remaining_open_count: int
+    baseline_readiness_score: int
+    simulated_readiness_score: int
+    readiness_delta: int
+    baseline_revenue_risk_monthly: int
+    protected_revenue_monthly: int
+    remaining_revenue_risk_monthly: int
+    baseline_churn_rate_pct: int
+    simulated_churn_rate_pct: int
+    churn_reduction_pct: int
+    verdict: str
+    highest_leverage_next_fix: Optional[HighestLeverageFixItem] = None
+    strategic_advice: str
+
+
 
 
 

@@ -21,6 +21,7 @@ import type { FeedbackStatus, FeedbackType, BugSeverity } from '../api/tasks';
 import { AiExecutiveSummaryCard } from '../components/feedback/AiExecutiveSummaryCard';
 import { AiUserJourneyFunnel } from '../components/feedback/AiUserJourneyFunnel';
 import { AiSyntheticPersonaAudit } from '../components/feedback/AiSyntheticPersonaAudit';
+import { AiLaunchRoiSimulator } from '../components/feedback/AiLaunchRoiSimulator';
 import { FounderAiCopilotDrawer } from '../components/feedback/FounderAiCopilotDrawer';
 
 export const FounderFeedbackDashboardPage: React.FC = () => {
@@ -185,6 +186,14 @@ export const FounderFeedbackDashboardPage: React.FC = () => {
                 : allFeedback[0].campaign_id
             }
             campaignTitle={allFeedback[0]?.campaign_title || 'Selected Campaign'}
+          />
+        )}
+
+        {/* Predictive Launch & Revenue ROI Simulator */}
+        {allFeedback.length > 0 && (
+          <AiLaunchRoiSimulator
+            campaignId={selectedCampaignId && selectedCampaignId !== 'all' ? selectedCampaignId : undefined}
+            feedbackItems={allFeedback}
           />
         )}
 

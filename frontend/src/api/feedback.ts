@@ -635,3 +635,50 @@ export async function runSyntheticAudit(
     }
   );
 }
+
+export interface HighestLeverageFixItem {
+  id: string;
+  title: string;
+  severity: string;
+  marginal_readiness_gain: number;
+  marginal_mrr_protection: number;
+  marginal_churn_reduction_pct: number;
+}
+
+export interface LaunchRoiSimulationRequest {
+  campaign_id?: string | null;
+  simulated_resolved_ids?: string[];
+}
+
+export interface LaunchRoiSimulationResponse {
+  total_feedback_count: number;
+  simulated_resolved_count: number;
+  remaining_open_count: number;
+  baseline_readiness_score: number;
+  simulated_readiness_score: number;
+  readiness_delta: number;
+  baseline_revenue_risk_monthly: number;
+  protected_revenue_monthly: number;
+  remaining_revenue_risk_monthly: number;
+  baseline_churn_rate_pct: number;
+  simulated_churn_rate_pct: number;
+  churn_reduction_pct: number;
+  verdict: string;
+  highest_leverage_next_fix?: HighestLeverageFixItem | null;
+  strategic_advice: string;
+}
+
+/**
+ * Run interactive What-If release simulation testing hypothetical bug fixes
+ */
+export async function simulateLaunchRoi(
+  payload: LaunchRoiSimulationRequest
+): Promise<LaunchRoiSimulationResponse> {
+  return apiClient<LaunchRoiSimulationResponse>(
+    '/api/founder/feedback/simulate-launch-roi',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }
+  );
+}
