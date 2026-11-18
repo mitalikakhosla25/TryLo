@@ -590,3 +590,48 @@ export async function polishFeedbackReport(
     }
   );
 }
+
+export interface SyntheticSimulatedBug {
+  title: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  steps: string;
+  expected: string;
+  actual: string;
+}
+
+export interface SyntheticPersonaFinding {
+  persona_id: string;
+  persona_name: string;
+  persona_avatar: string;
+  persona_role: string;
+  mindset: string;
+  overall_score: number;
+  verdict: string;
+  key_observations: string[];
+  simulated_bug_report?: SyntheticSimulatedBug | null;
+  actionable_recommendations: string[];
+}
+
+export interface SyntheticAuditResponse {
+  campaign_id: string;
+  campaign_title: string;
+  readiness_score: number;
+  personas: SyntheticPersonaFinding[];
+  executive_summary: string;
+  engine_used: string;
+  generated_at: string;
+}
+
+/**
+ * Execute instant 10-second pre-flight synthetic user testing audit using 3 AI personas
+ */
+export async function runSyntheticAudit(
+  campaignId: string
+): Promise<SyntheticAuditResponse> {
+  return apiClient<SyntheticAuditResponse>(
+    `/api/founder/campaigns/${campaignId}/synthetic-audit`,
+    {
+      method: 'POST',
+    }
+  );
+}

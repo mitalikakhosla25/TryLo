@@ -58,6 +58,7 @@ from app.schemas.feedback import (
     FeedbackQualityEvaluationResponse,
     FeedbackPolishRequest,
     FeedbackPolishResponse,
+    SyntheticAuditResponse,
 )
 from app.services.ai_triage import analyze_feedback_item, synthesize_batch_feedback_insights
 from app.services.ai_copilot import query_ai_copilot
@@ -1456,294 +1457,39 @@ def export_feedback_ticket(
     return AiIssueExportResponse(**export_payload)
 
 
-
-
-
-
-    campaign_ids = [c.id for c in campaigns]
-    campaign_title = campaigns[0].title if len(campaigns) == 1 else "All Active Campaigns"
-
-    # Fetch submissions
-    stmt = (
-        select(FeedbackSubmission)
-        .options(
-            joinedload(FeedbackSubmission.campaign),
-            joinedload(FeedbackSubmission.tester),
-        )
-        .where(FeedbackSubmission.campaign_id.in_(campaign_ids))
-        .order_by(FeedbackSubmission.created_at.desc())
-    )
-    submissions = db.scalars(stmt).all()
-
-    copilot_dict = query_ai_copilot(
-        query=payload.query,
-        submissions=submissions,
-        campaign_title=campaign_title,
-    )
-
-    logger.info(
-        "Founder %s queried AI Co-Pilot (query='%s', matches=%d)",
-        current_user.id,
-        payload.query[:60],
-        len(copilot_dict.get("referenced_feedbacks", [])),
-    )
-
-    return AiCopilotQueryResponse(**copilot_dict)
-
-
 @router.post(
-    "/api/founder/feedback/{feedback_id}/generate-e2e-script",
-    response_model=AiE2eReproductionResponse,
-    summary="Generate autonomous Playwright or Cypress E2E reproduction test script",
+    "/api/founder/campaigns/{campaign_id}/synthetic-audit",
+    response_model=SyntheticAuditResponse,
+    summary="Run instant pre-flight synthetic user testing simulation using 3 AI personas",
 )
-def generate_feedback_e2e_reproduction(
-    feedback_id: uuid.UUID,
-    payload: AiE2eReproductionRequest,
+def run_campaign_synthetic_audit(
+    campaign_id: uuid.UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role("founder")),
 ):
     """
-    Transforms bug reports, reproduction steps, and expected/actual behaviors
-    into an executable, production-ready Playwright or Cypress E2E script.
+    Simulates 3 distinct virtual beta testers (First-Timer, Power User, Accessibility Specialist)
+    to perform an instant pre-flight audit of a testing campaign before human testers start.
     """
-    submission = db.scalar(
-        select(FeedbackSubmission)
-        .options(
-            joinedload(FeedbackSubmission.campaign).joinedload(Campaign.startup),
-            joinedload(FeedbackSubmission.tester),
-        )
-        .where(FeedbackSubmission.id == feedback_id)
-    )
+    from app.services.ai_synthetic_testers import run_synthetic_persona_audit
 
-    if not submission:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Feedback submission not found",
-        )
-
-    camp = submission.campaign
-    if not camp or not camp.startup or camp.startup.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You are not authorized to access feedback for this campaign",
-        )
-
-    base_url = payload.target_base_url or (camp.startup.website_url if camp.startup else None)
-    script_data = generate_e2e_reproduction_script(
-        feedback=submission,
-        framework=payload.framework,
-        target_base_url=base_url,
-    )
-
-    logger.info(
-        "Founder %s generated %s E2E reproduction test for feedback %s",
-        current_user.id,
-        payload.framework,
-        feedback_id,
-    )
-
-    return AiE2eReproductionResponse(**script_data)
-
-
-@router.get(
-    "/api/founder/feedback/journey-funnel",
-    response_model=AiUserJourneyFunnelResponse,
-    summary="Reconstruct interactive AI user journey funnel & drop-off stages",
-)
-def get_user_journey_funnel(
-    campaign_id: Optional[uuid.UUID] = Query(None, description="Scope funnel to a specific campaign"),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("founder")),
-):
-    """
-    Synthesizes tester activity, task completion logs, and bug reports across testing campaigns
-    into an interactive multi-stage journey funnel:
-    Discovery -> Auth -> Onboarding -> Core Workflow -> Monetization & Checkout.
-    """
-    camp_stmt = (
+    campaign = db.scalar(
         select(Campaign)
-        .join(Startup, Campaign.startup_id == Startup.id)
-        .where(Startup.owner_id == current_user.id)
+        .options(joinedload(Campaign.startup))
+        .where(Campaign.id == campaign_id)
     )
-    if campaign_id:
-        camp_stmt = camp_stmt.where(Campaign.id == campaign_id)
 
-    campaigns = db.scalars(camp_stmt).all()
-    if campaign_id and not campaigns:
+    if not campaign:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Campaign not found or not owned by founder",
+            detail="Campaign not found",
         )
 
-    if not campaigns:
-        funnel_dict = reconstruct_user_journey_funnel(
-            submissions=[],
-            campaign_title=None,
-            campaign_id=None,
-        )
-        return AiUserJourneyFunnelResponse(**funnel_dict)
-
-    campaign_ids = [c.id for c in campaigns]
-    campaign_title = campaigns[0].title if len(campaigns) == 1 else "All Active Campaigns"
-
-    stmt = (
-        select(FeedbackSubmission)
-        .where(FeedbackSubmission.campaign_id.in_(campaign_ids))
-        .order_by(FeedbackSubmission.created_at.desc())
-    )
-    submissions = db.scalars(stmt).all()
-
-    funnel_dict = reconstruct_user_journey_funnel(
-        submissions=submissions,
-        campaign_title=campaign_title,
-        campaign_id=campaign_id if len(campaigns) == 1 else None,
-    )
-
-    logger.info(
-        "Founder %s reconstructed journey funnel (campaign=%s, efficiency=%d%%, bottleneck=%s)",
-        current_user.id,
-        campaign_title,
-        funnel_dict.get("overall_funnel_efficiency_score"),
-        funnel_dict.get("critical_drop_off_stage"),
-    )
-
-    return AiUserJourneyFunnelResponse(**funnel_dict)
-
-
-@router.post(
-    "/api/founder/feedback/{feedback_id}/video-ai-insights",
-    response_model=AiVideoIntelligenceResponse,
-    summary="Generate speech-to-text dialogue transcript and vocal frustration heatmap",
-)
-def get_video_ai_insights(
-    feedback_id: uuid.UUID,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("founder")),
-):
-    """
-    Extracts speech dialogue from tester screen recordings, performs acoustic/vocal
-    frustration analysis, and maps out a second-by-second Frustration Timeline Heatmap.
-    """
-    submission = db.scalar(
-        select(FeedbackSubmission)
-        .options(
-            joinedload(FeedbackSubmission.campaign).joinedload(Campaign.startup),
-            joinedload(FeedbackSubmission.tester),
-        )
-        .where(FeedbackSubmission.id == feedback_id)
-    )
-
-    if not submission:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Feedback submission not found",
-        )
-
-    camp = submission.campaign
-    if not camp or not camp.startup or camp.startup.owner_id != current_user.id:
+    if not campaign.startup or campaign.startup.owner_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You are not authorized to access feedback for this campaign",
+            detail="You are not authorized to run synthetic audits on this campaign",
         )
 
-    insights = analyze_recording_voice_and_frustration(submission)
-
-    logger.info(
-        "Founder %s analyzed video voice intelligence for feedback %s (peak=%s, avg_frustration=%.1f)",
-        current_user.id,
-        feedback_id,
-        insights.get("peak_frustration_timestamp"),
-        insights.get("average_frustration_score", 0.0),
-    )
-
-    return AiVideoIntelligenceResponse(**insights)
-
-
-@router.post(
-    "/api/founder/feedback/{feedback_id}/retest-protocol",
-    response_model=AiRetestProtocolResponse,
-    summary="Generate AI verification protocol & regression watchpoints for bug retesting",
-)
-def get_feedback_retest_protocol(
-    feedback_id: uuid.UUID,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("founder")),
-):
-    """
-    Synthesizes tailored quality control verification protocols and regression watchpoints
-    when founders mark reported defects for retesting.
-    """
-    submission = db.scalar(
-        select(FeedbackSubmission)
-        .options(
-            joinedload(FeedbackSubmission.campaign).joinedload(Campaign.startup),
-            joinedload(FeedbackSubmission.tester),
-        )
-        .where(FeedbackSubmission.id == feedback_id)
-    )
-
-    if not submission:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Feedback submission not found",
-        )
-
-    camp = submission.campaign
-    if not camp or not camp.startup or camp.startup.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You are not authorized to access feedback for this campaign",
-        )
-
-    protocol = generate_retest_protocol(submission)
-    return AiRetestProtocolResponse(**protocol)
-
-
-@router.post(
-    "/api/founder/feedback/{feedback_id}/export-ticket",
-    response_model=AiIssueExportResponse,
-    summary="Export AI-triaged bug report to GitHub Issues and Linear formatted templates",
-)
-def export_feedback_ticket(
-    feedback_id: uuid.UUID,
-    target_repo: Optional[str] = Query(None, description="GitHub repository in owner/repo format"),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("founder")),
-):
-    """
-    Transforms AI-triaged bug reports, reproduction steps, video attachments, and Git patches
-    into standardized issue templates ready for 1-click sync into engineering sprint backlogs.
-    """
-    submission = db.scalar(
-        select(FeedbackSubmission)
-        .options(
-            joinedload(FeedbackSubmission.campaign).joinedload(Campaign.startup),
-            joinedload(FeedbackSubmission.tester),
-        )
-        .where(FeedbackSubmission.id == feedback_id)
-    )
-
-    if not submission:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Feedback submission not found",
-        )
-
-    camp = submission.campaign
-    if not camp or not camp.startup or camp.startup.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You are not authorized to access feedback for this campaign",
-        )
-
-    export_payload = export_issue_to_backlog(submission, target_repo=target_repo)
-    return AiIssueExportResponse(**export_payload)
-
-
-
-
-
-
-
-
-
+    audit_result = run_synthetic_persona_audit(campaign)
+    return SyntheticAuditResponse(**audit_result)

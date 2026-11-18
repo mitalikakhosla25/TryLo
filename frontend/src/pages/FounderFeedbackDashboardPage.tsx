@@ -20,6 +20,7 @@ import { useFounderFeedback } from '../context/useFeedback';
 import type { FeedbackStatus, FeedbackType, BugSeverity } from '../api/tasks';
 import { AiExecutiveSummaryCard } from '../components/feedback/AiExecutiveSummaryCard';
 import { AiUserJourneyFunnel } from '../components/feedback/AiUserJourneyFunnel';
+import { AiSyntheticPersonaAudit } from '../components/feedback/AiSyntheticPersonaAudit';
 import { FounderAiCopilotDrawer } from '../components/feedback/FounderAiCopilotDrawer';
 
 export const FounderFeedbackDashboardPage: React.FC = () => {
@@ -174,6 +175,18 @@ export const FounderFeedbackDashboardPage: React.FC = () => {
         <AiUserJourneyFunnel
           campaignId={selectedCampaignId && selectedCampaignId !== 'all' ? selectedCampaignId : undefined}
         />
+
+        {/* Synthetic AI Pre-Flight Testing Personas */}
+        {((selectedCampaignId && selectedCampaignId !== 'all') || allFeedback[0]?.campaign_id) && (
+          <AiSyntheticPersonaAudit
+            campaignId={
+              selectedCampaignId && selectedCampaignId !== 'all'
+                ? selectedCampaignId
+                : allFeedback[0].campaign_id
+            }
+            campaignTitle={allFeedback[0]?.campaign_title || 'Selected Campaign'}
+          />
+        )}
 
         {/* Filter & Search Bar */}
         <div className="rounded-3xl bg-white border border-[#DCE7E3] p-5 sm:p-6 space-y-4 shadow-xs">

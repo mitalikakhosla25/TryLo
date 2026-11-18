@@ -394,6 +394,37 @@ class FeedbackPolishResponse(BaseModel):
     engine_used: str
 
 
+class SyntheticSimulatedBug(BaseModel):
+    title: str
+    severity: str
+    steps: str
+    expected: str
+    actual: str
+
+
+class SyntheticPersonaFinding(BaseModel):
+    persona_id: str
+    persona_name: str
+    persona_avatar: str
+    persona_role: str
+    mindset: str
+    overall_score: int
+    verdict: str
+    key_observations: List[str]
+    simulated_bug_report: Optional[SyntheticSimulatedBug] = None
+    actionable_recommendations: List[str]
+
+
+class SyntheticAuditResponse(BaseModel):
+    campaign_id: uuid.UUID
+    campaign_title: str
+    readiness_score: int
+    personas: List[SyntheticPersonaFinding]
+    executive_summary: str
+    engine_used: str
+    generated_at: datetime
+
+
 
 
 

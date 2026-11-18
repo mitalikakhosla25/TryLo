@@ -14,6 +14,8 @@ import {
   getRetestProtocol,
   exportFeedbackTicket,
   fetchAiEngineStatus,
+  runSyntheticAudit,
+  type SyntheticAuditResponse,
   type FounderFeedbackFilters,
   type FounderFeedbackListResponse,
   type FounderFeedbackDetail,
@@ -230,5 +232,11 @@ export function useAiEngineStatus() {
     queryFn: () => fetchAiEngineStatus(),
     enabled: !!user && isFounder,
     staleTime: 60000,
+  });
+}
+
+export function useSyntheticAudit() {
+  return useMutation<SyntheticAuditResponse, Error, string>({
+    mutationFn: (campaignId) => runSyntheticAudit(campaignId),
   });
 }
