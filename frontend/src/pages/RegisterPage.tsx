@@ -13,7 +13,6 @@ import {
   AlertCircle,
   CheckCircle2,
   ArrowLeft,
-  Sparkles,
   Loader2,
   LogIn,
 } from 'lucide-react';
@@ -129,16 +128,6 @@ export const RegisterPage: React.FC = () => {
                   {registerMutation.data.role}
                 </span>
               </div>
-            </div>
-
-            <div className="p-3.5 rounded-2xl bg-[#D7EFEB]/50 border border-[#BCE1DA] text-xs text-[#07545A] text-left">
-              <p className="font-bold flex items-center space-x-1.5 mb-1">
-                <Sparkles className="h-3.5 w-3.5 text-[#087C80]" />
-                <span>Registration Complete</span>
-              </p>
-              <p className="text-[11px] text-[#52656B] leading-relaxed">
-                Your account has been securely created. Please sign in to access your workspace.
-              </p>
             </div>
 
             <div className="space-y-2.5 pt-2">
