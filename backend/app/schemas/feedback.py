@@ -457,6 +457,23 @@ class LaunchRoiSimulationResponse(BaseModel):
     strategic_advice: str
 
 
+class ChangelogGenerateRequest(BaseModel):
+    campaign_id: Optional[uuid.UUID] = None
+    version_tag: str = "v1.1.0"
+    selected_feedback_ids: Optional[List[uuid.UUID]] = None
+
+
+class ChangelogGenerateResponse(BaseModel):
+    version_tag: str
+    campaign_title: str
+    total_items_synthesized: int
+    github_markdown: str
+    twitter_thread: str
+    product_hunt_blurb: str
+    engine_used: str
+    generated_at: datetime
+
+
 
 
 

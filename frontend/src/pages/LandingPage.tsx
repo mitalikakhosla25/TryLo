@@ -20,6 +20,7 @@ import { HeroSection } from '../components/home/HeroSection';
 import { IndiaStartupMap } from '../components/map/IndiaStartupMap';
 import { ServicesSection } from '../components/home/ServicesSection';
 import { HowItWorksSection } from '../components/home/HowItWorksSection';
+import { AiSuperIntelligenceShowcase } from '../components/landing/AiSuperIntelligenceShowcase';
 import { usePublicCampaigns } from '../context/useCampaigns';
 import { usePublicStartups } from '../context/useStartups';
 
@@ -405,6 +406,13 @@ export const LandingPage: React.FC = () => {
           }}
         />
       </div>
+
+      {/* =========================================================================
+          SECTION: TRYLO AI SUPER-INTELLIGENCE SHOWCASE
+          ========================================================================= */}
+      <Container size="xl" className="mt-12 sm:mt-16">
+        <AiSuperIntelligenceShowcase />
+      </Container>
 
       {/* =========================================================================
           SECTION 7: ABOUT US SECTION

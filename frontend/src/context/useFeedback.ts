@@ -16,9 +16,12 @@ import {
   fetchAiEngineStatus,
   runSyntheticAudit,
   simulateLaunchRoi,
+  generateReleaseChangelog,
   type SyntheticAuditResponse,
   type LaunchRoiSimulationRequest,
   type LaunchRoiSimulationResponse,
+  type ChangelogGenerateRequest,
+  type ChangelogGenerateResponse,
   type FounderFeedbackFilters,
   type FounderFeedbackListResponse,
   type FounderFeedbackDetail,
@@ -247,5 +250,11 @@ export function useSyntheticAudit() {
 export function useSimulateLaunchRoi() {
   return useMutation<LaunchRoiSimulationResponse, Error, LaunchRoiSimulationRequest>({
     mutationFn: (payload) => simulateLaunchRoi(payload),
+  });
+}
+
+export function useGenerateReleaseChangelog() {
+  return useMutation<ChangelogGenerateResponse, Error, ChangelogGenerateRequest>({
+    mutationFn: (payload) => generateReleaseChangelog(payload),
   });
 }

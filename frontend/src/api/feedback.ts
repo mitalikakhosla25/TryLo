@@ -682,3 +682,35 @@ export async function simulateLaunchRoi(
     }
   );
 }
+
+export interface ChangelogGenerateRequest {
+  campaign_id?: string | null;
+  version_tag?: string;
+  selected_feedback_ids?: string[];
+}
+
+export interface ChangelogGenerateResponse {
+  version_tag: string;
+  campaign_title: string;
+  total_items_synthesized: number;
+  github_markdown: string;
+  twitter_thread: string;
+  product_hunt_blurb: string;
+  engine_used: string;
+  generated_at: string;
+}
+
+/**
+ * Generate multi-channel public release notes and changelog
+ */
+export async function generateReleaseChangelog(
+  payload: ChangelogGenerateRequest
+): Promise<ChangelogGenerateResponse> {
+  return apiClient<ChangelogGenerateResponse>(
+    '/api/founder/feedback/generate-changelog',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }
+  );
+}

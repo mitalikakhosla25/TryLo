@@ -61,6 +61,8 @@ from app.schemas.feedback import (
     SyntheticAuditResponse,
     LaunchRoiSimulationRequest,
     LaunchRoiSimulationResponse,
+    ChangelogGenerateRequest,
+    ChangelogGenerateResponse,
 )
 from app.services.ai_triage import analyze_feedback_item, synthesize_batch_feedback_insights
 from app.services.ai_copilot import query_ai_copilot
@@ -1550,3 +1552,53 @@ def simulate_launch_readiness_roi(
         simulated_resolved_ids=payload.simulated_resolved_ids,
     )
     return LaunchRoiSimulationResponse(**sim_result)
+
+
+@router.post(
+    "/api/founder/feedback/generate-changelog",
+    response_model=ChangelogGenerateResponse,
+    summary="Generate public release notes, GitHub markdown, and Twitter announcement thread",
+)
+def generate_feedback_changelog(
+    payload: ChangelogGenerateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("founder")),
+):
+    """
+    Synthesizes resolved feedback items, bug hotfixes, and usability improvements
+    into multi-channel release notes (GitHub, Twitter, Product Hunt).
+    """
+    from app.services.ai_changelog import generate_release_changelog
+
+    camp_stmt = (
+        select(Campaign)
+        .join(Startup, Campaign.startup_id == Startup.id)
+        .where(Startup.owner_id == current_user.id)
+    )
+    if payload.campaign_id:
+        camp_stmt = camp_stmt.where(Campaign.id == payload.campaign_id)
+
+    campaigns = db.scalars(camp_stmt).all()
+    if payload.campaign_id and not campaigns:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Campaign not found or not owned by founder",
+        )
+
+    campaign_ids = [c.id for c in campaigns]
+    campaign_title = campaigns[0].title if len(campaigns) == 1 else "Latest Beta Sprint"
+
+    stmt = select(FeedbackSubmission)
+    if campaign_ids:
+        stmt = stmt.where(FeedbackSubmission.campaign_id.in_(campaign_ids))
+    if payload.selected_feedback_ids:
+        stmt = stmt.where(FeedbackSubmission.id.in_(payload.selected_feedback_ids))
+
+    submissions = list(db.scalars(stmt).all())
+
+    changelog_data = generate_release_changelog(
+        submissions=submissions,
+        campaign_title=campaign_title,
+        version_tag=payload.version_tag or "v1.1.0",
+    )
+    return ChangelogGenerateResponse(**changelog_data)

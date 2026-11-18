@@ -15,6 +15,7 @@ import {
   ChevronRight,
   RotateCcw,
   Video,
+  FileText,
 } from 'lucide-react';
 import { useFounderFeedback } from '../context/useFeedback';
 import type { FeedbackStatus, FeedbackType, BugSeverity } from '../api/tasks';
@@ -22,6 +23,7 @@ import { AiExecutiveSummaryCard } from '../components/feedback/AiExecutiveSummar
 import { AiUserJourneyFunnel } from '../components/feedback/AiUserJourneyFunnel';
 import { AiSyntheticPersonaAudit } from '../components/feedback/AiSyntheticPersonaAudit';
 import { AiLaunchRoiSimulator } from '../components/feedback/AiLaunchRoiSimulator';
+import { AiChangelogGeneratorModal } from '../components/feedback/AiChangelogGeneratorModal';
 import { FounderAiCopilotDrawer } from '../components/feedback/FounderAiCopilotDrawer';
 
 export const FounderFeedbackDashboardPage: React.FC = () => {
@@ -35,6 +37,7 @@ export const FounderFeedbackDashboardPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [currentPage, setCurrentPage] = useState(1);
+  const [isChangelogOpen, setIsChangelogOpen] = useState(false);
   const pageSize = 15;
 
   const {
@@ -150,6 +153,16 @@ export const FounderFeedbackDashboardPage: React.FC = () => {
             >
               <RefreshCw className="h-3.5 w-3.5 text-[#07545A]" />
               <span className="hidden sm:inline">Refresh</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsChangelogOpen(true)}
+              className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-full text-xs font-semibold bg-[#D7EFEB] hover:bg-[#BCE1DA] text-[#07545A] border border-[#BCE1DA] transition-colors cursor-pointer shadow-xs"
+              title="Generate multi-channel release notes"
+            >
+              <FileText className="h-3.5 w-3.5 text-[#07545A]" />
+              <span className="hidden sm:inline">AI Release Notes</span>
             </button>
 
             <Link
@@ -563,6 +576,14 @@ export const FounderFeedbackDashboardPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* AI Automated Release Notes & Changelog Generator Modal */}
+      <AiChangelogGeneratorModal
+        isOpen={isChangelogOpen}
+        onClose={() => setIsChangelogOpen(false)}
+        campaignId={selectedCampaignId && selectedCampaignId !== 'all' ? selectedCampaignId : undefined}
+        campaignTitle={allFeedback[0]?.campaign_title || 'Latest Sprint'}
+      />
 
       {/* Floating Founder AI Co-Pilot Assistant */}
       <FounderAiCopilotDrawer campaignId={selectedCampaignId || undefined} />
