@@ -119,3 +119,4 @@ def simulate_launch_readiness_and_roi(
         "highest_leverage_next_fix": highest_leverage,
         "strategic_advice": advice,
     }
+

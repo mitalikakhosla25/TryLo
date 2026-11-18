@@ -17,11 +17,14 @@ import {
   runSyntheticAudit,
   simulateLaunchRoi,
   generateReleaseChangelog,
+  getTesterProofAttestation,
+  runTesterProofAttestation,
   type SyntheticAuditResponse,
   type LaunchRoiSimulationRequest,
   type LaunchRoiSimulationResponse,
   type ChangelogGenerateRequest,
   type ChangelogGenerateResponse,
+  type AiProofAttestationResponse,
   type FounderFeedbackFilters,
   type FounderFeedbackListResponse,
   type FounderFeedbackDetail,
@@ -258,3 +261,25 @@ export function useGenerateReleaseChangelog() {
     mutationFn: (payload) => generateReleaseChangelog(payload),
   });
 }
+
+export function useTesterProofAttestation(feedbackId: string | undefined) {
+  const { user } = useAuth();
+  const isFounder = user?.role === 'founder';
+  return useQuery<AiProofAttestationResponse, Error>({
+    queryKey: ['feedback', feedbackId, 'proof-attestation'],
+    queryFn: () => getTesterProofAttestation(feedbackId!),
+    enabled: !!user && isFounder && !!feedbackId,
+    staleTime: 60000,
+  });
+}
+
+export function useRunTesterProofAttestation(feedbackId: string) {
+  const queryClient = useQueryClient();
+  return useMutation<AiProofAttestationResponse, Error, void>({
+    mutationFn: () => runTesterProofAttestation(feedbackId),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['feedback', feedbackId, 'proof-attestation'], data);
+    },
+  });
+}
+

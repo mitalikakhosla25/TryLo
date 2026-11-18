@@ -304,3 +304,4 @@ def _heuristic_polish_report(
         "suggested_severity": suggested_severity,
         "engine_used": "TryLo Local Heuristic Engine",
     }
+

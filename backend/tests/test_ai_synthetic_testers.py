@@ -55,3 +55,4 @@ def test_run_synthetic_persona_audit_gemini_mock(monkeypatch):
     audit = run_synthetic_persona_audit(camp)
     assert "Google Gemini 1.5 Flash" in audit["engine_used"]
     assert len(audit["personas"]) == 3
+

@@ -13,6 +13,7 @@ import {
   listPublicCampaigns,
   getCampaignAnalytics,
   getFounderAnalyticsOverview,
+  architectCampaignFromPrompt,
   type Campaign,
   type CampaignPublic,
   type CampaignPublicListResponse,
@@ -21,6 +22,8 @@ import {
   type CampaignUpdatePayload,
   type CampaignAnalytics,
   type FounderAnalyticsOverview,
+  type CampaignAiArchitectRequest,
+  type CampaignAiArchitectResponse,
 } from '../api/campaigns';
 import { useAuth } from './useAuth';
 
@@ -197,3 +200,10 @@ export function useFounderAnalyticsOverview() {
     retry: 1,
   });
 }
+
+export function useArchitectCampaign() {
+  return useMutation<CampaignAiArchitectResponse, Error, CampaignAiArchitectRequest>({
+    mutationFn: (payload) => architectCampaignFromPrompt(payload),
+  });
+}
+

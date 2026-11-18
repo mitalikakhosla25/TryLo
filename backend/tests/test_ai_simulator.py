@@ -42,3 +42,4 @@ def test_simulate_what_if_resolves_critical_blocker():
     assert sim["protected_revenue_monthly"] == 4200
     assert sim["churn_reduction_pct"] >= 20
     assert sim["highest_leverage_next_fix"]["id"] == bug2.id
+

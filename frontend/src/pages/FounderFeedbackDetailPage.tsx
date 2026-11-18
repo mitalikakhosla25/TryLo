@@ -40,6 +40,7 @@ import {
 } from '../api/verification';
 import { TimestampedVideoPlayer } from '../components/feedback/TimestampedVideoPlayer';
 import { AiTriageCard } from '../components/feedback/AiTriageCard';
+import { AiProofSentinelCard } from '../components/feedback/AiProofSentinelCard';
 
 export const FounderFeedbackDetailPage: React.FC = () => {
   const { feedbackId } = useParams<{ feedbackId: string }>();
@@ -718,6 +719,10 @@ export const FounderFeedbackDetailPage: React.FC = () => {
 
         {/* AI Automated Bug Triaging & Root Cause Intelligence Card */}
         <AiTriageCard feedback={feedback} />
+
+        {/* AI Tester Proof Attestation & Anti-Fraud Sentinel */}
+        <AiProofSentinelCard feedbackId={feedback.id} />
+
 
         {/* Tester Credibility & Recognition Card */}
         <div className="rounded-3xl bg-white border border-[#DCE7E3] p-6 sm:p-7 space-y-4 shadow-sm">

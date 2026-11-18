@@ -52,3 +52,4 @@ Super excited to release v1.2.0 based on tester reviews."""
     res = generate_release_changelog([sub], campaign_title="Launch", version_tag="v1.2.0")
     assert "Google Gemini 1.5 Flash" in res["engine_used"]
     assert "payment modal" in res["github_markdown"]
+

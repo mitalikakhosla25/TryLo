@@ -34,6 +34,13 @@ def test_analyze_recording_voice_and_frustration_payment():
     assert peak_segment["frustration_intensity"] >= 8
     assert "spinner" in peak_segment["spoken_transcript"].lower() or "modal" in peak_segment["spoken_transcript"].lower()
 
+    # Check synchronized telemetry events
+    assert "telemetry_events" in result
+    assert len(result["telemetry_events"]) >= 4
+    assert any(e["event_type"] == "console_error" for e in result["telemetry_events"])
+    assert any(e["event_type"] == "network_request" for e in result["telemetry_events"])
+
+
 
 def test_analyze_recording_voice_and_frustration_crash():
     sub = make_submission("White screen crash on account profile", "Uncaught TypeError", severity="critical")

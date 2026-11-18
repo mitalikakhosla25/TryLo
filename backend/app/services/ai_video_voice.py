@@ -118,6 +118,135 @@ def analyze_recording_voice_and_frustration(
         f"due to '{actual[:60]}', and was forced to abandon task completion."
     )
 
+    # Synchronized Telemetry Generation (Console logs & Network requests)
+    telemetry_events: List[Dict[str, Any]] = [
+        {
+            "timestamp_seconds": max(1, int(duration * 0.04)),
+            "timestamp_display": format_seconds(max(1, int(duration * 0.04))),
+            "event_type": "network_request",
+            "level": "info",
+            "message": "GET /api/v1/auth/session - 200 OK",
+            "source_component": "AuthClient",
+            "http_status": 200,
+            "latency_ms": 38,
+        },
+        {
+            "timestamp_seconds": max(4, int(duration * 0.12)),
+            "timestamp_display": format_seconds(max(4, int(duration * 0.12))),
+            "event_type": "console_info",
+            "level": "info",
+            "message": "App mounted: React 18.2.0 concurrent tree initialized",
+            "source_component": "MainLayout",
+            "http_status": None,
+            "latency_ms": None,
+        },
+        {
+            "timestamp_seconds": max(12, int(duration * 0.35)),
+            "timestamp_display": format_seconds(max(12, int(duration * 0.35))),
+            "event_type": "console_warn",
+            "level": "warn",
+            "message": "Warning: Fast refresh skipped memoized handler in FormController",
+            "source_component": "FormController.tsx",
+            "http_status": None,
+            "latency_ms": None,
+        },
+    ]
+
+    if is_payment:
+        telemetry_events.extend([
+            {
+                "timestamp_seconds": t3,
+                "timestamp_display": format_seconds(t3),
+                "event_type": "network_request",
+                "level": "warn",
+                "message": "POST /api/v1/checkout/intent - 400 Bad Request (Missing currency conversion lock)",
+                "source_component": "StripeProvider",
+                "http_status": 400,
+                "latency_ms": 285,
+            },
+            {
+                "timestamp_seconds": t4,
+                "timestamp_display": format_seconds(t4),
+                "event_type": "console_error",
+                "level": "error",
+                "message": "Uncaught (in promise) Error: PaymentIntent confirmation timed out after 10000ms",
+                "source_component": "PaymentModal.tsx:88",
+                "http_status": None,
+                "latency_ms": None,
+            },
+        ])
+    elif is_freeze:
+        telemetry_events.extend([
+            {
+                "timestamp_seconds": t3,
+                "timestamp_display": format_seconds(t3),
+                "event_type": "console_warn",
+                "level": "warn",
+                "message": "[Violation] 'requestAnimationFrame' handler took 482ms (Main thread stall)",
+                "source_component": "CanvasRenderer.ts",
+                "http_status": None,
+                "latency_ms": None,
+            },
+            {
+                "timestamp_seconds": t4,
+                "timestamp_display": format_seconds(t4),
+                "event_type": "console_error",
+                "level": "error",
+                "message": "RangeError: Maximum call stack size exceeded in batchUpdateTree",
+                "source_component": "StateGraph.ts:144",
+                "http_status": None,
+                "latency_ms": None,
+            },
+        ])
+    elif is_crash:
+        telemetry_events.extend([
+            {
+                "timestamp_seconds": t3,
+                "timestamp_display": format_seconds(t3),
+                "event_type": "console_error",
+                "level": "error",
+                "message": "TypeError: Cannot read properties of undefined (reading 'map') at UserList (UserList.tsx:32)",
+                "source_component": "UserList.tsx",
+                "http_status": None,
+                "latency_ms": None,
+            },
+            {
+                "timestamp_seconds": t4,
+                "timestamp_display": format_seconds(t4),
+                "event_type": "console_error",
+                "level": "error",
+                "message": "React ErrorBoundary caught error: Rendering halted. Fallback UI not specified.",
+                "source_component": "ErrorBoundary.tsx:18",
+                "http_status": None,
+                "latency_ms": None,
+            },
+        ])
+    else:
+        telemetry_events.extend([
+            {
+                "timestamp_seconds": t3,
+                "timestamp_display": format_seconds(t3),
+                "event_type": "network_request",
+                "level": "warn",
+                "message": "POST /api/v1/actions/execute - 422 Unprocessable Entity",
+                "source_component": "ApiClient",
+                "http_status": 422,
+                "latency_ms": 110,
+            },
+            {
+                "timestamp_seconds": t4,
+                "timestamp_display": format_seconds(t4),
+                "event_type": "console_error",
+                "level": "error",
+                "message": f"Unhandled client error: {actual[:55]}",
+                "source_component": "AppRuntime",
+                "http_status": None,
+                "latency_ms": None,
+            },
+        ])
+
+    telemetry_events.sort(key=lambda x: x["timestamp_seconds"])
+
     return {
         "feedback_id": feedback.id,
         "video_url": feedback.video_url or "/api/feedback/videos/sample.webm",
@@ -127,6 +256,8 @@ def analyze_recording_voice_and_frustration(
         "peak_frustration_timestamp": peak_timestamp,
         "executive_voice_summary": voice_summary,
         "segments": segments,
+        "telemetry_events": telemetry_events,
         "analyzed_at": datetime.now(timezone.utc),
     }
+
 

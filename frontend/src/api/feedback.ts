@@ -121,6 +121,7 @@ export interface AiTriageResponse {
   friction_score: number;
   potential_duplicates: DuplicateFeedbackMatch[];
   dev_ticket_markdown: string;
+  git_diff_patch?: string | null;
   analyzed_at: string;
 }
 
@@ -439,6 +440,17 @@ export interface FrustrationHeatmapSegment {
   ui_friction_flag?: string | null;
 }
 
+export interface SynchronizedTelemetryEvent {
+  timestamp_seconds: number;
+  timestamp_display: string;
+  event_type: 'console_error' | 'console_warn' | 'console_info' | 'network_request' | 'user_action' | string;
+  level: 'error' | 'warn' | 'info';
+  message: string;
+  source_component?: string | null;
+  http_status?: number | null;
+  latency_ms?: number | null;
+}
+
 export interface AiVideoIntelligenceResponse {
   feedback_id: string;
   video_url: string;
@@ -448,6 +460,7 @@ export interface AiVideoIntelligenceResponse {
   peak_frustration_timestamp: string;
   executive_voice_summary: string;
   segments: FrustrationHeatmapSegment[];
+  telemetry_events?: SynchronizedTelemetryEvent[];
   analyzed_at: string;
 }
 
@@ -714,3 +727,51 @@ export async function generateReleaseChangelog(
     }
   );
 }
+
+export interface ProofAttestationBadge {
+  id: string;
+  label: string;
+  status: 'pass' | 'warn' | 'fail' | 'neutral' | string;
+  explanation: string;
+}
+
+export interface AiProofAttestationResponse {
+  feedback_id: string;
+  compliance_score: number;
+  human_interaction_score: number;
+  overall_trust_score: number;
+  fraud_risk: 'low' | 'medium' | 'high' | 'critical_bot' | string;
+  trust_tier: string;
+  payout_recommendation: string;
+  payout_status: 'approve' | 'approve_partial' | 'hold' | 'reject' | string;
+  attestation_badges: ProofAttestationBadge[];
+  sentinel_audit_summary: string;
+  engine_used: string;
+  audited_at: string;
+}
+
+/**
+ * Retrieve or trigger AI Tester Proof Attestation & Anti-Fraud Audit
+ */
+export async function getTesterProofAttestation(
+  feedbackId: string
+): Promise<AiProofAttestationResponse> {
+  return apiClient<AiProofAttestationResponse>(
+    `/api/founder/feedback/${feedbackId}/attestation-audit`,
+    {
+      method: 'GET',
+    }
+  );
+}
+
+export async function runTesterProofAttestation(
+  feedbackId: string
+): Promise<AiProofAttestationResponse> {
+  return apiClient<AiProofAttestationResponse>(
+    `/api/founder/feedback/${feedbackId}/attestation-audit`,
+    {
+      method: 'POST',
+    }
+  );
+}
+

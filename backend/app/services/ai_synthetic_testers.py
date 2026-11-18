@@ -194,3 +194,4 @@ PERSONA_MORGAN: <score>/100 | <observations> | BUG: <title> (<severity>)"""
     base["executive_summary"] = response[:600]
     base["engine_used"] = "Google Gemini 1.5 Flash (Synthetic Simulation)"
     return base
+

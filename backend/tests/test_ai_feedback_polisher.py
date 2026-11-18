@@ -72,3 +72,4 @@ SUGGESTED_SEVERITY: critical"""
     assert res["polished_title"] == "Stripe Checkout Modal Hangs on Card Confirmation"
     assert res["suggested_severity"] == "critical"
     assert res["engine_used"] == "Google Gemini 1.5 Flash"
+

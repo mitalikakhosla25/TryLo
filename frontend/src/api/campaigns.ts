@@ -412,3 +412,41 @@ export async function downloadCampaignAuditCsv(campaignId: string, campaignSlug:
   window.URL.revokeObjectURL(downloadUrl);
   document.body.removeChild(a);
 }
+
+export interface CampaignAiArchitectRequest {
+  prompt: string;
+  product_url?: string | null;
+  startup_name?: string | null;
+}
+
+export interface CampaignAiArchitectResponse {
+  title: string;
+  summary: string;
+  description: string;
+  product_type: string;
+  product_url: string;
+  access_instructions: string;
+  testing_tasks: TestingTask[];
+  screening_questions: ScreeningQuestion[];
+  target_audience: TargetAudience;
+  max_testers: number;
+  reward_type: string;
+  reward_amount: number | null;
+  reward_currency: string | null;
+  reward_description?: string | null;
+  engine_used: string;
+  architected_at: string;
+}
+
+/**
+ * Synthesizes a complete 4-step campaign from a single prompt or URL.
+ */
+export async function architectCampaignFromPrompt(
+  payload: CampaignAiArchitectRequest
+): Promise<CampaignAiArchitectResponse> {
+  return apiClient<CampaignAiArchitectResponse>('/api/founder/campaigns/ai-architect', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+

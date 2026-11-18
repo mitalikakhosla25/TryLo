@@ -313,6 +313,18 @@ class FrustrationHeatmapSegment(BaseModel):
     ui_friction_flag: Optional[str] = None
 
 
+class SynchronizedTelemetryEvent(BaseModel):
+    """Console log or network request timestamped to match video playback."""
+    timestamp_seconds: int
+    timestamp_display: str
+    event_type: str  # console_error | console_warn | console_info | network_request | user_action
+    level: str  # error | warn | info
+    message: str
+    source_component: Optional[str] = None
+    http_status: Optional[int] = None
+    latency_ms: Optional[int] = None
+
+
 class AiVideoIntelligenceResponse(BaseModel):
     """Synthesized multimodal video transcription, voice tone analysis, and frustration heatmap."""
     feedback_id: uuid.UUID
@@ -323,7 +335,9 @@ class AiVideoIntelligenceResponse(BaseModel):
     peak_frustration_timestamp: str
     executive_voice_summary: str
     segments: List[FrustrationHeatmapSegment]
+    telemetry_events: List[SynchronizedTelemetryEvent] = []
     analyzed_at: datetime
+
 
 
 class AiRetestProtocolResponse(BaseModel):
@@ -472,6 +486,79 @@ class ChangelogGenerateResponse(BaseModel):
     product_hunt_blurb: str
     engine_used: str
     generated_at: datetime
+
+
+class CampaignArchitectTaskItem(BaseModel):
+    id: str
+    title: str
+    description: str
+    is_required: bool = True
+    order: int = 1
+
+
+class CampaignArchitectScreeningItem(BaseModel):
+    id: str
+    prompt: str
+    question_type: str = "text"
+    is_required: bool = True
+    options: List[str] = []
+
+
+class CampaignArchitectAudienceItem(BaseModel):
+    skills: List[str] = []
+    interests: List[str] = []
+    experience_level: str = "Intermediate"
+    devices: List[str] = []
+    countries: List[str] = []
+    notes: str = ""
+
+
+class CampaignAiArchitectRequest(BaseModel):
+    prompt: str
+    product_url: Optional[str] = None
+    startup_name: Optional[str] = None
+
+
+class CampaignAiArchitectResponse(BaseModel):
+    title: str
+    summary: str
+    description: str
+    product_type: str
+    product_url: str
+    access_instructions: str
+    testing_tasks: List[CampaignArchitectTaskItem]
+    screening_questions: List[CampaignArchitectScreeningItem]
+    target_audience: CampaignArchitectAudienceItem
+    max_testers: int = 25
+    reward_type: str = "monetary"
+    reward_amount: Optional[int] = 25
+    reward_currency: Optional[str] = "$"
+    reward_description: Optional[str] = None
+    engine_used: str
+    architected_at: datetime
+
+
+class ProofAttestationBadge(BaseModel):
+    id: str
+    label: str
+    status: str  # "pass" | "warn" | "fail" | "neutral"
+    explanation: str
+
+
+class AiProofAttestationResponse(BaseModel):
+    feedback_id: uuid.UUID
+    compliance_score: int
+    human_interaction_score: int
+    overall_trust_score: int
+    fraud_risk: str
+    trust_tier: str
+    payout_recommendation: str
+    payout_status: str  # "approve" | "approve_partial" | "hold" | "reject"
+    attestation_badges: List[ProofAttestationBadge]
+    sentinel_audit_summary: str
+    engine_used: str
+    audited_at: datetime
+
 
 
 

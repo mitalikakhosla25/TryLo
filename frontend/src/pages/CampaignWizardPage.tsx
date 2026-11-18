@@ -6,6 +6,7 @@ import {
   useCreateCampaign,
   useUpdateCampaign,
   usePublishCampaign,
+  useArchitectCampaign,
 } from '../context/useCampaigns';
 import {
   ArrowLeft,
@@ -23,6 +24,9 @@ import {
   HelpCircle,
   ShieldCheck,
   ExternalLink,
+  Sparkles,
+  Loader2,
+  X,
 } from 'lucide-react';
 import type {
   Campaign,
@@ -181,12 +185,68 @@ const CampaignWizardForm: React.FC<CampaignWizardFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
 
+  // AI Campaign Architect state
+  const [showAiArchitectModal, setShowAiArchitectModal] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiUrl, setAiUrl] = useState(productUrl || '');
+  const [aiSuccessMsg, setAiSuccessMsg] = useState<string | null>(null);
+  const { mutateAsync: runAiArchitect, isPending: isArchitecting } = useArchitectCampaign();
+
   // Mutations
   const createMutation = useCreateCampaign(selectedStartupId || undefined);
   const updateMutation = useUpdateCampaign(campaignId || undefined);
   const publishMutation = usePublishCampaign(campaignId || undefined);
 
   const selectedStartup = myStartups.find((s) => s.id === selectedStartupId);
+
+  const handleExecuteAiArchitect = async () => {
+    if (!aiPrompt.trim()) {
+      setErrorMsg('Please enter a short product concept or testing objective.');
+      return;
+    }
+    setErrorMsg(null);
+    try {
+      const res = await runAiArchitect({
+        prompt: aiPrompt.trim(),
+        product_url: aiUrl.trim() || undefined,
+        startup_name: selectedStartup?.name || 'Startup Product',
+      });
+
+      // Populate wizard state
+      setTitle(res.title);
+      setSummary(res.summary);
+      setDescription(res.description);
+      setProductType(res.product_type || 'Web App');
+      if (res.product_url) setProductUrl(res.product_url);
+      setAccessInstructions(res.access_instructions || '');
+      if (res.testing_tasks && res.testing_tasks.length > 0) {
+        setTasks(res.testing_tasks);
+      }
+      if (res.screening_questions && res.screening_questions.length > 0) {
+        setScreeningQuestions(res.screening_questions);
+      }
+      if (res.target_audience) {
+        if (res.target_audience.skills) setSkills(res.target_audience.skills);
+        if (res.target_audience.interests) setInterests(res.target_audience.interests);
+        if (res.target_audience.experience_level) setExperienceLevel(res.target_audience.experience_level);
+        if (res.target_audience.devices) setSelectedDevices(res.target_audience.devices);
+        if (res.target_audience.countries) setCountries(res.target_audience.countries);
+        if (res.target_audience.notes) setAudienceNotes(res.target_audience.notes);
+      }
+      if (res.max_testers) setMaxTesters(String(res.max_testers));
+      if (res.reward_type) setRewardType(res.reward_type as RewardType);
+      if (res.reward_amount !== null && res.reward_amount !== undefined) {
+        setRewardAmount(String(res.reward_amount));
+      }
+
+      setAiSuccessMsg(`Campaign architected via ${res.engine_used}! All steps populated.`);
+      setShowAiArchitectModal(false);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to architect campaign.';
+      setErrorMsg(msg);
+    }
+  };
+
 
   // Helpers for tasks
   const handleAddTask = () => {
@@ -528,6 +588,52 @@ const CampaignWizardForm: React.FC<CampaignWizardFormProps> = ({
             </button>
           </div>
         )}
+
+        {/* AI Architect Success Notice */}
+        {aiSuccessMsg && (
+          <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs sm:text-sm flex items-start justify-between gap-3 animate-in fade-in duration-300">
+            <div className="flex items-start space-x-2.5">
+              <Sparkles className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-emerald-950">AI Campaign Draft Generated</p>
+                <p className="text-xs text-emerald-800 mt-0.5">{aiSuccessMsg}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setAiSuccessMsg(null)}
+              className="text-emerald-700 hover:text-emerald-900 font-bold text-xs"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {/* AI Campaign Architect Hero Card */}
+        <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-[#07545A] via-[#0F353E] to-[#102A35] text-white shadow-md relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-1 relative z-10 max-w-xl">
+            <div className="flex items-center space-x-2">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1">
+                <Sparkles className="h-3 w-3 text-emerald-300" />
+                <span>Prompt-to-Campaign AI Architect</span>
+              </span>
+              <span className="text-[10px] text-teal-200">Zero-Cost Gemini Flash + Local Engine</span>
+            </div>
+            <h3 className="text-base sm:text-lg font-extrabold text-white">
+              Have a product concept or URL? Draft this entire campaign in 5 seconds.
+            </h3>
+            <p className="text-xs text-teal-100">
+              Auto-synthesizes campaign objectives, structured testing tasks with pass criteria, target audience demographics, and screening questions.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowAiArchitectModal(true)}
+            className="relative z-10 shrink-0 inline-flex items-center space-x-2 px-5 py-2.5 rounded-2xl text-xs font-bold bg-white text-[#07545A] hover:bg-[#F6F5ED] transition-all shadow-md cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <Sparkles className="h-4 w-4 text-[#087C80]" />
+            <span>Architect with AI</span>
+          </button>
+        </div>
 
         {/* Wizard Step Progress Bar */}
         <div className="rounded-3xl bg-white border border-[#DCE7E3] p-4 shadow-xs">
@@ -1584,6 +1690,130 @@ const CampaignWizardForm: React.FC<CampaignWizardFormProps> = ({
             )}
           </div>
         </div>
+
+        {/* AI Campaign Architect Modal */}
+        {showAiArchitectModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className="bg-white rounded-3xl max-w-xl w-full p-6 space-y-5 shadow-2xl border border-[#DCE7E3] animate-in zoom-in-95 duration-200">
+              <div className="flex items-start justify-between pb-3 border-b border-[#DCE7E3]">
+                <div className="space-y-1">
+                  <div className="flex items-center space-x-2">
+                    <span className="p-1.5 rounded-xl bg-[#E6F7F0] text-[#087C80]">
+                      <Sparkles className="h-4 w-4" />
+                    </span>
+                    <h3 className="text-lg font-extrabold text-[#102A35]">
+                      AI Campaign Architect
+                    </h3>
+                  </div>
+                  <p className="text-xs text-[#52656B]">
+                    Describe what you are building or paste your URL. TryLo AI will draft all 4 wizard steps.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAiArchitectModal(false)}
+                  className="p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-[#102A35]">
+                    Product Pitch / Testing Focus <span className="text-rose-500">*</span>
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={aiPrompt}
+                    onChange={(e) => setAiPrompt(e.target.value)}
+                    placeholder="e.g. We are launching a multi-currency Shopify alternative. We need testers to browse products, apply discount code TRYLO20, and test sandbox credit card checkout."
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#DCE7E3] text-[#102A35] text-xs sm:text-sm focus:outline-none focus:border-[#087C80] focus:ring-2 focus:ring-[#087C80]/15"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-[#102A35]">
+                    Product URL (Optional)
+                  </label>
+                  <input
+                    type="url"
+                    value={aiUrl}
+                    onChange={(e) => setAiUrl(e.target.value)}
+                    placeholder="https://app.yourstartup.com"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#DCE7E3] text-[#102A35] text-xs sm:text-sm focus:outline-none focus:border-[#087C80] focus:ring-2 focus:ring-[#087C80]/15"
+                  />
+                </div>
+
+                {/* Quick Templates Chips */}
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-bold text-[#52656B] uppercase tracking-wider block">
+                    Quick Pitch Archetypes:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      {
+                        label: 'E-Commerce Storefront',
+                        prompt: 'E-commerce marketplace. Verify product discovery, cart updates, discount codes, and sandbox checkout.',
+                      },
+                      {
+                        label: 'Fintech & Expense Ledger',
+                        prompt: 'Financial dashboard. Test account connection, transaction filtering, and CSV analytics export.',
+                      },
+                      {
+                        label: 'Developer API & CLI',
+                        prompt: 'Developer API platform. Audit API key generation, quickstart curl requests, and validation error codes.',
+                      },
+                      {
+                        label: 'Web App Usability Beta',
+                        prompt: 'SaaS collaboration app. Validate guided onboarding, project creation, and team invite flows.',
+                      },
+                    ].map((item) => (
+                      <button
+                        key={item.label}
+                        type="button"
+                        onClick={() => {
+                          setAiPrompt(item.prompt);
+                        }}
+                        className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#F6F5ED] hover:bg-[#D7EFEB] text-[#102A35] border border-[#DCE7E3] transition-colors cursor-pointer"
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end space-x-3 pt-3 border-t border-[#DCE7E3]">
+                <button
+                  type="button"
+                  onClick={() => setShowAiArchitectModal(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-[#52656B] hover:text-[#102A35]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExecuteAiArchitect}
+                  disabled={isArchitecting || !aiPrompt.trim()}
+                  className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-[#07545A] hover:bg-[#064247] text-white shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  {isArchitecting ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-teal-300" />
+                      <span>Architecting Campaign...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
+                      <span>Draft Full Campaign</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

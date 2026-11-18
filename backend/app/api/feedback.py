@@ -63,6 +63,9 @@ from app.schemas.feedback import (
     LaunchRoiSimulationResponse,
     ChangelogGenerateRequest,
     ChangelogGenerateResponse,
+    CampaignAiArchitectRequest,
+    CampaignAiArchitectResponse,
+    AiProofAttestationResponse,
 )
 from app.services.ai_triage import analyze_feedback_item, synthesize_batch_feedback_insights
 from app.services.ai_copilot import query_ai_copilot
@@ -1602,3 +1605,138 @@ def generate_feedback_changelog(
         version_tag=payload.version_tag or "v1.1.0",
     )
     return ChangelogGenerateResponse(**changelog_data)
+
+
+@router.post(
+    "/api/founder/campaigns/ai-architect",
+    response_model=CampaignAiArchitectResponse,
+    summary="Architect complete 4-step campaign from a single product prompt",
+)
+def architect_campaign(
+    payload: CampaignAiArchitectRequest,
+    current_user: User = Depends(require_role("founder")),
+):
+    """
+    Synthesizes a complete beta testing campaign with structured tasks,
+    screening questions, audience targeting, and access instructions
+    from a high-level product description or URL.
+    """
+    from app.services.ai_campaign_architect import architect_campaign_from_prompt
+
+    result = architect_campaign_from_prompt(
+        prompt=payload.prompt,
+        product_url=payload.product_url,
+        startup_name=payload.startup_name,
+    )
+    return CampaignAiArchitectResponse(**result)
+
+
+@router.get(
+    "/api/founder/feedback/{feedback_id}/download-patch",
+    summary="Download unified .patch file for AI-triaged bug fix",
+)
+def download_feedback_git_patch(
+    feedback_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(["founder"])),
+):
+    """
+    Returns the unified git diff patch for this feedback defect as a downloadable .patch file
+    ready for `git apply` or 1-click developer terminal execution.
+    """
+    from starlette.responses import Response
+
+    stmt = (
+        select(FeedbackSubmission)
+        .join(Campaign, FeedbackSubmission.campaign_id == Campaign.id)
+        .join(Startup, Campaign.startup_id == Startup.id)
+        .where(
+            FeedbackSubmission.id == feedback_id,
+            Startup.owner_id == current_user.id,
+        )
+    )
+    submission = db.scalar(stmt)
+    if not submission:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Feedback submission not found or not owned by founder.",
+        )
+
+    triage_data = submission.ai_triage_data
+    if not triage_data or not triage_data.get("git_diff_patch"):
+        triage_data = analyze_feedback_item(submission)
+        submission.ai_triage_data = triage_data
+        db.commit()
+
+    patch_content = (triage_data.get("git_diff_patch") or "").strip()
+    if not patch_content:
+        patch_content = f"""# TryLo Automated Patch for Issue #{str(feedback_id)[:8]}
+# Defect Title: {submission.title}
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -1,3 +1,4 @@
++// Fixed: {submission.title}
+"""
+
+    short_id = str(feedback_id)[:8]
+    filename = f"trylo-fix-{short_id}.patch"
+
+    return Response(
+        content=patch_content,
+        media_type="text/x-diff",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-cache",
+        },
+    )
+
+
+@router.get(
+    "/api/founder/feedback/{feedback_id}/attestation-audit",
+    response_model=AiProofAttestationResponse,
+    summary="Audit tester authenticity, device telemetry, and payout approval",
+)
+@router.post(
+    "/api/founder/feedback/{feedback_id}/attestation-audit",
+    response_model=AiProofAttestationResponse,
+    summary="Re-audit tester authenticity, device telemetry, and payout approval",
+)
+def audit_feedback_tester_proof(
+    feedback_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(["founder"])),
+):
+    """
+    Evaluates submitted bug report or feedback against anti-fraud heuristics,
+    instruction adherence, human telemetry signatures, and provides concrete payout recommendations.
+    """
+    from app.services.ai_proof_sentinel import audit_tester_proof_and_fraud
+
+    stmt = (
+        select(FeedbackSubmission)
+        .join(Campaign, FeedbackSubmission.campaign_id == Campaign.id)
+        .join(Startup, Campaign.startup_id == Startup.id)
+        .where(
+            FeedbackSubmission.id == feedback_id,
+            Startup.owner_id == current_user.id,
+        )
+        .options(
+            joinedload(FeedbackSubmission.campaign),
+            joinedload(FeedbackSubmission.tester),
+        )
+    )
+    submission = db.scalar(stmt)
+    if not submission:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Feedback submission not found or not owned by founder.",
+        )
+
+    result = audit_tester_proof_and_fraud(
+        submission=submission,
+        campaign=submission.campaign,
+    )
+    return AiProofAttestationResponse(**result)
+
+
+

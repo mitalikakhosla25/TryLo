@@ -19,6 +19,7 @@ import {
   Sparkles,
   Flame,
   Mic,
+  Terminal,
 } from 'lucide-react';
 import { useAddTimestampedVideoNote, useVideoAiInsights } from '../../context/useFeedback';
 import type { TimestampedNote } from '../../api/feedback';
@@ -43,7 +44,8 @@ export const TimestampedVideoPlayer: React.FC<TimestampedVideoPlayerProps> = ({
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [notes, setNotes] = useState<TimestampedNote[]>(initialNotes);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
-  const [activeSideTab, setActiveSideTab] = useState<'notes' | 'ai_voice'>('notes');
+  const [activeSideTab, setActiveSideTab] = useState<'notes' | 'ai_voice' | 'telemetry'>('notes');
+  const [telemetryFilter, setTelemetryFilter] = useState<'all' | 'errors' | 'network'>('all');
 
   const { data: aiVideo } = useVideoAiInsights(feedbackId);
 
@@ -284,6 +286,45 @@ export const TimestampedVideoPlayer: React.FC<TimestampedVideoPlayerProps> = ({
               </div>
             )}
 
+            {/* Synchronized Live Telemetry Event Dots Track */}
+            {aiVideo?.telemetry_events && aiVideo.telemetry_events.length > 0 && (
+              <div className="space-y-1 pt-1 border-t border-[#DCE7E3]/60">
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="font-extrabold uppercase tracking-wider text-[#102A35] flex items-center gap-1">
+                    <Terminal className="h-3 w-3 text-[#07545A]" />
+                    <span>Synchronized Console &amp; Network Events</span>
+                  </span>
+                  <span className="text-[10px] text-[#52656B]">
+                    {aiVideo.telemetry_events.length} telemetry events synced
+                  </span>
+                </div>
+                <div className="relative h-2 bg-slate-800 rounded-full overflow-hidden flex items-center">
+                  {aiVideo.telemetry_events.map((evt, idx) => {
+                    const leftPct = duration > 0 ? (evt.timestamp_seconds / duration) * 100 : (idx + 1) * 20;
+                    const dotColor =
+                      evt.level === 'error'
+                        ? 'bg-rose-500'
+                        : evt.level === 'warn'
+                        ? 'bg-amber-400'
+                        : evt.event_type === 'network_request'
+                        ? 'bg-cyan-400'
+                        : 'bg-emerald-400';
+
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => seekTo(evt.timestamp_seconds)}
+                        title={`At ${evt.timestamp_display}: [${evt.level.toUpperCase()}] ${evt.message}`}
+                        className={`absolute -translate-x-1/2 h-full w-2.5 rounded-full ${dotColor} hover:scale-150 transition-transform cursor-pointer shadow-xs`}
+                        style={{ left: `${Math.min(98, Math.max(2, leftPct))}%` }}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Playback Controls & Speed */}
             <div className="flex items-center justify-between text-xs pt-1">
               <div className="flex items-center space-x-2">
@@ -373,6 +414,21 @@ export const TimestampedVideoPlayer: React.FC<TimestampedVideoPlayerProps> = ({
                   <span>AI Voice Track</span>
                   {aiVideo?.segments && (
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 ml-0.5 animate-pulse" />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveSideTab('telemetry')}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                    activeSideTab === 'telemetry'
+                      ? 'bg-[#07545A] text-white shadow-2xs'
+                      : 'text-[#52656B] hover:text-[#102A35]'
+                  }`}
+                >
+                  <Terminal className="h-3 w-3" />
+                  <span>Telemetry Replay</span>
+                  {aiVideo?.telemetry_events && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 ml-0.5" />
                   )}
                 </button>
               </div>
@@ -484,7 +540,104 @@ export const TimestampedVideoPlayer: React.FC<TimestampedVideoPlayerProps> = ({
                 </div>
               </div>
             )}
+
+            {/* TAB 3: Synchronized Live Telemetry Replay */}
+            {activeSideTab === 'telemetry' && (
+              <div className="space-y-2.5 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between pb-1 border-b border-[#DCE7E3]">
+                  <div className="inline-flex rounded-lg border border-[#DCE7E3] p-0.5 bg-[#FAF9F5]">
+                    {(['all', 'errors', 'network'] as const).map((filter) => (
+                      <button
+                        key={filter}
+                        type="button"
+                        onClick={() => setTelemetryFilter(filter)}
+                        className={`px-2 py-0.5 rounded-md text-[10px] font-bold capitalize transition-all cursor-pointer ${
+                          telemetryFilter === filter
+                            ? 'bg-[#07545A] text-white shadow-2xs'
+                            : 'text-[#52656B] hover:text-[#102A35]'
+                        }`}
+                      >
+                        {filter}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-[#52656B] font-mono">
+                    Live at {formatTime(currentTime)}
+                  </span>
+                </div>
+
+                {(!aiVideo?.telemetry_events || aiVideo.telemetry_events.length === 0) ? (
+                  <div className="py-8 text-center bg-[#FAFAFA] rounded-2xl border border-dashed border-[#DCE7E3] p-4 text-xs text-[#52656B]">
+                    No synchronized telemetry logs recorded for this video session.
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                    {aiVideo.telemetry_events
+                      .filter((evt) => {
+                        if (telemetryFilter === 'errors') return evt.level === 'error';
+                        if (telemetryFilter === 'network') return evt.event_type === 'network_request';
+                        return true;
+                      })
+                      .map((evt, idx) => {
+                        const isCurrent = Math.abs(evt.timestamp_seconds - currentTime) <= 2;
+                        return (
+                          <div
+                            key={idx}
+                            onClick={() => seekTo(evt.timestamp_seconds)}
+                            className={`p-2 rounded-xl border text-xs cursor-pointer transition-all ${
+                              isCurrent
+                                ? 'bg-cyan-50 border-cyan-400 shadow-xs ring-1 ring-cyan-400/40'
+                                : 'bg-[#0B132B] border-slate-800 hover:border-slate-700 text-slate-200'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-1 mb-1 font-mono">
+                              <span className={`inline-flex items-center space-x-1 font-bold text-[10px] px-1.5 py-0.2 rounded ${
+                                isCurrent ? 'bg-cyan-200 text-cyan-900' : 'bg-slate-800 text-slate-300'
+                              }`}>
+                                <Clock className="h-2.5 w-2.5" />
+                                <span>{evt.timestamp_display}</span>
+                              </span>
+
+                              <div className="flex items-center space-x-1.5">
+                                {evt.http_status && (
+                                  <span className={`px-1.5 py-0.2 rounded text-[9px] font-black ${
+                                    evt.http_status >= 400 ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+                                  }`}>
+                                    {evt.http_status}
+                                  </span>
+                                )}
+                                <span className={`px-1.5 py-0.2 rounded-full text-[8px] font-black uppercase tracking-wider ${
+                                  evt.level === 'error'
+                                    ? 'bg-rose-500 text-white'
+                                    : evt.level === 'warn'
+                                    ? 'bg-amber-400 text-slate-900'
+                                    : 'bg-cyan-500 text-white'
+                                }`}>
+                                  {evt.event_type.replace('_', ' ')}
+                                </span>
+                              </div>
+                            </div>
+
+                            <p className={`font-mono text-[11px] leading-tight break-all ${
+                              isCurrent ? 'text-cyan-950 font-bold' : evt.level === 'error' ? 'text-rose-300' : 'text-slate-300'
+                            }`}>
+                              {evt.message}
+                            </p>
+
+                            {evt.source_component && (
+                              <span className={`text-[9px] font-mono mt-0.5 block ${isCurrent ? 'text-cyan-800' : 'text-slate-500'}`}>
+                                src: {evt.source_component}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
+
 
           {/* Add Annotation Form */}
           <div className="bg-[#FAFAFA] p-3.5 rounded-2xl border border-[#DCE7E3] space-y-2.5">
