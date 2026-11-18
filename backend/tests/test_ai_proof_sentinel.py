@@ -96,3 +96,43 @@ def test_audit_tester_proof_gemini_mock(monkeypatch):
     assert res["overall_trust_score"] == 92
     assert "Google Gemini 1.5 Flash" in res["engine_used"]
     assert res["payout_status"] == "approve"
+
+
+def test_digital_certificate_hash_generation():
+    from app.api.feedback import _compute_digital_certificate_hash
+    from datetime import datetime, timezone
+    payout_id = uuid.uuid4()
+    feedback_id = uuid.uuid4()
+    utr = "483928172635"
+    amount = 25.0
+    now = datetime.now(timezone.utc)
+
+    hash_val = _compute_digital_certificate_hash(payout_id, feedback_id, utr, amount, now)
+    assert isinstance(hash_val, str)
+    assert len(hash_val) == 64  # SHA-256 hex digest length
+    # Deterministic
+    assert hash_val == _compute_digital_certificate_hash(payout_id, feedback_id, utr, amount, now)
+
+
+def test_payout_schemas():
+    from app.schemas.feedback import FeedbackPayoutReleaseRequest, FeedbackPayoutStatusResponse
+    req = FeedbackPayoutReleaseRequest(amount=50.0, notes="Bonus for finding critical exploit")
+    assert req.amount == 50.0
+    assert req.notes == "Bonus for finding critical exploit"
+
+    status_resp = FeedbackPayoutStatusResponse(
+        feedback_id=uuid.uuid4(),
+        is_disbursed=True,
+        payout_id=uuid.uuid4(),
+        reference_id="TRYLO-SENTINEL-20261118-ABC123",
+        utr_number="483928172635",
+        amount=25.0,
+        currency="INR",
+        digital_certificate_hash="a"*64,
+        tester_name="Alex Tester",
+        campaign_title="SuperApp Beta",
+    )
+    assert status_resp.is_disbursed is True
+    assert status_resp.utr_number == "483928172635"
+
+

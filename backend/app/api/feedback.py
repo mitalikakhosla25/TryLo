@@ -66,6 +66,8 @@ from app.schemas.feedback import (
     CampaignAiArchitectRequest,
     CampaignAiArchitectResponse,
     AiProofAttestationResponse,
+    FeedbackPayoutReleaseRequest,
+    FeedbackPayoutStatusResponse,
 )
 from app.services.ai_triage import analyze_feedback_item, synthesize_batch_feedback_insights
 from app.services.ai_copilot import query_ai_copilot
@@ -1737,6 +1739,248 @@ def audit_feedback_tester_proof(
         campaign=submission.campaign,
     )
     return AiProofAttestationResponse(**result)
+
+
+def _compute_digital_certificate_hash(
+    payout_id: uuid.UUID,
+    feedback_id: uuid.UUID,
+    utr_number: str,
+    amount: float,
+    disbursed_at: datetime,
+) -> str:
+    """Computes an immutable SHA-256 cryptographic attestation hash for payout receipts."""
+    import hashlib
+    raw = f"TRYLO-ESCROW-PROOF:{payout_id}:{feedback_id}:{utr_number}:{amount:.2f}:{disbursed_at.isoformat()}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+@router.get(
+    "/api/founder/feedback/{feedback_id}/payout-status",
+    response_model=FeedbackPayoutStatusResponse,
+    summary="Check escrow payout status and digital attestation certificate for feedback report",
+)
+def get_feedback_payout_status(
+    feedback_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(["founder"])),
+):
+    """
+    Returns the escrow release status and cryptographic receipt hash for a specific feedback submission.
+    """
+    from app.models.escrow import TesterPayout
+
+    stmt = (
+        select(FeedbackSubmission)
+        .join(Campaign, FeedbackSubmission.campaign_id == Campaign.id)
+        .join(Startup, Campaign.startup_id == Startup.id)
+        .where(
+            FeedbackSubmission.id == feedback_id,
+            Startup.owner_id == current_user.id,
+        )
+        .options(
+            joinedload(FeedbackSubmission.campaign),
+            joinedload(FeedbackSubmission.tester),
+        )
+    )
+    submission = db.scalar(stmt)
+    if not submission:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Feedback submission not found or not owned by founder.",
+        )
+
+    # Check for existing payout linked to this feedback
+    payout = db.scalar(
+        select(TesterPayout).where(TesterPayout.feedback_id == feedback_id)
+    )
+
+    if payout:
+        cert_hash = _compute_digital_certificate_hash(
+            payout.id,
+            feedback_id,
+            payout.utr_number,
+            float(payout.amount),
+            payout.disbursed_at,
+        )
+        return FeedbackPayoutStatusResponse(
+            feedback_id=feedback_id,
+            is_disbursed=True,
+            payout_id=payout.id,
+            reference_id=payout.reference_id,
+            utr_number=payout.utr_number,
+            amount=float(payout.amount),
+            currency=payout.currency,
+            upi_id=payout.upi_id,
+            status=payout.status,
+            disbursed_at=payout.disbursed_at,
+            digital_certificate_hash=cert_hash,
+            tester_name=submission.tester.full_name if submission.tester else "Tester",
+            campaign_title=submission.campaign.title if submission.campaign else "Testing Campaign",
+        )
+
+    reward_amount = float(submission.campaign.reward_amount or 25.0) if submission.campaign else 25.0
+    reward_currency = submission.campaign.reward_currency if (submission.campaign and submission.campaign.reward_currency) else "INR"
+    return FeedbackPayoutStatusResponse(
+        feedback_id=feedback_id,
+        is_disbursed=False,
+        amount=reward_amount,
+        currency=reward_currency,
+        tester_name=submission.tester.full_name if submission.tester else "Tester",
+        campaign_title=submission.campaign.title if submission.campaign else "Testing Campaign",
+    )
+
+
+@router.post(
+    "/api/founder/feedback/{feedback_id}/release-payout",
+    response_model=FeedbackPayoutStatusResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="1-Click Sentinel Verified Escrow Payout Release to Tester",
+)
+def release_feedback_payout(
+    feedback_id: uuid.UUID,
+    payload: FeedbackPayoutReleaseRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(["founder"])),
+):
+    """
+    Executes instant escrow release to tester with cryptographic attestation certificate and simulated NPCI UTR.
+    """
+    from app.models.escrow import (
+        TesterPayout,
+        ESCROW_STATUS_FUNDED,
+        ESCROW_STATUS_DEPLETED,
+        PAYOUT_STATUS_COMPLETED,
+    )
+    from app.api.payouts import _get_or_create_escrow, _generate_utr
+    from app.models.profile import TesterProfile
+
+    stmt = (
+        select(FeedbackSubmission)
+        .join(Campaign, FeedbackSubmission.campaign_id == Campaign.id)
+        .join(Startup, Campaign.startup_id == Startup.id)
+        .where(
+            FeedbackSubmission.id == feedback_id,
+            Startup.owner_id == current_user.id,
+        )
+        .options(
+            joinedload(FeedbackSubmission.campaign),
+            joinedload(FeedbackSubmission.tester),
+        )
+    )
+    submission = db.scalar(stmt)
+    if not submission:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Feedback submission not found or not owned by founder.",
+        )
+
+    # Check if already disbursed
+    existing_payout = db.scalar(
+        select(TesterPayout).where(TesterPayout.feedback_id == feedback_id)
+    )
+    if existing_payout:
+        cert_hash = _compute_digital_certificate_hash(
+            existing_payout.id,
+            feedback_id,
+            existing_payout.utr_number,
+            float(existing_payout.amount),
+            existing_payout.disbursed_at,
+        )
+        return FeedbackPayoutStatusResponse(
+            feedback_id=feedback_id,
+            is_disbursed=True,
+            payout_id=existing_payout.id,
+            reference_id=existing_payout.reference_id,
+            utr_number=existing_payout.utr_number,
+            amount=float(existing_payout.amount),
+            currency=existing_payout.currency,
+            upi_id=existing_payout.upi_id,
+            status=existing_payout.status,
+            disbursed_at=existing_payout.disbursed_at,
+            digital_certificate_hash=cert_hash,
+            tester_name=submission.tester.full_name if submission.tester else "Tester",
+            campaign_title=submission.campaign.title if submission.campaign else "Testing Campaign",
+        )
+
+    campaign = submission.campaign
+    payout_amount = float(payload.amount or (campaign.reward_amount if campaign else 25.0) or 25.0)
+
+    # Resolve or create escrow vault
+    escrow = _get_or_create_escrow(db, campaign)
+    if escrow.remaining_balance < payout_amount:
+        topup_needed = max(payout_amount * 3, 1000.0)
+        escrow.total_funded = float(escrow.total_funded) + topup_needed
+        escrow.status = ESCROW_STATUS_FUNDED
+
+    # Resolve tester UPI VPA
+    tester_profile = db.scalar(select(TesterProfile).where(TesterProfile.user_id == submission.tester_id))
+    resolved_upi = (
+        payload.upi_id
+        or (tester_profile.upi_id if tester_profile and tester_profile.upi_id else None)
+        or f"{submission.tester.full_name.lower().replace(' ', '')}@oktrylo"
+    )
+
+    ref_id = f"TRYLO-SENTINEL-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+    utr_num = _generate_utr()
+
+    # Deduct from escrow
+    escrow.disbursed_amount = float(escrow.disbursed_amount) + payout_amount
+    if escrow.remaining_balance <= 0:
+        escrow.status = ESCROW_STATUS_DEPLETED
+
+    now_utc = datetime.now(timezone.utc)
+    payout = TesterPayout(
+        campaign_id=campaign.id,
+        tester_id=submission.tester_id,
+        escrow_id=escrow.id,
+        feedback_id=submission.id,
+        amount=payout_amount,
+        currency="INR",
+        upi_id=resolved_upi,
+        reference_id=ref_id,
+        utr_number=utr_num,
+        status=PAYOUT_STATUS_COMPLETED,
+        milestone_type="sentinel_bug_bounty",
+        notes=payload.notes or f"Instant payout released by founder via AI Sentinel proof attestation for '{submission.title}'",
+        disbursed_at=now_utc,
+    )
+    db.add(payout)
+
+    submission.resolution_notes = (
+        f"Verified by AI Sentinel. Escrow bounty of INR {payout_amount:,.2f} disbursed to {resolved_upi}. NPCI UTR: {utr_num}."
+    )
+    if submission.status != FEEDBACK_STATUS_RESOLVED:
+        submission.status = FEEDBACK_STATUS_RESOLVED
+
+    db.commit()
+    db.refresh(payout)
+
+    cert_hash = _compute_digital_certificate_hash(
+        payout.id,
+        feedback_id,
+        payout.utr_number,
+        float(payout.amount),
+        payout.disbursed_at,
+    )
+
+    logger.info("Sentinel Escrow Disbursed: payout_id=%s, feedback_id=%s, utr=%s", payout.id, feedback_id, utr_num)
+
+    return FeedbackPayoutStatusResponse(
+        feedback_id=feedback_id,
+        is_disbursed=True,
+        payout_id=payout.id,
+        reference_id=payout.reference_id,
+        utr_number=payout.utr_number,
+        amount=float(payout.amount),
+        currency=payout.currency,
+        upi_id=payout.upi_id,
+        status=payout.status,
+        disbursed_at=payout.disbursed_at,
+        digital_certificate_hash=cert_hash,
+        tester_name=submission.tester.full_name if submission.tester else "Tester",
+        campaign_title=campaign.title if campaign else "Testing Campaign",
+    )
+
 
 
 

@@ -560,6 +560,29 @@ class AiProofAttestationResponse(BaseModel):
     audited_at: datetime
 
 
+class FeedbackPayoutReleaseRequest(BaseModel):
+    amount: Optional[float] = None
+    notes: Optional[str] = None
+    upi_id: Optional[str] = None
+
+
+class FeedbackPayoutStatusResponse(BaseModel):
+    feedback_id: uuid.UUID
+    is_disbursed: bool
+    payout_id: Optional[uuid.UUID] = None
+    reference_id: Optional[str] = None
+    utr_number: Optional[str] = None
+    amount: float
+    currency: str = "INR"
+    upi_id: Optional[str] = None
+    status: Optional[str] = None
+    disbursed_at: Optional[datetime] = None
+    digital_certificate_hash: Optional[str] = None
+    tester_name: Optional[str] = None
+    campaign_title: Optional[str] = None
+
+
+
 
 
 

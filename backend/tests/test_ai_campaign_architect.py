@@ -95,3 +95,4 @@ def test_architect_campaign_gemini_mock(monkeypatch):
     assert res["title"] == "SuperApp: AI Onboarding Sprints"
     assert "Google Gemini 1.5 Flash" in res["engine_used"]
     assert res["reward_amount"] == 30
+

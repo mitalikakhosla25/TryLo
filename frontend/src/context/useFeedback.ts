@@ -19,6 +19,10 @@ import {
   generateReleaseChangelog,
   getTesterProofAttestation,
   runTesterProofAttestation,
+  getFeedbackPayoutStatus,
+  releaseFeedbackPayout,
+  type FeedbackPayoutStatusResponse,
+  type FeedbackPayoutReleaseRequest,
   type SyntheticAuditResponse,
   type LaunchRoiSimulationRequest,
   type LaunchRoiSimulationResponse,
@@ -282,4 +286,29 @@ export function useRunTesterProofAttestation(feedbackId: string) {
     },
   });
 }
+
+export function useFeedbackPayoutStatus(feedbackId: string | undefined) {
+  const { user } = useAuth();
+  const isFounder = user?.role === 'founder';
+  return useQuery<FeedbackPayoutStatusResponse, Error>({
+    queryKey: ['feedback', feedbackId, 'payout-status'],
+    queryFn: () => getFeedbackPayoutStatus(feedbackId!),
+    enabled: !!user && isFounder && !!feedbackId,
+    staleTime: 30000,
+  });
+}
+
+export function useReleaseFeedbackPayout(feedbackId: string) {
+  const queryClient = useQueryClient();
+  return useMutation<FeedbackPayoutStatusResponse, Error, FeedbackPayoutReleaseRequest | undefined>({
+    mutationFn: (payload) => releaseFeedbackPayout(feedbackId, payload || {}),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['feedback', feedbackId, 'payout-status'], data);
+      queryClient.invalidateQueries({ queryKey: ['feedback', feedbackId] });
+      queryClient.invalidateQueries({ queryKey: ['founder-feedback'] });
+      queryClient.invalidateQueries({ queryKey: ['escrow-overview'] });
+    },
+  });
+}
+
 

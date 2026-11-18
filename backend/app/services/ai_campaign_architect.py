@@ -365,3 +365,4 @@ Output strictly valid JSON with no markdown backticks, conforming to:
         return data
     except Exception:
         return None
+

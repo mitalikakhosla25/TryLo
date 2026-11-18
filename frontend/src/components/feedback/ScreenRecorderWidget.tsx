@@ -20,6 +20,9 @@ import {
   UploadCloud,
   Loader2,
   Film,
+  Flag,
+  Activity,
+  Volume2,
 } from 'lucide-react';
 import { uploadFeedbackVideo, type TimestampedNote } from '../../api/feedback';
 
@@ -48,7 +51,17 @@ export const ScreenRecorderWidget: React.FC<ScreenRecorderWidgetProps> = ({
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Timestamped Notes added during preview review
+  // Live Telemetry & Mic Waveform state
+  const [audioLevel, setAudioLevel] = useState<number>(0);
+  const [clickCount, setClickCount] = useState<number>(0);
+  const [liveBookmarks, setLiveBookmarks] = useState<number[]>([]);
+  const [lastFlaggedMsg, setLastFlaggedMsg] = useState<string | null>(null);
+
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animFrameRef = useRef<number | null>(null);
+
+  // Timestamped Notes added during preview review or live recording
   const [timestampedNotes, setTimestampedNotes] = useState<TimestampedNote[]>([]);
   const [newNoteText, setNewNoteText] = useState<string>('');
   const [newNoteTag, setNewNoteTag] = useState<string>('repro_step');
@@ -58,6 +71,16 @@ export const ScreenRecorderWidget: React.FC<ScreenRecorderWidgetProps> = ({
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
+
+  // Track user clicks during recording session
+  useEffect(() => {
+    if (recordingState === 'recording') {
+      const handleClick = () => setClickCount((prev) => prev + 1);
+      window.addEventListener('click', handleClick);
+      return () => window.removeEventListener('click', handleClick);
+    }
+  }, [recordingState]);
+
 
   // Timer effect for live recording elapsed time
   useEffect(() => {
@@ -85,6 +108,8 @@ export const ScreenRecorderWidget: React.FC<ScreenRecorderWidgetProps> = ({
   const startRecording = async () => {
     setErrorMessage(null);
     setElapsedSeconds(0);
+    setClickCount(0);
+    setLiveBookmarks([]);
     chunksRef.current = [];
 
     try {
@@ -98,11 +123,13 @@ export const ScreenRecorderWidget: React.FC<ScreenRecorderWidgetProps> = ({
 
       let finalStream = displayStream;
 
-      // 2. Mix microphone audio if enabled
+      // 2. Mix microphone audio & attach Live Audio Meter if enabled
       if (includeMic) {
         try {
           const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          const audioContext = new AudioContext();
+          const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+          const audioContext = new AudioContextClass();
+          audioContextRef.current = audioContext;
           const destination = audioContext.createMediaStreamDestination();
 
           if (displayStream.getAudioTracks().length > 0) {
@@ -111,7 +138,28 @@ export const ScreenRecorderWidget: React.FC<ScreenRecorderWidgetProps> = ({
           }
 
           const micSource = audioContext.createMediaStreamSource(micStream);
+          const analyser = audioContext.createAnalyser();
+          analyser.fftSize = 64;
+          analyserRef.current = analyser;
+
+          micSource.connect(analyser);
           micSource.connect(destination);
+
+          // Audio level animation loop
+          const dataArray = new Uint8Array(analyser.frequencyBinCount);
+          const checkLevel = () => {
+            if (analyserRef.current) {
+              analyserRef.current.getByteFrequencyData(dataArray);
+              let sum = 0;
+              for (let i = 0; i < dataArray.length; i++) {
+                sum += dataArray[i];
+              }
+              const avg = sum / dataArray.length;
+              setAudioLevel(Math.min(100, Math.round((avg / 120) * 100)));
+              animFrameRef.current = requestAnimationFrame(checkLevel);
+            }
+          };
+          checkLevel();
 
           finalStream = new MediaStream([
             ...displayStream.getVideoTracks(),
@@ -184,13 +232,28 @@ export const ScreenRecorderWidget: React.FC<ScreenRecorderWidgetProps> = ({
     }
   };
 
+  const cleanupAudioAnalyser = () => {
+    if (animFrameRef.current) {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = null;
+    }
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
+    }
+    analyserRef.current = null;
+    setAudioLevel(0);
+  };
+
   const stopRecording = () => {
+    cleanupAudioAnalyser();
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
   };
 
   const resetRecording = () => {
+    cleanupAudioAnalyser();
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
     }
@@ -199,9 +262,28 @@ export const ScreenRecorderWidget: React.FC<ScreenRecorderWidgetProps> = ({
     setPreviewUrl(null);
     setUploadedUrl(null);
     setElapsedSeconds(0);
+    setClickCount(0);
+    setLiveBookmarks([]);
+    setLastFlaggedMsg(null);
     setTimestampedNotes([]);
     setErrorMessage(null);
     if (onClear) onClear();
+  };
+
+  const handleFlagLiveBookmark = (tag: string = 'repro_step') => {
+    const noteObj: TimestampedNote = {
+      id: Math.random().toString(36).slice(2, 9),
+      timestamp_seconds: elapsedSeconds,
+      timestamp_display: formatTime(elapsedSeconds),
+      note: `Bug spotted during live test (at ${formatTime(elapsedSeconds)})`,
+      tag,
+    };
+    setTimestampedNotes((prev) => [...prev, noteObj].sort((a, b) => a.timestamp_seconds - b.timestamp_seconds));
+    setLiveBookmarks((prev) => [...prev, elapsedSeconds]);
+    setLastFlaggedMsg(`Bug flagged at ${formatTime(elapsedSeconds)}!`);
+    setTimeout(() => {
+      setLastFlaggedMsg(null);
+    }, 2500);
   };
 
   const handleUploadAndSave = async () => {
@@ -332,7 +414,8 @@ export const ScreenRecorderWidget: React.FC<ScreenRecorderWidgetProps> = ({
 
       {/* STATE 2: RECORDING OR PAUSED */}
       {(recordingState === 'recording' || recordingState === 'paused') && (
-        <div className="p-5 bg-white rounded-xl border border-[#DCE7E3] space-y-4">
+        <div className="p-5 bg-white rounded-xl border border-[#DCE7E3] space-y-4 shadow-sm">
+          {/* Header Bar */}
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2.5">
               <span className="relative flex h-3 w-3">
@@ -341,9 +424,14 @@ export const ScreenRecorderWidget: React.FC<ScreenRecorderWidgetProps> = ({
                 )}
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-600" />
               </span>
-              <span className="text-xs font-bold text-[#102A35]">
-                {recordingState === 'recording' ? 'Recording in progress...' : 'Recording paused'}
-              </span>
+              <div>
+                <span className="text-xs font-bold text-[#102A35]">
+                  {recordingState === 'recording' ? 'Live Screen & Audio Recording' : 'Recording Paused'}
+                </span>
+                <span className="block text-[10px] text-[#52656B]">
+                  Streaming telemetry, audio waveform &amp; user actions in real-time
+                </span>
+              </div>
             </div>
 
             <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-[#F6F5ED] text-xs font-mono font-bold text-[#102A35] border border-[#DCE7E3]">
@@ -352,6 +440,82 @@ export const ScreenRecorderWidget: React.FC<ScreenRecorderWidgetProps> = ({
             </div>
           </div>
 
+          {/* LIVE TELEMETRY HUD BAR */}
+          <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+              <div className="flex items-center space-x-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-bold">
+                  Live Telemetry HUD
+                </span>
+              </div>
+              <div className="flex items-center space-x-2 text-[11px] font-mono text-slate-300">
+                <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700">
+                  {typeof window !== 'undefined' ? `${window.innerWidth}×${window.innerHeight}` : '1920×1080'}
+                </span>
+                <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 flex items-center space-x-1">
+                  <Activity className="h-3 w-3 text-cyan-400" />
+                  <span>{clickCount} clicks</span>
+                </span>
+                <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 flex items-center space-x-1">
+                  <Flag className="h-3 w-3 text-amber-400" />
+                  <span>{liveBookmarks.length} flagged</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Mic Audio Meter & Waveform Bar */}
+            {includeMic && (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
+                  <div className="flex items-center space-x-1.5">
+                    <Volume2 className="h-3.5 w-3.5 text-emerald-400" />
+                    <span>Microphone Stream Volume</span>
+                  </div>
+                  <span>{audioLevel}% dB</span>
+                </div>
+                <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden p-0.5 border border-slate-700 flex items-center">
+                  <div
+                    className={`h-full rounded-full transition-all duration-100 ${
+                      audioLevel > 70
+                        ? 'bg-rose-500'
+                        : audioLevel > 35
+                        ? 'bg-amber-400'
+                        : audioLevel > 5
+                        ? 'bg-emerald-400'
+                        : 'bg-slate-600'
+                    }`}
+                    style={{ width: `${Math.max(4, audioLevel)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Live Bookmark Action & Toast */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => handleFlagLiveBookmark('repro_step')}
+                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-600 text-slate-950 transition-colors shadow-xs cursor-pointer"
+                >
+                  <Flag className="h-3.5 w-3.5" />
+                  <span>Flag Bug at {formatTime(elapsedSeconds)}</span>
+                </button>
+                {lastFlaggedMsg && (
+                  <span className="text-[11px] font-mono text-emerald-400 animate-fade-in flex items-center space-x-1">
+                    <CheckCircle2 className="h-3.5 w-3.5 inline" />
+                    <span>{lastFlaggedMsg}</span>
+                  </span>
+                )}
+              </div>
+              <span className="text-[10px] text-slate-400 italic">
+                Clicks on your screen are automatically captured with timestamps
+              </span>
+            </div>
+          </div>
+
+          {/* Recording Controls */}
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             {recordingState === 'recording' ? (
               <button
@@ -360,7 +524,7 @@ export const ScreenRecorderWidget: React.FC<ScreenRecorderWidgetProps> = ({
                 className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-full text-xs font-semibold bg-white border border-[#DCE7E3] text-[#102A35] hover:bg-[#F6F5ED] transition-colors cursor-pointer"
               >
                 <Pause className="h-3.5 w-3.5 text-amber-600" />
-                <span>Pause</span>
+                <span>Pause Recording</span>
               </button>
             ) : (
               <button
@@ -369,7 +533,7 @@ export const ScreenRecorderWidget: React.FC<ScreenRecorderWidgetProps> = ({
                 className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-full text-xs font-semibold bg-white border border-[#DCE7E3] text-[#102A35] hover:bg-[#F6F5ED] transition-colors cursor-pointer"
               >
                 <Play className="h-3.5 w-3.5 text-teal-700" />
-                <span>Resume</span>
+                <span>Resume Recording</span>
               </button>
             )}
 
@@ -379,7 +543,7 @@ export const ScreenRecorderWidget: React.FC<ScreenRecorderWidgetProps> = ({
               className="inline-flex items-center space-x-1.5 px-5 py-2 rounded-full text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors cursor-pointer"
             >
               <Square className="h-3.5 w-3.5 fill-current" />
-              <span>Finish Recording</span>
+              <span>Finish &amp; Review Proof</span>
             </button>
           </div>
         </div>

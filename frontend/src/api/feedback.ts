@@ -775,3 +775,56 @@ export async function runTesterProofAttestation(
   );
 }
 
+export interface FeedbackPayoutStatusResponse {
+  feedback_id: string;
+  is_disbursed: boolean;
+  payout_id?: string | null;
+  reference_id?: string | null;
+  utr_number?: string | null;
+  amount: number;
+  currency: string;
+  upi_id?: string | null;
+  status?: string | null;
+  disbursed_at?: string | null;
+  digital_certificate_hash?: string | null;
+  tester_name?: string | null;
+  campaign_title?: string | null;
+}
+
+export interface FeedbackPayoutReleaseRequest {
+  amount?: number;
+  notes?: string;
+  upi_id?: string;
+}
+
+/**
+ * Fetch current payout & escrow status for a feedback submission
+ */
+export async function getFeedbackPayoutStatus(
+  feedbackId: string
+): Promise<FeedbackPayoutStatusResponse> {
+  return apiClient<FeedbackPayoutStatusResponse>(
+    `/api/founder/feedback/${feedbackId}/payout-status`,
+    {
+      method: 'GET',
+    }
+  );
+}
+
+/**
+ * 1-Click Escrow Payout Disbursal to tester via AI Sentinel Attestation
+ */
+export async function releaseFeedbackPayout(
+  feedbackId: string,
+  payload: FeedbackPayoutReleaseRequest = {}
+): Promise<FeedbackPayoutStatusResponse> {
+  return apiClient<FeedbackPayoutStatusResponse>(
+    `/api/founder/feedback/${feedbackId}/release-payout`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+
