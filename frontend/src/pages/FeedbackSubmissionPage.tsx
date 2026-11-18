@@ -12,6 +12,7 @@ import {
 import { useCampaignTasks, useSubmitFeedback } from '../context/useTasks';
 import type { FeedbackType, BugSeverity, TimestampedNote } from '../api/tasks';
 import { ScreenRecorderWidget } from '../components/feedback/ScreenRecorderWidget';
+import { AiFeedbackQualityMeter } from '../components/feedback/AiFeedbackQualityMeter';
 
 export const FeedbackSubmissionPage: React.FC = () => {
   const { campaignId } = useParams<{ campaignId: string }>();
@@ -95,6 +96,22 @@ export const FeedbackSubmissionPage: React.FC = () => {
       const msg = errObj.response?.data?.detail || errObj.message || 'Failed to submit feedback.';
       setErrorMessage(typeof msg === 'string' ? msg : JSON.stringify(msg));
     }
+  };
+
+  const handleApplyPolished = (polished: {
+    title: string;
+    description: string;
+    reproductionSteps?: string;
+    expectedBehavior?: string;
+    actualBehavior?: string;
+    severity?: BugSeverity;
+  }) => {
+    if (polished.title) setTitle(polished.title);
+    if (polished.description) setDescription(polished.description);
+    if (polished.reproductionSteps !== undefined) setReproductionSteps(polished.reproductionSteps);
+    if (polished.expectedBehavior !== undefined) setExpectedBehavior(polished.expectedBehavior);
+    if (polished.actualBehavior !== undefined) setActualBehavior(polished.actualBehavior);
+    if (polished.severity) setSeverity(polished.severity);
   };
 
   const resetForm = () => {
@@ -420,6 +437,18 @@ export const FeedbackSubmissionPage: React.FC = () => {
                 onClear={() => setVideoData(null)}
               />
             </div>
+
+            {/* AI Feedback Quality Meter & 1-Click Auto-Polisher */}
+            <AiFeedbackQualityMeter
+              title={title}
+              description={description}
+              reproductionSteps={reproductionSteps}
+              expectedBehavior={expectedBehavior}
+              actualBehavior={actualBehavior}
+              hasVideo={!!videoData}
+              feedbackType={feedbackType}
+              onApplyPolished={handleApplyPolished}
+            />
 
             {/* Form Actions */}
             <div className="pt-4 border-t border-[#DCE7E3] flex items-center justify-between">

@@ -54,6 +54,10 @@ from app.schemas.feedback import (
     AiVideoIntelligenceResponse,
     AiRetestProtocolResponse,
     AiIssueExportResponse,
+    FeedbackQualityEvaluationRequest,
+    FeedbackQualityEvaluationResponse,
+    FeedbackPolishRequest,
+    FeedbackPolishResponse,
 )
 from app.services.ai_triage import analyze_feedback_item, synthesize_batch_feedback_insights
 from app.services.ai_copilot import query_ai_copilot
@@ -189,6 +193,59 @@ def submit_campaign_feedback(
         created_at=submission.created_at,
         updated_at=submission.updated_at,
     )
+
+
+@router.post(
+    "/api/tester/feedback/quality-assessment",
+    response_model=FeedbackQualityEvaluationResponse,
+    summary="Evaluate tester feedback quality and return real-time 0-100 score and tips",
+)
+def assess_tester_feedback_quality(
+    payload: FeedbackQualityEvaluationRequest,
+    current_user: User = Depends(require_role(["tester"])),
+):
+    """
+    Evaluates real-time feedback draft quality:
+    - Calculates quality score (0-100)
+    - Returns criteria pass/fail checklist
+    - Suggests actionable tips to improve reporting clarity
+    """
+    from app.services.ai_feedback_polisher import evaluate_feedback_quality
+    result = evaluate_feedback_quality(
+        title=payload.title,
+        description=payload.description,
+        reproduction_steps=payload.reproduction_steps,
+        expected_behavior=payload.expected_behavior,
+        actual_behavior=payload.actual_behavior,
+        has_video=payload.has_video,
+        feedback_type=payload.feedback_type,
+    )
+    return FeedbackQualityEvaluationResponse(**result)
+
+
+@router.post(
+    "/api/tester/feedback/polish-report",
+    response_model=FeedbackPolishResponse,
+    summary="Auto-polish raw tester feedback into structured, engineer-ready bug report",
+)
+def auto_polish_tester_feedback(
+    payload: FeedbackPolishRequest,
+    current_user: User = Depends(require_role(["tester"])),
+):
+    """
+    Transforms rough colloquial tester notes into professional,
+    step-by-step reproduction instructions and structured expectations.
+    """
+    from app.services.ai_feedback_polisher import polish_feedback_report
+    result = polish_feedback_report(
+        title=payload.title,
+        description=payload.description,
+        reproduction_steps=payload.reproduction_steps,
+        expected_behavior=payload.expected_behavior,
+        actual_behavior=payload.actual_behavior,
+        feedback_type=payload.feedback_type,
+    )
+    return FeedbackPolishResponse(**result)
 
 
 @router.get(

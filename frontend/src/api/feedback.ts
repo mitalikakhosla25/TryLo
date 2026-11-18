@@ -516,3 +516,77 @@ export async function exportFeedbackTicket(
     }
   );
 }
+
+export interface FeedbackQualityChecklistItem {
+  criterion: string;
+  passed: boolean;
+  points: number;
+  hint: string;
+}
+
+export interface FeedbackQualityEvaluationRequest {
+  title: string;
+  description: string;
+  reproduction_steps?: string | null;
+  expected_behavior?: string | null;
+  actual_behavior?: string | null;
+  has_video?: boolean;
+  feedback_type?: string;
+}
+
+export interface FeedbackQualityEvaluationResponse {
+  score: number;
+  quality_tier: 'needs_detail' | 'good' | 'stellar';
+  summary_label: string;
+  checklist: FeedbackQualityChecklistItem[];
+  tips: string[];
+}
+
+export interface FeedbackPolishRequest {
+  title: string;
+  description: string;
+  reproduction_steps?: string | null;
+  expected_behavior?: string | null;
+  actual_behavior?: string | null;
+  feedback_type?: string;
+}
+
+export interface FeedbackPolishResponse {
+  polished_title: string;
+  polished_description: string;
+  polished_reproduction_steps: string;
+  polished_expected_behavior: string;
+  polished_actual_behavior: string;
+  suggested_severity: 'low' | 'medium' | 'high' | 'critical';
+  engine_used: string;
+}
+
+/**
+ * Real-time AI quality scoring and checklist evaluation for tester feedback drafts
+ */
+export async function evaluateFeedbackQuality(
+  payload: FeedbackQualityEvaluationRequest
+): Promise<FeedbackQualityEvaluationResponse> {
+  return apiClient<FeedbackQualityEvaluationResponse>(
+    '/api/tester/feedback/quality-assessment',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+/**
+ * Auto-polish rough tester draft into structured, engineer-ready reproduction steps
+ */
+export async function polishFeedbackReport(
+  payload: FeedbackPolishRequest
+): Promise<FeedbackPolishResponse> {
+  return apiClient<FeedbackPolishResponse>(
+    '/api/tester/feedback/polish-report',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }
+  );
+}

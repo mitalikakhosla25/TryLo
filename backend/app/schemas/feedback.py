@@ -350,6 +350,50 @@ class AiIssueExportResponse(BaseModel):
     generated_at: datetime
 
 
+class FeedbackQualityChecklistItem(BaseModel):
+    criterion: str
+    passed: bool
+    points: int
+    hint: str
+
+
+class FeedbackQualityEvaluationRequest(BaseModel):
+    title: str = ""
+    description: str = ""
+    reproduction_steps: Optional[str] = None
+    expected_behavior: Optional[str] = None
+    actual_behavior: Optional[str] = None
+    has_video: bool = False
+    feedback_type: str = "bug_report"
+
+
+class FeedbackQualityEvaluationResponse(BaseModel):
+    score: int
+    quality_tier: str
+    summary_label: str
+    checklist: List[FeedbackQualityChecklistItem]
+    tips: List[str]
+
+
+class FeedbackPolishRequest(BaseModel):
+    title: str = ""
+    description: str = ""
+    reproduction_steps: Optional[str] = None
+    expected_behavior: Optional[str] = None
+    actual_behavior: Optional[str] = None
+    feedback_type: str = "bug_report"
+
+
+class FeedbackPolishResponse(BaseModel):
+    polished_title: str
+    polished_description: str
+    polished_reproduction_steps: str
+    polished_expected_behavior: str
+    polished_actual_behavior: str
+    suggested_severity: str
+    engine_used: str
+
+
 
 
 

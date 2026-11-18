@@ -118,3 +118,4 @@ def generate_text_with_gemini(
             exc,
         )
         return None
+
