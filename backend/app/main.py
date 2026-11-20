@@ -17,6 +17,7 @@ from app.api.feedback import router as feedback_router
 from app.api.startup_verification import router as startup_verification_router
 from app.api.tester_verification import router as tester_verification_router
 from app.api.payouts import router as payouts_router
+from app.api.free_payments import router as free_payments_router
 from app.db.base import Base
 from app.db.session import get_engine
 
@@ -70,6 +71,7 @@ app.include_router(feedback_router)
 app.include_router(startup_verification_router)
 app.include_router(tester_verification_router)
 app.include_router(payouts_router)
+app.include_router(free_payments_router)
 
 
 @app.get("/")

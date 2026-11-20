@@ -16,6 +16,10 @@ import {
   TrendingUp,
   Receipt,
   Download,
+  QrCode,
+  Smartphone,
+  Sparkles,
+  ExternalLink,
 } from 'lucide-react';
 import {
   useCampaignEscrow,
@@ -23,8 +27,16 @@ import {
   useDisbursePayout,
   useCampaignEscrowAnalytics,
 } from '../../context/usePayouts';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCampaignApplications } from '../../context/useApplications';
 import { downloadCampaignPayoutsCsv, type PayoutResponse } from '../../api/payouts';
+import {
+  createUpiIntent,
+  verifyUtrAndFund,
+  simulateSandboxPayment,
+  type UpiIntentResponse,
+} from '../../api/freePayments';
+import { UpiQrCode } from '../ui/UpiQrCode';
 import { DonutChart, BarVelocityChart } from '../ui/ChartWidgets';
 
 interface EscrowVaultModalProps {
@@ -44,6 +56,7 @@ export const EscrowVaultModal: React.FC<EscrowVaultModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'actions' | 'analytics' | 'report'>('actions');
 
+  const queryClient = useQueryClient();
   const { data: escrow, isLoading: isLoadingEscrow } = useCampaignEscrow(campaignId);
   const { data: analytics, isLoading: isLoadingAnalytics } = useCampaignEscrowAnalytics(campaignId);
   const { mutateAsync: fundEscrow, isPending: isFunding } = useFundCampaignEscrow(campaignId);
@@ -52,8 +65,19 @@ export const EscrowVaultModal: React.FC<EscrowVaultModalProps> = ({
 
   // Deposit Form State
   const [depositAmount, setDepositAmount] = useState<number>(rewardAmount ? rewardAmount * 5 : 5000);
+  const [depositMode, setDepositMode] = useState<'upi_direct' | 'sandbox'>('upi_direct');
+  const [utrInput, setUtrInput] = useState<string>('');
+  const [payerVpaInput, setPayerVpaInput] = useState<string>('');
+  const [isVerifyingUtr, setIsVerifyingUtr] = useState<boolean>(false);
+  const [receiptCert, setReceiptCert] = useState<{ certificate_id: string; sha256_hash: string } | null>(null);
   const [depositSuccess, setDepositSuccess] = useState<string | null>(null);
   const [depositError, setDepositError] = useState<string | null>(null);
+
+  // Dynamic NPCI UPI URI string
+  const payeeVpa = 'trylo.escrow@okhdfcbank';
+  const payeeName = 'TryLo Trust Escrow Vault';
+  const sanitizedTitle = (campaignTitle || 'Campaign Escrow').replace(/[^a-zA-Z0-9 ]/g, '').slice(0, 24);
+  const upiIntentUri = `upi://pay?pa=${payeeVpa}&pn=${encodeURIComponent(payeeName)}&am=${depositAmount.toFixed(2)}&cu=INR&tn=${encodeURIComponent(sanitizedTitle)}&mc=5411`;
 
   // Disbursal Form State
   const [selectedTesterId, setSelectedTesterId] = useState<string>('');
@@ -88,6 +112,74 @@ export const EscrowVaultModal: React.FC<EscrowVaultModalProps> = ({
       setDepositAmount(0);
     } catch (err: unknown) {
       setDepositError(err instanceof Error ? err.message : 'Failed to deposit into escrow.');
+    }
+  };
+
+  const handleVerifyUtr = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setDepositError(null);
+    setDepositSuccess(null);
+    setReceiptCert(null);
+
+    const cleanUtr = utrInput.trim();
+    if (!cleanUtr || cleanUtr.length !== 12 || !/^\d+$/.test(cleanUtr)) {
+      setDepositError('NPCI UTR must be exactly 12 numeric digits (from GPay / PhonePe / Paytm receipt).');
+      return;
+    }
+    if (depositAmount <= 0) {
+      setDepositError('Deposit amount must be greater than 0.');
+      return;
+    }
+
+    try {
+      setIsVerifyingUtr(true);
+      const res = await verifyUtrAndFund({
+        campaign_id: campaignId,
+        utr_number: cleanUtr,
+        amount: depositAmount,
+        payer_vpa: payerVpaInput.trim() || undefined,
+      });
+      setDepositSuccess(res.message);
+      setReceiptCert(res.receipt_certificate);
+      setUtrInput('');
+      // Invalidate escrow queries
+      queryClient.invalidateQueries({ queryKey: ['campaign-escrow', campaignId] });
+      queryClient.invalidateQueries({ queryKey: ['campaign-escrow-analytics', campaignId] });
+      queryClient.invalidateQueries({ queryKey: ['founder-escrow-overview'] });
+    } catch (err: unknown) {
+      setDepositError(err instanceof Error ? err.message : 'Failed to verify UTR and fund escrow.');
+    } finally {
+      setIsVerifyingUtr(false);
+    }
+  };
+
+  const handleSandboxDeposit = async () => {
+    setDepositError(null);
+    setDepositSuccess(null);
+    setReceiptCert(null);
+
+    if (depositAmount <= 0) {
+      setDepositError('Deposit amount must be greater than 0.');
+      return;
+    }
+
+    try {
+      setIsVerifyingUtr(true);
+      const res = await simulateSandboxPayment({
+        campaign_id: campaignId,
+        amount: depositAmount,
+        simulated_method: 'UPI_SIMULATED',
+        test_vpa_or_card: 'founder@okhdfcbank',
+      });
+      setDepositSuccess(res.message);
+      setReceiptCert(res.receipt_certificate);
+      queryClient.invalidateQueries({ queryKey: ['campaign-escrow', campaignId] });
+      queryClient.invalidateQueries({ queryKey: ['campaign-escrow-analytics', campaignId] });
+      queryClient.invalidateQueries({ queryKey: ['founder-escrow-overview'] });
+    } catch (err: unknown) {
+      setDepositError(err instanceof Error ? err.message : 'Sandbox deposit failed.');
+    } finally {
+      setIsVerifyingUtr(false);
     }
   };
 
@@ -320,20 +412,32 @@ export const EscrowVaultModal: React.FC<EscrowVaultModalProps> = ({
           {/* TAB 1: ACTIONS & DISBURSAL */}
           {activeTab === 'actions' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Section 1: Fund Escrow */}
+              {/* Section 1: Fund Escrow (100% Free UPI & Developer Sandbox) */}
               <div className="bg-[#FAFAFA] rounded-2xl p-5 border border-[#DCE7E3] space-y-4">
-                <div className="flex items-center space-x-2 text-sm font-bold text-[#102A35]">
-                  <Coins className="h-4 w-4 text-[#087C80]" />
-                  <span>Deposit / Top-up Escrow Vault</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-sm font-bold text-[#102A35]">
+                    <Coins className="h-4 w-4 text-[#087C80]" />
+                    <span>Deposit / Top-up Escrow Vault</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                    100% Free • 0% MDR
+                  </span>
                 </div>
                 <p className="text-xs text-[#52656B]">
-                  Lock bounty funds into TryLo trust escrow. Funds are reserved exclusively for accepted testers.
+                  Lock bounty funds into TryLo trust escrow via direct NPCI UPI protocol. Zero payment gateway fees, zero transaction commission.
                 </p>
 
                 {depositSuccess && (
-                  <div className="p-3 rounded-xl bg-[#E6F4F1] border border-[#BCE1D8] text-[#07545A] text-xs flex items-center space-x-2">
-                    <CheckCircle2 className="h-4 w-4 shrink-0" />
-                    <span>{depositSuccess}</span>
+                  <div className="p-3 rounded-xl bg-[#E6F4F1] border border-[#BCE1D8] text-[#07545A] text-xs space-y-1">
+                    <div className="flex items-center space-x-2 font-bold">
+                      <CheckCircle2 className="h-4 w-4 shrink-0" />
+                      <span>{depositSuccess}</span>
+                    </div>
+                    {receiptCert && (
+                      <p className="text-[10px] font-mono opacity-80 pl-6 truncate">
+                        Audit Cert: {receiptCert.certificate_id}
+                      </p>
+                    )}
                   </div>
                 )}
                 {depositError && (
@@ -343,54 +447,168 @@ export const EscrowVaultModal: React.FC<EscrowVaultModalProps> = ({
                   </div>
                 )}
 
-                <form onSubmit={handleFund} className="space-y-3">
-                  <div>
-                    <label className="block text-[11px] font-bold text-[#102A35] mb-1">
-                      Deposit Amount (₹ INR)
-                    </label>
-                    <div className="relative">
-                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-xs text-[#52656B]">₹</span>
-                      <input
-                        type="number"
-                        min="100"
-                        step="100"
-                        value={depositAmount || ''}
-                        onChange={(e) => setDepositAmount(Number(e.target.value))}
-                        className="w-full pl-7 pr-3 py-2 bg-white border border-[#DCE7E3] rounded-xl text-xs text-[#102A35] focus:outline-none focus:ring-2 focus:ring-[#087C80]/30"
-                        placeholder="Enter amount"
-                        required
-                      />
-                    </div>
+                {/* Payment Mode Selector */}
+                <div className="grid grid-cols-2 gap-2 bg-[#F6F5ED] p-1 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setDepositMode('upi_direct')}
+                    className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
+                      depositMode === 'upi_direct'
+                        ? 'bg-white text-[#07545A] shadow-xs'
+                        : 'text-[#52656B] hover:text-[#102A35]'
+                    }`}
+                  >
+                    <Smartphone className="h-3.5 w-3.5" />
+                    <span>Direct NPCI UPI</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDepositMode('sandbox')}
+                    className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
+                      depositMode === 'sandbox'
+                        ? 'bg-white text-[#07545A] shadow-xs'
+                        : 'text-[#52656B] hover:text-[#102A35]'
+                    }`}
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    <span>Free Sandbox</span>
+                  </button>
+                </div>
+
+                {/* Amount Input & Preset Chips */}
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-bold text-[#102A35]">
+                    Deposit Amount (₹ INR)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-xs text-[#52656B]">₹</span>
+                    <input
+                      type="number"
+                      min="100"
+                      step="100"
+                      value={depositAmount || ''}
+                      onChange={(e) => setDepositAmount(Number(e.target.value))}
+                      className="w-full pl-7 pr-3 py-2 bg-white border border-[#DCE7E3] rounded-xl text-xs text-[#102A35] focus:outline-none focus:ring-2 focus:ring-[#087C80]/30"
+                      placeholder="Enter amount"
+                      required
+                    />
                   </div>
 
-                  {/* Quick Preset Chips */}
+                  {/* Preset Chips */}
                   <div className="flex gap-2">
                     {[1000, 5000, 10000].map((amt) => (
                       <button
                         key={amt}
                         type="button"
                         onClick={() => setDepositAmount(amt)}
-                        className="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-white border border-[#DCE7E3] hover:border-[#087C80] text-[#102A35] transition-colors"
+                        className="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-white border border-[#DCE7E3] hover:border-[#087C80] text-[#102A35] transition-colors cursor-pointer"
                       >
                         +₹{amt.toLocaleString()}
                       </button>
                     ))}
                   </div>
+                </div>
 
-                  <div className="p-2.5 rounded-xl bg-white border border-[#DCE7E3] flex items-center space-x-2 text-[11px] text-[#52656B]">
-                    <CreditCard className="h-3.5 w-3.5 text-[#087C80]" />
-                    <span>Simulated Mode: Sandbox Netbanking / UPI</span>
+                {/* MODE 1: DIRECT NPCI UPI QR & INTENT */}
+                {depositMode === 'upi_direct' && (
+                  <div className="space-y-4 pt-2 border-t border-[#DCE7E3]/60">
+                    <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-3.5 rounded-2xl border border-[#DCE7E3]">
+                      <UpiQrCode value={upiIntentUri} size={130} />
+                      <div className="space-y-2 text-center sm:text-left flex-1">
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] font-bold text-[#52656B] uppercase tracking-wider">
+                            Scan with Any UPI App
+                          </span>
+                          <p className="text-xs font-bold text-[#102A35]">
+                            GPay, PhonePe, Paytm, BHIM, Cred
+                          </p>
+                          <p className="text-[11px] font-mono text-[#07545A]">
+                            {payeeVpa}
+                          </p>
+                        </div>
+
+                        <a
+                          href={upiIntentUri}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          <span>Pay ₹{depositAmount.toLocaleString()} in UPI App</span>
+                        </a>
+                      </div>
+                    </div>
+
+                    {/* Step 2: Confirm 12-Digit UTR */}
+                    <form onSubmit={handleVerifyUtr} className="space-y-2.5">
+                      <div>
+                        <label className="block text-[11px] font-bold text-[#102A35] mb-1">
+                          Confirm NPCI 12-Digit Bank UTR Number
+                        </label>
+                        <input
+                          type="text"
+                          maxLength={12}
+                          value={utrInput}
+                          onChange={(e) => setUtrInput(e.target.value.replace(/\D/g, ''))}
+                          placeholder="e.g. 428134587851 (from payment receipt)"
+                          className="w-full px-3 py-2 bg-white border border-[#DCE7E3] rounded-xl text-xs font-mono text-[#102A35] focus:outline-none focus:ring-2 focus:ring-[#087C80]/30"
+                          required
+                        />
+                      </div>
+
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={payerVpaInput}
+                          onChange={(e) => setPayerVpaInput(e.target.value)}
+                          placeholder="Your UPI ID (optional, e.g. name@okhdfcbank)"
+                          className="flex-1 px-3 py-1.5 bg-white border border-[#DCE7E3] rounded-xl text-xs text-[#102A35] focus:outline-none"
+                        />
+                        <button
+                          type="submit"
+                          disabled={isVerifyingUtr || utrInput.length !== 12}
+                          className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#07545A] hover:bg-[#087C80] disabled:opacity-50 transition-colors flex items-center space-x-1.5 cursor-pointer shadow-sm shrink-0"
+                        >
+                          {isVerifyingUtr ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                          )}
+                          <span>Verify & Credit Vault</span>
+                        </button>
+                      </div>
+                    </form>
                   </div>
+                )}
 
-                  <button
-                    type="submit"
-                    disabled={isFunding || depositAmount <= 0}
-                    className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-[#07545A] hover:bg-[#087C80] transition-colors disabled:opacity-50 flex items-center justify-center space-x-2 cursor-pointer shadow-sm"
-                  >
-                    {isFunding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Coins className="h-4 w-4" />}
-                    <span>Lock ₹{(depositAmount || 0).toLocaleString()} in Escrow</span>
-                  </button>
-                </form>
+                {/* MODE 2: FREE DEVELOPER SANDBOX */}
+                {depositMode === 'sandbox' && (
+                  <div className="space-y-3 pt-2 border-t border-[#DCE7E3]/60">
+                    <div className="p-3 rounded-xl bg-[#E6F4F1] border border-[#BCE1D8] space-y-1 text-xs text-[#07545A]">
+                      <p className="font-bold flex items-center space-x-1.5">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        <span>Developer Test Sandbox (Zero Cost)</span>
+                      </p>
+                      <p className="text-[11px] opacity-80">
+                        Simulates instant NPCI settlement, generates an attested 12-digit UTR, and credits the campaign vault immediately for testing.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleSandboxDeposit}
+                      disabled={isVerifyingUtr || depositAmount <= 0}
+                      className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-[#07545A] hover:bg-[#087C80] transition-colors disabled:opacity-50 flex items-center justify-center space-x-2 cursor-pointer shadow-sm"
+                    >
+                      {isVerifyingUtr ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Coins className="h-4 w-4" />
+                      )}
+                      <span>1-Click Deposit ₹{(depositAmount || 0).toLocaleString()} (Sandbox)</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Section 2: Disburse Payout */}

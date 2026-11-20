@@ -2,7 +2,7 @@
 
 import uuid
 import logging
-from typing import List, Optional
+from typing import List, Optional, Union
 from urllib.parse import urlparse
 import jwt
 from fastapi import Request, Depends, HTTPException, status
@@ -110,14 +110,17 @@ def get_current_user(
     return user
 
 
-def require_role(allowed_roles: List[str]):
+def require_role(allowed_roles: Union[List[str], str]):
     """
     Factory creating a dependency that verifies the authenticated user possesses
-    one of the allowed platform roles.
+    one of the allowed platform roles. Accepts either a single role string (e.g. 'founder')
+    or a list of allowed roles (e.g. ['founder', 'admin']).
     Raises HTTP 403 Forbidden if user lacks necessary permissions.
     """
+    roles_list = [allowed_roles] if isinstance(allowed_roles, str) else list(allowed_roles)
+
     def role_checker(current_user: User = Depends(get_current_user)) -> User:
-        if current_user.role not in allowed_roles:
+        if current_user.role not in roles_list:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Access forbidden: role '{current_user.role}' is not authorized for this resource.",

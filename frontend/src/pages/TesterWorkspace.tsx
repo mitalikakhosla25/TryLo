@@ -12,6 +12,7 @@ import { useTesterEarnings, useUpdateTesterUpi } from '../context/usePayouts';
 import { useTesterTasks, useMyFeedback } from '../context/useTasks';
 import { useMyApplications } from '../context/useApplications';
 import { usePublicCampaigns } from '../context/useCampaigns';
+import { validateUpiVpa, type VpaValidationResponse } from '../api/freePayments';
 import {
   ShieldCheck,
   LogOut,
@@ -85,6 +86,23 @@ export const TesterWorkspace: React.FC = () => {
   const resolvedFeedbackCount = feedbackItems.filter((f) => f.status === 'resolved').length;
   const inReviewFeedbackCount = feedbackItems.filter((f) => f.status === 'in_review' || f.status === 'submitted').length;
   const completedAssignmentsCount = activeAssignments.filter((a) => a.assignment_status === 'completed').length;
+
+  // Free NPCI UPI Validation State
+  const [vpaValidation, setVpaValidation] = useState<VpaValidationResponse | null>(null);
+  const [isValidatingVpa, setIsValidatingVpa] = useState<boolean>(false);
+
+  const handleValidateCurrentVpa = async (vpaToTest?: string) => {
+    const target = vpaToTest || earnings?.saved_upi_id || 'tester.official@paytm';
+    try {
+      setIsValidatingVpa(true);
+      const res = await validateUpiVpa(target);
+      setVpaValidation(res);
+    } catch {
+      // Ignore error for offline resilience
+    } finally {
+      setIsValidatingVpa(false);
+    }
+  };
 
   const handleSaveInlineUpi = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -293,17 +311,37 @@ export const TesterWorkspace: React.FC = () => {
                 <Coins className="h-4 w-4" />
               </div>
               <div>
-                <span className="text-[#52656B]">Settlement UPI VPA: </span>
-                <span className="font-mono font-bold text-[#102A35]">
-                  {earnings?.saved_upi_id || 'tester.official@paytm'}
-                </span>
-                <span className="text-[10px] text-emerald-700 font-bold ml-2 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                  Instant Auto-Disbursal Active
-                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[#52656B]">Settlement UPI VPA: </span>
+                  <span className="font-mono font-bold text-[#102A35]">
+                    {earnings?.saved_upi_id || 'tester.official@paytm'}
+                  </span>
+                  <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                    Instant Auto-Disbursal Active
+                  </span>
+                  {vpaValidation?.is_valid && (
+                    <span className="text-[10px] text-teal-800 font-bold bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200 flex items-center space-x-1">
+                      <CheckCircle2 className="h-3 w-3 text-teal-600" />
+                      <span>{vpaValidation.bank} ({vpaValidation.app})</span>
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
-            {!isEditingUpiInline ? (
+            <div className="flex items-center space-x-3">
+              <button
+                type="button"
+                onClick={() => handleValidateCurrentVpa()}
+                disabled={isValidatingVpa}
+                className="text-[11px] font-semibold text-[#087C80] hover:underline cursor-pointer flex items-center space-x-1"
+                title="Verify UPI ID via Free NPCI Bank Directory"
+              >
+                <ShieldCheck className="h-3.5 w-3.5" />
+                <span>{isValidatingVpa ? 'Verifying...' : 'Verify NPCI VPA'}</span>
+              </button>
+
+              {!isEditingUpiInline ? (
               <button
                 type="button"
                 onClick={() => {
