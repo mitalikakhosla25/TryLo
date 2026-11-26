@@ -170,6 +170,16 @@ class FeedbackSubmission(Base):
         nullable=True,
         default=None,
     )
+    ai_analysis_status: Mapped[str] = mapped_column(
+        sa.String(30),
+        nullable=False,
+        default="pending",
+        index=True,
+    )
+    ai_analyzed_at: Mapped[Optional[datetime]] = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         sa.DateTime(timezone=True),
         nullable=False,
@@ -198,6 +208,12 @@ class FeedbackSubmission(Base):
         back_populates="feedback",
         cascade="all, delete-orphan",
         order_by="FeedbackStatusHistory.created_at.asc()",
+    )
+    ai_jobs: Mapped[list["AIAnalysisJob"]] = relationship(
+        "AIAnalysisJob",
+        back_populates="feedback",
+        cascade="all, delete-orphan",
+        order_by="AIAnalysisJob.created_at.asc()",
     )
 
     def __repr__(self) -> str:
@@ -326,3 +342,219 @@ ALLOWED_TRANSITIONS: dict[str, list[str]] = {
         FEEDBACK_STATUS_IN_REVIEW,  # Reopen
     ],
 }
+
+
+class AIAnalysisJob(Base):
+    """
+    SQLAlchemy 2.x AIAnalysisJob entity.
+    Tracks asynchronous, durable AI feedback triaging tasks with retry,
+    backoff, and deduplication states.
+    """
+    __tablename__ = "ai_analysis_jobs"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        sa.Uuid,
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    feedback_id: Mapped[uuid.UUID] = mapped_column(
+        sa.Uuid,
+        sa.ForeignKey("feedback_submissions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    campaign_id: Mapped[uuid.UUID] = mapped_column(
+        sa.Uuid,
+        sa.ForeignKey("campaigns.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    job_type: Mapped[str] = mapped_column(
+        sa.String(50),
+        nullable=False,
+        default="individual_triage",
+    )
+    status: Mapped[str] = mapped_column(
+        sa.String(30),
+        nullable=False,
+        default="pending",
+        index=True,
+    )
+    attempts: Mapped[int] = mapped_column(
+        sa.Integer,
+        nullable=False,
+        default=0,
+    )
+    max_attempts: Mapped[int] = mapped_column(
+        sa.Integer,
+        nullable=False,
+        default=3,
+    )
+    last_error: Mapped[Optional[str]] = mapped_column(
+        sa.Text,
+        nullable=True,
+    )
+    scheduled_at: Mapped[datetime] = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        server_default=sa.func.now(),
+        index=True,
+    )
+    lease_expires_at: Mapped[Optional[datetime]] = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=True,
+        index=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        server_default=sa.func.now(),
+        index=True,
+    )
+    started_at: Mapped[Optional[datetime]] = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=True,
+    )
+    completed_at: Mapped[Optional[datetime]] = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=True,
+    )
+
+    # Relationships
+    feedback: Mapped["FeedbackSubmission"] = relationship("FeedbackSubmission", back_populates="ai_jobs")
+    campaign: Mapped["Campaign"] = relationship("Campaign")
+
+    def __repr__(self) -> str:
+        return f"<AIAnalysisJob id={self.id!r} feedback_id={self.feedback_id!r} status={self.status!r}>"
+
+
+class CampaignAiSynthesis(Base):
+    """
+    SQLAlchemy 2.x CampaignAiSynthesis entity.
+    Stores versioned campaign-wide intelligence syntheses, tracking the exact
+    feedback snapshot analyzed, release readiness score, and outdated status.
+    """
+    __tablename__ = "campaign_ai_synthesis"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        sa.Uuid,
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    campaign_id: Mapped[uuid.UUID] = mapped_column(
+        sa.Uuid,
+        sa.ForeignKey("campaigns.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    version: Mapped[int] = mapped_column(
+        sa.Integer,
+        nullable=False,
+        default=1,
+    )
+    is_outdated: Mapped[bool] = mapped_column(
+        sa.Boolean,
+        nullable=False,
+        default=False,
+        index=True,
+    )
+    total_reports_analyzed: Mapped[int] = mapped_column(
+        sa.Integer,
+        nullable=False,
+        default=0,
+    )
+    feedback_ids_snapshot: Mapped[List[str]] = mapped_column(
+        JsonListType,
+        nullable=False,
+        default=list,
+    )
+    release_readiness_score: Mapped[int] = mapped_column(
+        sa.Integer,
+        nullable=False,
+        default=100,
+    )
+    release_readiness_verdict: Mapped[str] = mapped_column(
+        sa.String(50),
+        nullable=False,
+        default="READY FOR RELEASE",
+    )
+    critical_blocker: Mapped[Optional[dict]] = mapped_column(
+        JsonStructureType,
+        nullable=True,
+    )
+    top_prioritized_actions: Mapped[List[dict]] = mapped_column(
+        JsonListType,
+        nullable=False,
+        default=list,
+    )
+    duplicate_clusters: Mapped[List[dict]] = mapped_column(
+        JsonListType,
+        nullable=False,
+        default=list,
+    )
+    recurring_issues: Mapped[List[dict]] = mapped_column(
+        JsonListType,
+        nullable=False,
+        default=list,
+    )
+    device_browser_patterns: Mapped[Optional[dict]] = mapped_column(
+        JsonStructureType,
+        nullable=True,
+    )
+    severity_distribution: Mapped[Optional[dict]] = mapped_column(
+        JsonStructureType,
+        nullable=True,
+    )
+    recommendations: Mapped[List[dict]] = mapped_column(
+        JsonListType,
+        nullable=False,
+        default=list,
+    )
+    executive_summary_markdown: Mapped[str] = mapped_column(
+        sa.Text,
+        nullable=False,
+        default="",
+    )
+    unified_pr_brief_markdown: Mapped[str] = mapped_column(
+        sa.Text,
+        nullable=False,
+        default="",
+    )
+    provider: Mapped[str] = mapped_column(
+        sa.String(50),
+        nullable=False,
+        default="Local Offline Engine",
+    )
+    model: Mapped[str] = mapped_column(
+        sa.String(100),
+        nullable=False,
+        default="trylo-deterministic-nlp",
+    )
+    synthesized_at: Mapped[datetime] = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        server_default=sa.func.now(),
+        index=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        server_default=sa.func.now(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        server_default=sa.func.now(),
+    )
+
+    campaign: Mapped["Campaign"] = relationship("Campaign")
+
+    def __repr__(self) -> str:
+        return f"<CampaignAiSynthesis id={self.id!r} campaign_id={self.campaign_id!r} v={self.version} outdated={self.is_outdated}>"
+

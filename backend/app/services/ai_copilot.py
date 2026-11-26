@@ -128,12 +128,13 @@ def query_ai_copilot(
             f"High Friction Issues: {high_count}\n\n"
             f"Top Relevant Reports:\n{reports_summary}\n\n"
             f"Founder Query: \"{clean_query}\"\n\n"
-            "Provide an insightful, direct, technical and product synthesis answering the founder inquiry. "
-            "Format your answer in clear GitHub markdown with headings and bullet points. Do not use decorative emojis."
+            "Provide an insightful, clear, and direct product synthesis answering the founder inquiry. "
+            "Write in simple, human-friendly, professional English that is immediately understandable. "
+            "Use clear section titles, direct recommendations, and short bullet points. Do not include excessive markup characters."
         )
         system_instruction = (
             "You are TryLo AI, an expert software testing and product triage co-pilot for startup founders. "
-            "Give actionable, technical root cause insights based on real tester feedback."
+            "Explain technical root causes and recommendations clearly and simply so any founder or product manager can understand them instantly."
         )
         llm_answer = generate_text_with_gemini(llm_prompt, system_instruction=system_instruction)
         if llm_answer:
@@ -141,7 +142,7 @@ def query_ai_copilot(
                 "query": clean_query,
                 "answer_markdown": llm_answer,
                 "key_takeaways": [
-                    f"Analyzed {total_submissions} reports with Google Gemini 1.5 Flash.",
+                    f"Analyzed {total_submissions} reports with TryLo AI Intelligence.",
                     f"Identified {len(top_matches)} directly relevant feedback submissions.",
                     f"{critical_count} critical blockers flagged in this campaign.",
                 ],

@@ -15,6 +15,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_current_user, require_role
+from app.core.config import settings
 from app.core.slug import generate_unique_campaign_slug
 from app.db.session import get_db
 from app.models.application import CampaignApplication

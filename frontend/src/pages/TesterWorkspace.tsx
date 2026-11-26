@@ -19,28 +19,18 @@ import {
   Sparkles,
   ArrowRight,
   Edit3,
-  MapPin,
-  ExternalLink,
   CheckCircle2,
   ClipboardList,
   ListChecks,
-  MessageSquare,
   Coins,
   Bug,
   Video,
-  Clock,
-  AlertTriangle,
   Check,
   Copy,
-  ChevronRight,
-  Play,
   FileCheck,
-  Activity,
   Award,
-  Zap,
+  Play,
   RotateCcw,
-  Search,
-  Filter,
 } from 'lucide-react';
 import type { TesterProfile } from '../api/profile';
 import { TesterTierBadge } from '../components/ui/VerificationBadge';
@@ -54,10 +44,10 @@ export const TesterWorkspace: React.FC = () => {
   const { profileData } = useProfile();
   const { data: earnings } = useTesterEarnings();
   const { mutateAsync: updateUpi, isPending: isUpdatingUpi } = useUpdateTesterUpi();
-  const { data: tasksData, isLoading: isTasksLoading } = useTesterTasks();
-  const { data: feedbackData, isLoading: isFeedbackLoading } = useMyFeedback();
-  const { data: applications, isLoading: isAppsLoading } = useMyApplications();
-  const { data: publicCampaignsData } = usePublicCampaigns();
+  const { data: tasksData } = useTesterTasks();
+  const { data: feedbackData } = useMyFeedback();
+  const { data: applications } = useMyApplications();
+  const { data: _publicCampaignsData } = usePublicCampaigns();
 
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
   const [showEarningsModal, setShowEarningsModal] = useState<boolean>(false);
@@ -78,14 +68,12 @@ export const TesterWorkspace: React.FC = () => {
   const activeAssignments = tasksData?.items || [];
   const feedbackItems = feedbackData?.items || [];
   const myApps = applications || [];
-  const recommendedCampaigns = publicCampaignsData?.items?.slice(0, 3) || [];
 
   // Metric Computations
   const totalCompletedTasks = activeAssignments.reduce((acc, curr) => acc + (curr.completed_tasks || 0), 0);
   const totalTasks = activeAssignments.reduce((acc, curr) => acc + (curr.total_tasks || 0), 0);
   const resolvedFeedbackCount = feedbackItems.filter((f) => f.status === 'resolved').length;
   const inReviewFeedbackCount = feedbackItems.filter((f) => f.status === 'in_review' || f.status === 'submitted').length;
-  const completedAssignmentsCount = activeAssignments.filter((a) => a.assignment_status === 'completed').length;
 
   // Free NPCI UPI Validation State
   const [vpaValidation, setVpaValidation] = useState<VpaValidationResponse | null>(null);
@@ -385,6 +373,7 @@ export const TesterWorkspace: React.FC = () => {
               <span>{upiToast}</span>
             </div>
           )}
+        </div>
         </div>
 
         {/* INTERACTIVE NAVIGATION TABS */}

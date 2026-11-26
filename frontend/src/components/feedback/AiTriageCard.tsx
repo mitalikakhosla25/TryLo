@@ -180,6 +180,31 @@ export const AiTriageCard: React.FC<AiTriageCardProps> = ({ feedback }) => {
       ) : (
         /* Triage Analysis Results */
         <div className="space-y-5">
+          {/* Engine & Status Banner */}
+          <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-2xl bg-[#F6F5ED] border border-[#DCE7E3] text-xs">
+            <div className="flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full ${triage.engine_metadata?.is_live_llm ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+              <span className="font-bold text-[#102A35]">
+                {triage.engine_metadata?.is_live_llm ? 'TryLo AI Engine' : (triage.engine_metadata?.provider || 'Local Offline Engine')}
+              </span>
+              {triage.engine_metadata?.fallback_used && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                  Heuristic Fallback
+                </span>
+              )}
+            </div>
+            {triage.gemini_hypotheses && (
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#E6F4F1] text-[#07545A] border border-[#BCE1D8]">
+                  {triage.gemini_hypotheses.suggested_priority} • {triage.gemini_hypotheses.bug_category}
+                </span>
+                <span className="text-[11px] font-semibold text-[#52656B]">
+                  {Math.round(triage.gemini_hypotheses.confidence_score * 100)}% Confidence
+                </span>
+              </div>
+            )}
+          </div>
+
           {/* Top Metric Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {/* Fix Complexity */}
@@ -261,6 +286,60 @@ export const AiTriageCard: React.FC<AiTriageCardProps> = ({ feedback }) => {
               {triage.suggested_fix}
             </p>
           </div>
+
+          {/* Gemini Hypotheses & Evidence */}
+          {triage.gemini_hypotheses && triage.gemini_hypotheses.root_cause_hypotheses.length > 1 && (
+            <div className="p-4 rounded-2xl bg-white border border-[#DCE7E3] space-y-2">
+              <span className="text-[10px] font-bold text-[#52656B] uppercase tracking-wider block">
+                Secondary Root Cause Hypotheses
+              </span>
+              <ul className="list-disc pl-4 space-y-1 text-xs text-[#52656B]">
+                {triage.gemini_hypotheses.root_cause_hypotheses.slice(1).map((h, i) => (
+                  <li key={i}>{h}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {triage.gemini_hypotheses && triage.gemini_hypotheses.supporting_evidence.length > 0 && (
+            <div className="p-4 rounded-2xl bg-[#FAFAFA] border border-[#DCE7E3] space-y-2">
+              <span className="text-[10px] font-bold text-[#52656B] uppercase tracking-wider block">
+                Tester Citations &amp; Supporting Evidence
+              </span>
+              <ul className="space-y-1 text-xs text-[#52656B]">
+                {triage.gemini_hypotheses.supporting_evidence.map((ev, i) => (
+                  <li key={i} className="italic text-[#102A35] bg-white p-2 rounded-lg border border-[#EFEFE5]">
+                    &ldquo;{ev}&rdquo;
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {triage.gemini_hypotheses && triage.gemini_hypotheses.recommended_debugging_steps.length > 0 && (
+            <div className="p-4 rounded-2xl bg-white border border-[#DCE7E3] space-y-2">
+              <span className="text-[10px] font-bold text-[#52656B] uppercase tracking-wider block">
+                Recommended Debugging Checklist
+              </span>
+              <ul className="space-y-1.5 text-xs text-[#52656B]">
+                {triage.gemini_hypotheses.recommended_debugging_steps.map((step, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <span className="w-4 h-4 rounded bg-[#E6F4F1] text-[#07545A] font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">
+                      {i + 1}
+                    </span>
+                    <span className="text-[#102A35]">{step}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {triage.gemini_hypotheses?.uncertainty_notes && (
+            <div className="p-3 rounded-xl bg-amber-50/60 border border-amber-200/80 text-[11px] text-amber-900 flex items-start gap-2">
+              <span className="font-bold shrink-0">Note:</span>
+              <span>{triage.gemini_hypotheses.uncertainty_notes}</span>
+            </div>
+          )}
 
           {/* Duplicate Detection Section */}
           <div className="space-y-2 pt-1">

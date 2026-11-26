@@ -23,13 +23,13 @@ def run_synthetic_persona_audit(
     """Execute pre-flight synthetic persona testing across campaign instructions."""
     title = campaign.title or "Beta Testing Campaign"
     description = campaign.description or "No campaign description provided."
-    tasks = campaign.tasks if isinstance(campaign.tasks, list) else []
+    tasks = getattr(campaign, "testing_tasks", None) or getattr(campaign, "tasks", []) or []
     task_titles = [t.get("title", "") for t in tasks if isinstance(t, dict)]
     audience = campaign.target_audience or "General public"
 
     # Check for live Gemini generation
     if is_gemini_configured():
-        llm_audit = _run_gemini_synthetic_audit(title, description, task_titles, audience)
+        llm_audit = _run_gemini_synthetic_audit(campaign.id, title, description, task_titles, audience)
         if llm_audit:
             return llm_audit
 
@@ -153,12 +153,13 @@ def _run_heuristic_synthetic_audit(
             f"Core flows are stable across mobile and desktop environments. "
             f"Primary focus areas: debounce rapid button clicks to prevent duplicate requests, and ensure technical jargon is simplified for non-technical testers."
         ),
-        "engine_used": "TryLo Local Synthetic Persona Engine",
+        "engine_used": "TryLo Persona Simulation Engine",
         "generated_at": datetime.now(timezone.utc),
     }
 
 
 def _run_gemini_synthetic_audit(
+    campaign_id: uuid.UUID,
     title: str,
     description: str,
     task_titles: List[str],
@@ -190,8 +191,8 @@ PERSONA_MORGAN: <score>/100 | <observations> | BUG: <title> (<severity>)"""
         return None
 
     # Use the structured heuristic layout augmented with live Gemini executive insights
-    base = _run_heuristic_synthetic_audit(uuid.uuid4(), title, description, task_titles, audience)
+    base = _run_heuristic_synthetic_audit(campaign_id, title, description, task_titles, audience)
     base["executive_summary"] = response[:600]
-    base["engine_used"] = "Google Gemini 1.5 Flash (Synthetic Simulation)"
+    base["engine_used"] = "TryLo Frontier AI Simulation"
     return base
 

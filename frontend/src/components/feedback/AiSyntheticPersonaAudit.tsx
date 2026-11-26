@@ -37,8 +37,8 @@ export const AiSyntheticPersonaAudit: React.FC<AiSyntheticPersonaAuditProps> = (
       setAuditData(res);
       setIsOpen(true);
     } catch (err: unknown) {
-      const errObj = err as { response?: { data?: { detail?: string } }; message?: string };
-      setErrorMessage(errObj.response?.data?.detail || errObj.message || 'Failed to run synthetic audit.');
+      const msg = err instanceof Error ? err.message : 'Failed to run synthetic audit.';
+      setErrorMessage(msg);
     }
   };
 

@@ -288,7 +288,7 @@ test('Reproduce Checkout Modal Crash on Payment Confirmation', async ({ page }) 
           <div className="pt-4 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center space-x-2 text-xs text-gray-300">
               <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
-              <span>Zero external subscriptions required &bull; Free tier Google Gemini or offline local intelligence</span>
+              <span>Zero external subscriptions required &bull; Advanced TryLo AI or offline local intelligence</span>
             </div>
 
             <Link

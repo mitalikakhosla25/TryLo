@@ -28,6 +28,7 @@ import { useFounderAnalyticsOverview } from '../context/useCampaigns';
 import { useFounderEscrowOverview } from '../context/usePayouts';
 import { downloadFounderPayoutsCsv } from '../api/payouts';
 import { DonutChart } from '../components/ui/ChartWidgets';
+import { FounderAiCopilotDrawer } from '../components/feedback/FounderAiCopilotDrawer';
 
 export const FounderWorkspace: React.FC = () => {
   const { user, logout } = useAuth();
@@ -629,6 +630,9 @@ export const FounderWorkspace: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Floating Ask TryLo AI Co-Pilot Assistant */}
+      <FounderAiCopilotDrawer />
     </div>
   );
 };

@@ -54,6 +54,8 @@ from app.models.feedback import (
     FeedbackInternalNote,
     FeedbackStatusHistory,
     ALLOWED_TRANSITIONS,
+    AIAnalysisJob,
+    CampaignAiSynthesis,
 )
 from app.models.escrow import (
     CampaignEscrow,
@@ -153,6 +155,8 @@ __all__ = [
     "FeedbackInternalNote",
     "FeedbackStatusHistory",
     "ALLOWED_TRANSITIONS",
+    "AIAnalysisJob",
+    "CampaignAiSynthesis",
     "CampaignEscrow",
     "TesterPayout",
     "ESCROW_STATUS_UNFUNDED",

@@ -21,6 +21,9 @@ import {
   runTesterProofAttestation,
   getFeedbackPayoutStatus,
   releaseFeedbackPayout,
+  getCampaignAiSynthesis,
+  resynthesizeCampaignAi,
+  type CampaignAiSynthesis,
   type FeedbackPayoutStatusResponse,
   type FeedbackPayoutReleaseRequest,
   type SyntheticAuditResponse,
@@ -173,6 +176,39 @@ export function useGenerateExecutiveFeedbackSynthesis() {
     onSuccess: (_, campaignId) => {
       queryClient.invalidateQueries({
         queryKey: ['executive-feedback-synthesis', campaignId || 'all'],
+      });
+      queryClient.invalidateQueries({ queryKey: ['founder-feedback'] });
+    },
+  });
+}
+
+export function useCampaignAiSynthesis(campaignId?: string) {
+  const { user } = useAuth();
+  const isFounder = user?.role === 'founder';
+
+  return useQuery<CampaignAiSynthesis, Error>({
+    queryKey: ['campaign-ai-synthesis', campaignId],
+    queryFn: () => {
+      if (!campaignId) throw new Error('Campaign ID required');
+      return getCampaignAiSynthesis(campaignId);
+    },
+    enabled: !!user && isFounder && !!campaignId,
+    staleTime: 30000,
+    retry: 1,
+  });
+}
+
+export function useResynthesizeCampaignAi() {
+  const queryClient = useQueryClient();
+
+  return useMutation<CampaignAiSynthesis, Error, string>({
+    mutationFn: (campaignId) => resynthesizeCampaignAi(campaignId),
+    onSuccess: (_, campaignId) => {
+      queryClient.invalidateQueries({
+        queryKey: ['campaign-ai-synthesis', campaignId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['executive-feedback-synthesis', campaignId],
       });
       queryClient.invalidateQueries({ queryKey: ['founder-feedback'] });
     },

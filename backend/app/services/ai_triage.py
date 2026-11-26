@@ -6,15 +6,27 @@ developer tickets formatted for GitHub Issues and Linear.
 """
 
 import re
+import json
 import uuid
+import logging
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional, Tuple
 
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
+from app.core.config import settings
 from app.models.feedback import FeedbackSubmission
 from app.models.user import User
+from app.services.llm_gateway import is_gemini_configured, generate_json_with_gemini
+from app.schemas.feedback import (
+    TesterProvidedFacts,
+    HeuristicClassification,
+    GeminiHypotheses,
+    AiEngineMetadata,
+)
+
+logger = logging.getLogger(__name__)
 
 
 TECHNICAL_PATTERNS = [
@@ -107,13 +119,97 @@ def calculate_text_similarity(tokens1: set[str], tokens2: set[str]) -> float:
     return len(intersection) / len(union) if union else 0.0
 
 
+def _run_gemini_individual_analysis(
+    tester_facts: TesterProvidedFacts,
+    heuristic: HeuristicClassification,
+) -> Optional[GeminiHypotheses]:
+    """Execute live Gemini reasoning for structured individual feedback analysis."""
+    if not is_gemini_configured():
+        return None
+
+    facts_dict = {
+        "title": tester_facts.title,
+        "description": tester_facts.description,
+        "reproduction_steps": tester_facts.reproduction_steps or "None provided",
+        "expected_behavior": tester_facts.expected_behavior or "None provided",
+        "actual_behavior": tester_facts.actual_behavior or "None provided",
+        "reported_severity": tester_facts.reported_severity or "unspecified",
+        "device_environment": tester_facts.device_info or {},
+        "has_video_proof": tester_facts.has_video_proof,
+    }
+
+    prompt = f"""You are TryLo AI Senior QA & Reliability Architect.
+Analyze the following tester-submitted feedback item.
+
+TESTER PROVIDED FACTS:
+{json.dumps(facts_dict, indent=2)}
+
+RULE-BASED HEURISTIC CONTEXT:
+- Matched Pattern: {heuristic.matched_pattern or 'None'}
+- Rule Category: {heuristic.rule_category}
+- Base Complexity: {heuristic.rule_complexity}
+- Technical Tags: {', '.join(heuristic.rule_tags)}
+
+CRITICAL COMPLIANCE RULES:
+1. Treat all findings as HYPOTHESES, not verified diagnoses.
+2. NEVER invent logs, stack traces, browser versions, error codes, or reproduction results not stated above.
+3. Cite direct phrases from the tester in 'supporting_evidence'.
+4. Explicitly distinguish what is known from what is speculative in 'uncertainty_notes'.
+5. Output strictly a JSON object conforming to this schema:
+{{
+  "bug_category": "<functional_bug|ui_layout|performance|security_auth|crash_freeze|billing_payment|usability>",
+  "suggested_severity": "<low|medium|high|critical>",
+  "suggested_priority": "<P0|P1|P2|P3>",
+  "root_cause_hypotheses": ["<primary hypothesis>", "<secondary hypothesis>"],
+  "supporting_evidence": ["<quote or direct observation from tester report>"],
+  "affected_components": ["<e.g. CheckoutModal, AuthMiddleware, LayoutContainer>"],
+  "device_browser_observations": ["<observations regarding device or browser>"],
+  "recommended_debugging_steps": ["<step 1>", "<step 2>"],
+  "suggested_engineering_fixes": ["<fix 1>", "<fix 2>"],
+  "confidence_score": 0.85,
+  "uncertainty_notes": "<explicit note on what information is missing to confirm>"
+}}"""
+
+    system_instruction = (
+        "You are an expert QA and systems engineer. Output strictly valid JSON. "
+        "Do not hallucinate details or invent reproduction results."
+    )
+
+    try:
+        raw_json = generate_json_with_gemini(
+            prompt=prompt,
+            system_instruction=system_instruction,
+            timeout_seconds=15.0,
+        )
+        if not raw_json or not isinstance(raw_json, dict):
+            return None
+
+        conf = float(raw_json.get("confidence_score", 0.75))
+        raw_json["confidence_score"] = max(0.0, min(1.0, conf))
+
+        for list_field in [
+            "root_cause_hypotheses", "supporting_evidence", "affected_components",
+            "device_browser_observations", "recommended_debugging_steps", "suggested_engineering_fixes"
+        ]:
+            val = raw_json.get(list_field)
+            if not isinstance(val, list):
+                raw_json[list_field] = [str(val)] if val else []
+
+        return GeminiHypotheses(**raw_json)
+
+    except Exception as exc:
+        logger.warning("Gemini individual analysis validation failed: %s. Using heuristic fallback.", exc)
+        return None
+
+
 def analyze_feedback_item(
     feedback: FeedbackSubmission,
     all_campaign_feedback: Optional[List[FeedbackSubmission]] = None,
 ) -> Dict[str, Any]:
     """
-    Execute AI heuristic triaging, root cause analysis, duplicate detection,
-    and developer ticket markdown synthesis.
+    Execute AI triaging, root cause analysis, duplicate detection,
+    and developer ticket markdown synthesis. Combines tester facts,
+    deterministic heuristics, and Gemini hypotheses with graceful fallback.
     """
     if all_campaign_feedback is None:
         all_campaign_feedback = [feedback]
@@ -129,7 +225,7 @@ def analyze_feedback_item(
     tokens = extract_keywords(corpus)
     title_tokens = extract_keywords(feedback.title or "")
 
-    # 1. Match Root Cause & Technical Patterns
+    # 1. Match Root Cause & Technical Patterns (Deterministic Heuristics)
     best_pattern = None
     best_score = 0
     for pat in TECHNICAL_PATTERNS:
@@ -164,6 +260,28 @@ def analyze_feedback_item(
         sentiment = "constructive" if sentiment == "neutral" else sentiment
     else:
         friction_score = base_friction
+
+    # Construct Tester Facts and Heuristic Classification
+    tester_facts = TesterProvidedFacts(
+        title=feedback.title or "",
+        description=feedback.description or "",
+        reproduction_steps=feedback.reproduction_steps,
+        expected_behavior=feedback.expected_behavior,
+        actual_behavior=feedback.actual_behavior,
+        reported_severity=feedback.severity,
+        device_info=feedback.device_info,
+        has_video_proof=bool(feedback.video_url),
+        timestamped_notes=feedback.timestamped_notes or [],
+    )
+
+    heuristic_classification = HeuristicClassification(
+        matched_pattern=best_pattern["root_cause"] if best_pattern else None,
+        rule_category=best_pattern["tags"][0] if (best_pattern and best_pattern.get("tags")) else "General Bug",
+        base_friction_score=friction_score,
+        rule_tags=tags,
+        rule_complexity=complexity,
+        rule_sentiment=sentiment,
+    )
 
     # 2. Duplicate Detection (Weighted Title Overlap + Body Overlap + Context)
     potential_duplicates: List[Dict[str, Any]] = []
@@ -210,11 +328,53 @@ def analyze_feedback_item(
     potential_duplicates.sort(key=lambda d: d["similarity_score"], reverse=True)
     potential_duplicates = potential_duplicates[:5]
 
-    # 3. Generate Ready-to-Paste Developer Ticket Markdown (Clean ASCII, no decorative emojis)
+    # 3. Live Gemini Reasoning with Graceful Heuristic Fallback
+    gemini_result = _run_gemini_individual_analysis(tester_facts, heuristic_classification)
+    if gemini_result is not None:
+        gemini_hypotheses = gemini_result
+        engine_metadata = AiEngineMetadata(
+            provider="Google Gemini",
+            model=settings.GEMINI_MODEL,
+            is_live_llm=True,
+            fallback_used=False,
+            analyzed_at=datetime.now(timezone.utc),
+        )
+        if gemini_hypotheses.root_cause_hypotheses:
+            root_cause = gemini_hypotheses.root_cause_hypotheses[0]
+        if gemini_hypotheses.suggested_engineering_fixes:
+            suggested_fix = gemini_hypotheses.suggested_engineering_fixes[0]
+        if gemini_hypotheses.affected_components:
+            tags = list(dict.fromkeys(tags + gemini_hypotheses.affected_components))
+    else:
+        gemini_hypotheses = GeminiHypotheses(
+            bug_category="functional_bug" if feedback.feedback_type == "bug_report" else "usability",
+            suggested_severity=feedback.severity or "medium",
+            suggested_priority="P0" if feedback.severity == "critical" else ("P1" if feedback.severity == "high" else "P2"),
+            root_cause_hypotheses=[root_cause],
+            supporting_evidence=[feedback.title or "Observed defect reported by tester"],
+            affected_components=tags[:3] if tags else ["ApplicationCore"],
+            device_browser_observations=[f"Reported on: {feedback.device_info}"] if feedback.device_info else [],
+            recommended_debugging_steps=[
+                "Inspect client console and component lifecycle for uncaught errors",
+                "Execute the tester's reproduction steps in a matching browser environment",
+            ],
+            suggested_engineering_fixes=[suggested_fix],
+            confidence_score=0.60,
+            uncertainty_notes="Heuristic fallback active: Analysis derived from TryLo rule patterns without live LLM reasoning.",
+        )
+        engine_metadata = AiEngineMetadata(
+            provider="Local Offline Engine",
+            model="trylo-deterministic-nlp",
+            is_live_llm=False,
+            fallback_used=True,
+            analyzed_at=datetime.now(timezone.utc),
+        )
+
+    # 4. Generate Ready-to-Paste Developer Ticket Markdown
     repro = feedback.reproduction_steps.strip() if feedback.reproduction_steps else "1. Launch application\n2. Navigate to affected area\n3. Execute action"
     expected = feedback.expected_behavior.strip() if feedback.expected_behavior else "Action completes smoothly without errors."
     actual = feedback.actual_behavior.strip() if feedback.actual_behavior else feedback.description.strip()
-    sev = (feedback.severity or "medium").upper()
+    sev = (gemini_hypotheses.suggested_severity or feedback.severity or "medium").upper()
     tags_formatted = " ".join(f"`{t}`" for t in tags)
 
     video_proof_md = ""
@@ -227,15 +387,25 @@ def analyze_feedback_item(
             )
         video_proof_md = f"\n**Screen Recording Proof:** [Watch Recording]({feedback.video_url}){notes_summary}\n"
 
+    hypotheses_md = "\n".join(f"- {h}" for h in gemini_hypotheses.root_cause_hypotheses)
+    evidence_md = "\n".join(f"- > \"{e}\"" for e in gemini_hypotheses.supporting_evidence)
+    debugging_md = "\n".join(f"- [ ] {d}" for d in gemini_hypotheses.recommended_debugging_steps)
+
     ticket_md = f"""### [Bug]: {feedback.title}
 
 **Reported via TryLo Product Testing**
-- **Severity**: `{sev}`
-- **Suspected Root Cause**: {root_cause}
+- **Severity**: `{sev}` ({gemini_hypotheses.suggested_priority})
+- **Engine**: `{engine_metadata.provider} ({engine_metadata.model})`
 - **Estimated Complexity**: `{complexity}`
 - **User Friction Score**: `{friction_score}/10` ({sentiment.capitalize()})
 {video_proof_md}
 ---
+
+#### Suspected Root Cause Hypotheses
+{hypotheses_md}
+
+#### Supporting Evidence (Tester Citations)
+{evidence_md}
 
 #### Steps to Reproduce
 {repro}
@@ -246,8 +416,11 @@ def analyze_feedback_item(
 #### Actual Behavior
 {actual}
 
-#### Suggested Fix
+#### Suggested Engineering Fix
 > {suggested_fix}
+
+#### Recommended Debugging Checklist
+{debugging_md}
 
 #### Technical Tags
 {tags_formatted}
@@ -263,6 +436,10 @@ def analyze_feedback_item(
         "potential_duplicates": potential_duplicates,
         "dev_ticket_markdown": ticket_md.strip(),
         "analyzed_at": datetime.now(timezone.utc).isoformat(),
+        "tester_facts": tester_facts.model_dump(mode="json"),
+        "heuristic_classification": heuristic_classification.model_dump(mode="json"),
+        "gemini_hypotheses": gemini_hypotheses.model_dump(mode="json"),
+        "engine_metadata": engine_metadata.model_dump(mode="json"),
     }
 
 

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useQueryAiCopilot, useAiEngineStatus } from '../../context/useFeedback';
 import type { AiCopilotQueryResponse } from '../../api/feedback';
+import { FormattedAiMessage } from '../ui/FormattedAiMessage';
 
 interface Message {
   id: string;
@@ -76,9 +77,14 @@ export const FounderAiCopilotDrawer: React.FC<FounderAiCopilotDrawerProps> = ({
     setInputQuery('');
 
     try {
+      const cleanCampId =
+        campaignId && campaignId !== 'all' && campaignId.trim() !== ''
+          ? campaignId.trim()
+          : undefined;
+
       const res = await queryCopilot({
         query: q,
-        campaign_id: campaignId || null,
+        campaign_id: cleanCampId || null,
       });
 
       const aiMsg: Message = {
@@ -163,7 +169,7 @@ export const FounderAiCopilotDrawer: React.FC<FounderAiCopilotDrawerProps> = ({
                   }`}
                   title={engineStatus?.notice}
                 >
-                  {engineStatus?.is_live_llm ? 'Gemini 1.5 Flash' : 'Free Local Engine'}
+                  {engineStatus?.is_live_llm ? 'TryLo AI Engine' : 'Free Local Engine'}
                 </span>
               </div>
               <p className="text-[11px] text-[#52656B]">
@@ -211,8 +217,8 @@ export const FounderAiCopilotDrawer: React.FC<FounderAiCopilotDrawerProps> = ({
                       <span>TryLo AI Intelligence</span>
                     </div>
 
-                    <div className="whitespace-pre-wrap font-sans text-xs text-[#102A35] space-y-2">
-                      {msg.text}
+                    <div className="font-sans text-xs text-[#102A35]">
+                      <FormattedAiMessage content={msg.text} />
                     </div>
 
                     {/* Key Takeaways */}

@@ -6,7 +6,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, Response, status
 from starlette.responses import FileResponse
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
@@ -20,6 +20,8 @@ from app.models.feedback import (
     FeedbackSubmission,
     FeedbackInternalNote,
     FeedbackStatusHistory,
+    AIAnalysisJob,
+    CampaignAiSynthesis,
     ALLOWED_TRANSITIONS,
     ALLOWED_FEEDBACK_STATUSES,
     ALLOWED_FEEDBACK_TYPES,
@@ -45,6 +47,8 @@ from app.schemas.feedback import (
     TimestampedNoteAddRequest,
     AiTriageResponse,
     AiExecutiveSynthesisResponse,
+    AIAnalysisJobStatusResponse,
+    CampaignAiSynthesisResponse,
     AiCopilotQueryRequest,
     AiCopilotQueryResponse,
     AiEngineStatusResponse,
@@ -70,6 +74,8 @@ from app.schemas.feedback import (
     FeedbackPayoutStatusResponse,
 )
 from app.services.ai_triage import analyze_feedback_item, synthesize_batch_feedback_insights
+from app.services.ai_background_worker import enqueue_feedback_ai_job, process_feedback_ai_job
+from app.services.ai_campaign_synthesis import synthesize_campaign_intelligence, get_latest_campaign_synthesis
 from app.services.ai_copilot import query_ai_copilot
 from app.services.ai_reproduction import generate_e2e_reproduction_script
 from app.services.ai_funnel import reconstruct_user_journey_funnel
@@ -113,6 +119,7 @@ def find_task_info(campaign: Optional[Campaign], task_id: Optional[str]) -> tupl
 def submit_campaign_feedback(
     campaign_id: uuid.UUID,
     payload: FeedbackCreateRequest,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> FeedbackSubmissionResponse:
@@ -121,7 +128,8 @@ def submit_campaign_feedback(
     - Verifies current tester is accepted for the campaign.
     - If task_id is supplied, validates that it belongs to this campaign.
     - Enforces server-managed status='submitted' and tester_id=current_user.id.
-    - Sanitizes and safely renders text contents.
+    - Persists feedback immediately and triggers asynchronous background AI analysis.
+    - Returns HTTP 201 Created without blocking for Gemini.
     """
     campaign, _ = verify_accepted_tester_for_campaign(campaign_id, current_user, db)
 
@@ -158,6 +166,7 @@ def submit_campaign_feedback(
         video_duration_seconds=payload.video_duration_seconds,
         video_format=payload.video_format,
         timestamped_notes=payload.timestamped_notes or [],
+        ai_analysis_status="pending",
         created_at=now,
         updated_at=now,
     )
@@ -166,8 +175,15 @@ def submit_campaign_feedback(
     db.commit()
     db.refresh(submission)
 
+    # 3. Enqueue durable background AI analysis without waiting for Gemini
+    try:
+        job = enqueue_feedback_ai_job(submission.id, campaign.id, db)
+        background_tasks.add_task(process_feedback_ai_job, job.id)
+    except Exception as exc:
+        logger.warning("Failed to enqueue background AI job for feedback %s: %s", submission.id, exc)
+
     logger.info(
-        "Tester %s submitted %s [id=%s] for campaign %s",
+        "Tester %s submitted %s [id=%s] for campaign %s. Background AI job scheduled.",
         current_user.id,
         payload.feedback_type,
         submission.id,
@@ -200,6 +216,7 @@ def submit_campaign_feedback(
         video_duration_seconds=submission.video_duration_seconds,
         video_format=submission.video_format,
         timestamped_notes=submission.timestamped_notes or [],
+        ai_analysis_status=submission.ai_analysis_status,
         created_at=submission.created_at,
         updated_at=submission.updated_at,
     )
@@ -401,6 +418,7 @@ def get_feedback_submission(
         video_duration_seconds=submission.video_duration_seconds,
         video_format=submission.video_format,
         timestamped_notes=submission.timestamped_notes or [],
+        ai_analysis_status=submission.ai_analysis_status,
         created_at=submission.created_at,
         updated_at=submission.updated_at,
     )
@@ -535,6 +553,7 @@ def list_founder_feedback(
                 video_url=sub.video_url,
                 video_duration_seconds=sub.video_duration_seconds,
                 notes_count=len(sub.internal_notes) if sub.internal_notes else 0,
+                ai_analysis_status=sub.ai_analysis_status,
                 created_at=sub.created_at,
                 updated_at=sub.updated_at,
             )
@@ -546,6 +565,78 @@ def list_founder_feedback(
         limit=limit,
         items=items,
     )
+
+
+@router.get(
+    "/api/founder/feedback/journey-funnel",
+    response_model=AiUserJourneyFunnelResponse,
+    summary="Reconstruct interactive AI user journey funnel & drop-off stages",
+)
+def get_user_journey_funnel(
+    campaign_id: Optional[str] = Query(None, description="Scope funnel to a specific campaign"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("founder")),
+):
+    """
+    Synthesizes tester activity, task completion logs, and bug reports across testing campaigns
+    into an interactive multi-stage journey funnel:
+    Discovery -> Auth -> Onboarding -> Core Workflow -> Monetization & Checkout.
+    """
+    parsed_campaign_id: Optional[uuid.UUID] = None
+    if campaign_id and str(campaign_id).strip() not in ("", "all", "null", "undefined"):
+        try:
+            parsed_campaign_id = uuid.UUID(str(campaign_id).strip())
+        except (ValueError, TypeError):
+            parsed_campaign_id = None
+
+    camp_stmt = (
+        select(Campaign)
+        .join(Startup, Campaign.startup_id == Startup.id)
+        .where(Startup.owner_id == current_user.id)
+    )
+    if parsed_campaign_id:
+        camp_stmt = camp_stmt.where(Campaign.id == parsed_campaign_id)
+
+    campaigns = db.scalars(camp_stmt).all()
+    if parsed_campaign_id and not campaigns:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Campaign not found or not owned by founder",
+        )
+
+    if not campaigns:
+        funnel_dict = reconstruct_user_journey_funnel(
+            submissions=[],
+            campaign_title=None,
+            campaign_id=None,
+        )
+        return AiUserJourneyFunnelResponse(**funnel_dict)
+
+    campaign_ids = [c.id for c in campaigns]
+    campaign_title = campaigns[0].title if len(campaigns) == 1 else "All Active Campaigns"
+
+    stmt = (
+        select(FeedbackSubmission)
+        .where(FeedbackSubmission.campaign_id.in_(campaign_ids))
+        .order_by(FeedbackSubmission.created_at.desc())
+    )
+    submissions = db.scalars(stmt).all()
+
+    funnel_dict = reconstruct_user_journey_funnel(
+        submissions=submissions,
+        campaign_title=campaign_title,
+        campaign_id=parsed_campaign_id if len(campaigns) == 1 else None,
+    )
+
+    logger.info(
+        "Founder %s reconstructed journey funnel (campaign=%s, efficiency=%d%%, bottleneck=%s)",
+        current_user.id,
+        campaign_title,
+        funnel_dict.get("overall_funnel_efficiency_score"),
+        funnel_dict.get("critical_drop_off_stage"),
+    )
+
+    return AiUserJourneyFunnelResponse(**funnel_dict)
 
 
 @router.get(
@@ -679,6 +770,7 @@ def get_founder_feedback_detail(
         video_duration_seconds=submission.video_duration_seconds,
         video_format=submission.video_format,
         timestamped_notes=submission.timestamped_notes or [],
+        ai_analysis_status=submission.ai_analysis_status,
         ai_triage=ai_triage_obj,
         created_at=submission.created_at,
         updated_at=submission.updated_at,
@@ -1056,10 +1148,21 @@ def run_ai_feedback_triage(
 
     triage_result = analyze_feedback_item(submission, all_campaign_feedback)
     submission.ai_triage_data = triage_result
+    submission.ai_analysis_status = "completed"
+    submission.ai_analyzed_at = datetime.now(timezone.utc)
+
+    # Invalidate existing campaign synthesis
+    existing_syntheses = db.scalars(
+        select(CampaignAiSynthesis)
+        .where(CampaignAiSynthesis.campaign_id == submission.campaign_id)
+    ).all()
+    for s in existing_syntheses:
+        s.is_outdated = True
+
     db.commit()
 
     logger.info(
-        "Founder %s ran AI triage on feedback %s (complexity=%s, duplicates=%d)",
+        "Founder %s ran manual AI triage on feedback %s (complexity=%s, duplicates=%d)",
         current_user.id,
         feedback_id,
         triage_result.get("fix_complexity"),
@@ -1067,6 +1170,91 @@ def run_ai_feedback_triage(
     )
 
     return AiTriageResponse(**triage_result)
+
+
+@router.get(
+    "/api/founder/feedback/{feedback_id}/ai-job-status",
+    response_model=Optional[AIAnalysisJobStatusResponse],
+    dependencies=[Depends(require_role(["founder"]))],
+    summary="Get background AI analysis job status for a feedback submission",
+)
+def get_feedback_ai_job_status(
+    feedback_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Returns the latest durable background AI job status and error logs if any."""
+    job = db.scalar(
+        select(AIAnalysisJob)
+        .where(AIAnalysisJob.feedback_id == feedback_id)
+        .order_by(AIAnalysisJob.created_at.desc())
+    )
+    if not job:
+        return None
+    return AIAnalysisJobStatusResponse(
+        id=job.id,
+        feedback_id=job.feedback_id,
+        campaign_id=job.campaign_id,
+        job_type=job.job_type,
+        status=job.status,
+        attempts=job.attempts,
+        max_attempts=job.max_attempts,
+        last_error=job.last_error,
+        scheduled_at=getattr(job, "scheduled_at", None),
+        lease_expires_at=getattr(job, "lease_expires_at", None),
+        created_at=job.created_at,
+        started_at=job.started_at,
+        completed_at=job.completed_at,
+    )
+
+
+@router.get(
+    "/api/founder/campaigns/{campaign_id}/ai-synthesis",
+    response_model=CampaignAiSynthesisResponse,
+    dependencies=[Depends(require_role(["founder"]))],
+    summary="Get the latest versioned AI campaign-wide intelligence synthesis",
+)
+def get_campaign_ai_synthesis(
+    campaign_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Fetches the latest versioned campaign synthesis or triggers generation if none exists."""
+    camp = db.scalar(
+        select(Campaign)
+        .join(Startup, Campaign.startup_id == Startup.id)
+        .where(Campaign.id == campaign_id, Startup.owner_id == current_user.id)
+    )
+    if not camp:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Campaign not found or not owned by you.")
+
+    synthesis = get_latest_campaign_synthesis(campaign_id, db)
+    if not synthesis:
+        synthesis = synthesize_campaign_intelligence(campaign_id, db, force_refresh=True)
+    return synthesis
+
+
+@router.post(
+    "/api/founder/campaigns/{campaign_id}/ai-synthesis/resynthesize",
+    response_model=CampaignAiSynthesisResponse,
+    dependencies=[Depends(require_role(["founder"]))],
+    summary="Force a fresh manual AI campaign-wide intelligence resynthesis",
+)
+def force_resynthesize_campaign(
+    campaign_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Bypasses debounce cooldown and forces a fresh campaign intelligence synthesis."""
+    camp = db.scalar(
+        select(Campaign)
+        .join(Startup, Campaign.startup_id == Startup.id)
+        .where(Campaign.id == campaign_id, Startup.owner_id == current_user.id)
+    )
+    if not camp:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Campaign not found or not owned by you.")
+
+    return synthesize_campaign_intelligence(campaign_id, db, force_refresh=True)
 
 
 @router.post(
@@ -1269,71 +1457,6 @@ def generate_feedback_e2e_reproduction(
     )
 
     return AiE2eReproductionResponse(**script_data)
-
-
-@router.get(
-    "/api/founder/feedback/journey-funnel",
-    response_model=AiUserJourneyFunnelResponse,
-    summary="Reconstruct interactive AI user journey funnel & drop-off stages",
-)
-def get_user_journey_funnel(
-    campaign_id: Optional[uuid.UUID] = Query(None, description="Scope funnel to a specific campaign"),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("founder")),
-):
-    """
-    Synthesizes tester activity, task completion logs, and bug reports across testing campaigns
-    into an interactive multi-stage journey funnel:
-    Discovery -> Auth -> Onboarding -> Core Workflow -> Monetization & Checkout.
-    """
-    camp_stmt = (
-        select(Campaign)
-        .join(Startup, Campaign.startup_id == Startup.id)
-        .where(Startup.owner_id == current_user.id)
-    )
-    if campaign_id:
-        camp_stmt = camp_stmt.where(Campaign.id == campaign_id)
-
-    campaigns = db.scalars(camp_stmt).all()
-    if campaign_id and not campaigns:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Campaign not found or not owned by founder",
-        )
-
-    if not campaigns:
-        funnel_dict = reconstruct_user_journey_funnel(
-            submissions=[],
-            campaign_title=None,
-            campaign_id=None,
-        )
-        return AiUserJourneyFunnelResponse(**funnel_dict)
-
-    campaign_ids = [c.id for c in campaigns]
-    campaign_title = campaigns[0].title if len(campaigns) == 1 else "All Active Campaigns"
-
-    stmt = (
-        select(FeedbackSubmission)
-        .where(FeedbackSubmission.campaign_id.in_(campaign_ids))
-        .order_by(FeedbackSubmission.created_at.desc())
-    )
-    submissions = db.scalars(stmt).all()
-
-    funnel_dict = reconstruct_user_journey_funnel(
-        submissions=submissions,
-        campaign_title=campaign_title,
-        campaign_id=campaign_id if len(campaigns) == 1 else None,
-    )
-
-    logger.info(
-        "Founder %s reconstructed journey funnel (campaign=%s, efficiency=%d%%, bottleneck=%s)",
-        current_user.id,
-        campaign_title,
-        funnel_dict.get("overall_funnel_efficiency_score"),
-        funnel_dict.get("critical_drop_off_stage"),
-    )
-
-    return AiUserJourneyFunnelResponse(**funnel_dict)
 
 
 @router.post(

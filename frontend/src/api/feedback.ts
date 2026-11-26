@@ -123,6 +123,118 @@ export interface AiTriageResponse {
   dev_ticket_markdown: string;
   git_diff_patch?: string | null;
   analyzed_at: string;
+  tester_facts?: {
+    title: string;
+    description: string;
+    reproduction_steps?: string | null;
+    expected_behavior?: string | null;
+    actual_behavior?: string | null;
+    reported_severity?: string | null;
+    device_info?: Record<string, any> | null;
+    has_video_proof?: boolean;
+  } | null;
+  heuristic_classification?: {
+    matched_pattern?: string | null;
+    rule_category: string;
+    base_friction_score: number;
+    rule_tags: string[];
+    rule_complexity: string;
+    rule_sentiment: string;
+  } | null;
+  gemini_hypotheses?: {
+    bug_category: string;
+    suggested_severity: string;
+    suggested_priority: string;
+    root_cause_hypotheses: string[];
+    supporting_evidence: string[];
+    affected_components: string[];
+    device_browser_observations: string[];
+    recommended_debugging_steps: string[];
+    suggested_engineering_fixes: string[];
+    confidence_score: number;
+    uncertainty_notes?: string | null;
+  } | null;
+  engine_metadata?: {
+    provider: string;
+    model: string;
+    is_live_llm: boolean;
+    fallback_used: boolean;
+    analyzed_at: string;
+  } | null;
+}
+
+export interface AIAnalysisJobStatus {
+  id: string;
+  feedback_id: string;
+  campaign_id: string;
+  job_type: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'retrying';
+  attempts: number;
+  max_attempts: number;
+  last_error?: string | null;
+  created_at: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+}
+
+export interface CampaignAiSynthesis {
+  id: string;
+  campaign_id: string;
+  version: number;
+  is_outdated: boolean;
+  total_reports_analyzed: number;
+  feedback_ids_snapshot: string[];
+  release_readiness_score: number;
+  release_readiness_verdict: string;
+  critical_blocker?: {
+    headline: string;
+    business_impact: string;
+    affected_reports_count: number;
+    underlying_nexus: string;
+    recommended_hotfix: string;
+  } | null;
+  top_prioritized_actions: Array<{
+    priority: number;
+    action_title: string;
+    rationale: string;
+    estimated_effort: string;
+    affected_reports_count: number;
+  }>;
+  duplicate_clusters: Array<{
+    cluster_title: string;
+    reports_count: number;
+    report_ids: string[];
+    severities: string[];
+  }>;
+  recurring_issues: Array<{
+    theme: string;
+    headline: string;
+    affected_count: number;
+    nexus: string;
+    recommended_fix: string;
+  }>;
+  device_browser_patterns?: {
+    dominant_browsers: Array<{ browser: string; report_count: number }>;
+    operating_systems: Array<{ os: string; report_count: number }>;
+    video_proof_coverage_pct: number;
+  } | null;
+  severity_distribution?: {
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+  } | null;
+  recommendations: Array<{
+    title: string;
+    category: string;
+    description: string;
+  }>;
+  executive_summary_markdown: string;
+  unified_pr_brief_markdown: string;
+  provider: string;
+  model: string;
+  synthesized_at: string;
+  created_at: string;
 }
 
 
@@ -312,6 +424,7 @@ export async function generateExecutiveFeedbackSynthesis(
     `/api/founder/feedback/executive-synthesis${query}`,
     {
       method: 'POST',
+      timeoutMs: 40000,
     }
   );
 }
@@ -363,6 +476,7 @@ export async function queryAiCopilot(
   return apiClient<AiCopilotQueryResponse>('/api/founder/ai-copilot/query', {
     method: 'POST',
     body: JSON.stringify(payload),
+    timeoutMs: 60000,
   });
 }
 
@@ -393,6 +507,7 @@ export async function generateE2eReproductionScript(
     {
       method: 'POST',
       body: JSON.stringify(payload || { framework: 'playwright' }),
+      timeoutMs: 40000,
     }
   );
 }
@@ -645,6 +760,7 @@ export async function runSyntheticAudit(
     `/api/founder/campaigns/${campaignId}/synthetic-audit`,
     {
       method: 'POST',
+      timeoutMs: 60000,
     }
   );
 }
@@ -692,6 +808,7 @@ export async function simulateLaunchRoi(
     {
       method: 'POST',
       body: JSON.stringify(payload),
+      timeoutMs: 40000,
     }
   );
 }
@@ -724,6 +841,7 @@ export async function generateReleaseChangelog(
     {
       method: 'POST',
       body: JSON.stringify(payload),
+      timeoutMs: 40000,
     }
   );
 }
@@ -823,6 +941,49 @@ export async function releaseFeedbackPayout(
     {
       method: 'POST',
       body: JSON.stringify(payload),
+    }
+  );
+}
+
+/**
+ * Fetch latest versioned campaign-wide intelligence synthesis
+ */
+export async function getCampaignAiSynthesis(
+  campaignId: string
+): Promise<CampaignAiSynthesis> {
+  return apiClient<CampaignAiSynthesis>(
+    `/api/founder/campaigns/${campaignId}/ai-synthesis`,
+    {
+      method: 'GET',
+    }
+  );
+}
+
+/**
+ * Force manual resynthesis of campaign-wide intelligence
+ */
+export async function resynthesizeCampaignAi(
+  campaignId: string
+): Promise<CampaignAiSynthesis> {
+  return apiClient<CampaignAiSynthesis>(
+    `/api/founder/campaigns/${campaignId}/ai-synthesis/resynthesize`,
+    {
+      method: 'POST',
+      timeoutMs: 40000,
+    }
+  );
+}
+
+/**
+ * Fetch async background AI job status for an individual feedback item
+ */
+export async function getFeedbackAiJobStatus(
+  feedbackId: string
+): Promise<AIAnalysisJobStatus | null> {
+  return apiClient<AIAnalysisJobStatus | null>(
+    `/api/founder/feedback/${feedbackId}/ai-job-status`,
+    {
+      method: 'GET',
     }
   );
 }

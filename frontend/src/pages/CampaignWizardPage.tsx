@@ -616,7 +616,7 @@ const CampaignWizardForm: React.FC<CampaignWizardFormProps> = ({
                 <Sparkles className="h-3 w-3 text-emerald-300" />
                 <span>Prompt-to-Campaign AI Architect</span>
               </span>
-              <span className="text-[10px] text-teal-200">Zero-Cost Gemini Flash + Local Engine</span>
+              <span className="text-[10px] text-teal-200">Zero-Cost Frontier AI + Local Engine</span>
             </div>
             <h3 className="text-base sm:text-lg font-extrabold text-white">
               Have a product concept or URL? Draft this entire campaign in 5 seconds.

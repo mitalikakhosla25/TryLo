@@ -7,7 +7,6 @@ import {
   AlertCircle,
   Loader2,
   X,
-  CreditCard,
   Copy,
   Check,
   BarChart3,
@@ -16,7 +15,6 @@ import {
   TrendingUp,
   Receipt,
   Download,
-  QrCode,
   Smartphone,
   Sparkles,
   ExternalLink,
@@ -31,10 +29,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCampaignApplications } from '../../context/useApplications';
 import { downloadCampaignPayoutsCsv, type PayoutResponse } from '../../api/payouts';
 import {
-  createUpiIntent,
   verifyUtrAndFund,
   simulateSandboxPayment,
-  type UpiIntentResponse,
 } from '../../api/freePayments';
 import { UpiQrCode } from '../ui/UpiQrCode';
 import { DonutChart, BarVelocityChart } from '../ui/ChartWidgets';
@@ -59,7 +55,7 @@ export const EscrowVaultModal: React.FC<EscrowVaultModalProps> = ({
   const queryClient = useQueryClient();
   const { data: escrow, isLoading: isLoadingEscrow } = useCampaignEscrow(campaignId);
   const { data: analytics, isLoading: isLoadingAnalytics } = useCampaignEscrowAnalytics(campaignId);
-  const { mutateAsync: fundEscrow, isPending: isFunding } = useFundCampaignEscrow(campaignId);
+  const { mutateAsync: _fundEscrow } = useFundCampaignEscrow(campaignId);
   const { mutateAsync: disburse, isPending: isDisbursing } = useDisbursePayout(campaignId);
   const { data: appData, isLoading: isLoadingApps } = useCampaignApplications(campaignId, { status: 'accepted' });
 
@@ -92,28 +88,6 @@ export const EscrowVaultModal: React.FC<EscrowVaultModalProps> = ({
   const [csvExportSuccess, setCsvExportSuccess] = useState<string | null>(null);
 
   const acceptedTesters = appData?.items || [];
-
-  const handleFund = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setDepositError(null);
-    setDepositSuccess(null);
-
-    if (depositAmount <= 0) {
-      setDepositError('Deposit amount must be greater than 0.');
-      return;
-    }
-
-    try {
-      const updated = await fundEscrow({
-        amount: depositAmount,
-        payment_method: 'simulated_upi',
-      });
-      setDepositSuccess(`₹${depositAmount.toLocaleString()} locked into escrow! Ref: ${updated.deposit_reference || 'N/A'}`);
-      setDepositAmount(0);
-    } catch (err: unknown) {
-      setDepositError(err instanceof Error ? err.message : 'Failed to deposit into escrow.');
-    }
-  };
 
   const handleVerifyUtr = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -40,7 +40,7 @@ export async function apiClient<T>(
   endpoint: string,
   options: ApiRequestOptions = {}
 ): Promise<T> {
-  const { timeoutMs = 8000, ...customFetchOptions } = options;
+  const { timeoutMs = 45000, ...customFetchOptions } = options;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);

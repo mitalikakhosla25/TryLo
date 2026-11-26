@@ -49,14 +49,6 @@ def get_engine() -> Optional[Engine]:
                 cursor.execute("PRAGMA busy_timeout=5000")
                 cursor.close()
 
-            from app.db.base import Base
-            import app.models  # noqa: F401
-            Base.metadata.create_all(bind=_engine)
-        else:
-            # Psycopg 3 accepts connect_timeout in seconds
-            if settings.DB_TIMEOUT_SECONDS > 0:
-                connect_args["connect_timeout"] = settings.DB_TIMEOUT_SECONDS
-
             _engine = create_engine(
                 settings.SQLALCHEMY_DATABASE_URI,
                 pool_pre_ping=True,
@@ -65,6 +57,11 @@ def get_engine() -> Optional[Engine]:
                 pool_timeout=10,
                 connect_args=connect_args,
             )
+
+        from app.db.base import Base
+        import app.models  # noqa: F401
+        Base.metadata.create_all(bind=_engine)
+
         _SessionFactory = sessionmaker(autocommit=False, autoflush=False, bind=_engine)
         logger.info("SQLAlchemy engine initialized successfully.")
         return _engine

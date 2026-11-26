@@ -143,7 +143,7 @@ PRODUCT_HUNT:
             "github_markdown": gh_part,
             "twitter_thread": tw_part,
             "product_hunt_blurb": ph_part,
-            "engine_used": "Google Gemini 1.5 Flash",
+            "engine_used": "TryLo AI Engine",
             "generated_at": datetime.now(timezone.utc),
         }
     except Exception:

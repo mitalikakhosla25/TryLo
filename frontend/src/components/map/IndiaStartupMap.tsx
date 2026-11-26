@@ -283,11 +283,18 @@ export const IndiaStartupMap: React.FC = () => {
                 })}
               </g>
 
-              {/* State marker pins for prominent hubs */}
+              {/* State marker pins for all states with startups and prominent hubs */}
               {INDIA_STATES_DATA.map((state) => {
                 const isSelected = selectedState === state.name;
                 const [cx, cy] = state.center;
-                if (!['Maharashtra', 'Karnataka', 'Delhi', 'Gujarat', 'Tamil Nadu', 'Telangana'].includes(state.name)) {
+                const count = stateCounts[state.name] || 0;
+                const isProminentHub = [
+                  'Maharashtra', 'Karnataka', 'Delhi', 'Gujarat', 'Tamil Nadu',
+                  'Telangana', 'Punjab', 'Andhra Pradesh', 'Kerala', 'Rajasthan',
+                  'Uttar Pradesh', 'West Bengal', 'Haryana', 'Madhya Pradesh', 'Bihar', 'Odisha'
+                ].includes(state.name);
+
+                if (count === 0 && !isProminentHub) {
                   return null;
                 }
 
@@ -298,21 +305,48 @@ export const IndiaStartupMap: React.FC = () => {
                     className="cursor-pointer transition-transform hover:scale-125"
                     onClick={() => handleStateClick(state.name)}
                   >
-                    {isSelected && (
+                    {/* Pulsing halo if selected or has startups */}
+                    {(isSelected || count > 0) && (
                       <circle
-                        r={10}
+                        r={count > 0 ? 8 : 6}
                         fill="none"
-                        stroke="#087C80"
+                        stroke={count > 0 ? '#0D9488' : '#087C80'}
                         strokeWidth="1.5"
-                        className="animate-ping"
+                        className={isSelected ? 'animate-ping' : 'opacity-60'}
                       />
                     )}
                     <circle
-                      r={isSelected ? 5.5 : 3.5}
-                      fill={isSelected ? '#102A35' : '#087C80'}
+                      r={isSelected ? 6 : count > 0 ? 5 : 3.5}
+                      fill={isSelected ? '#102A35' : count > 0 ? '#087C80' : '#4B6B75'}
                       stroke="#FFFFFF"
                       strokeWidth="1.5"
                     />
+                    {/* Badge displaying count if state has active startups */}
+                    {count > 0 && (
+                      <g transform="translate(0, -9)">
+                        <rect
+                          x={-8}
+                          y={-7}
+                          width={16}
+                          height={11}
+                          rx={5.5}
+                          fill="#102A35"
+                          stroke="#FFFFFF"
+                          strokeWidth="0.8"
+                        />
+                        <text
+                          x={0}
+                          y={1}
+                          textAnchor="middle"
+                          fill="#FFFFFF"
+                          fontSize="7.5"
+                          fontWeight="bold"
+                          fontFamily="sans-serif"
+                        >
+                          {count}
+                        </text>
+                      </g>
+                    )}
                   </g>
                 );
               })}

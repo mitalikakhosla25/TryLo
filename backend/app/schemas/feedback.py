@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Dict, Any, Union
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.feedback import ALLOWED_FEEDBACK_STATUSES
@@ -98,6 +98,7 @@ class FounderFeedbackListItemResponse(BaseModel):
     video_url: Optional[str] = None
     video_duration_seconds: Optional[int] = None
     notes_count: int = 0
+    ai_analysis_status: Optional[str] = "pending"
     created_at: datetime
     updated_at: datetime
 
@@ -123,8 +124,55 @@ class DuplicateFeedbackMatch(BaseModel):
     created_at: datetime
 
 
+class TesterProvidedFacts(BaseModel):
+    """Verbatim facts supplied directly by the human tester without LLM speculation."""
+    title: str
+    description: str
+    reproduction_steps: Optional[str] = None
+    expected_behavior: Optional[str] = None
+    actual_behavior: Optional[str] = None
+    reported_severity: Optional[str] = None
+    device_info: Optional[Union[Dict[str, Any], str]] = None
+    has_video_proof: bool = False
+    timestamped_notes: List[Dict[str, Any]] = []
+
+
+class HeuristicClassification(BaseModel):
+    """Deterministic, rule-based classification derived from keywords and static patterns."""
+    matched_pattern: Optional[str] = None
+    rule_category: str
+    base_friction_score: int
+    rule_tags: List[str]
+    rule_complexity: str
+    rule_sentiment: str
+
+
+class GeminiHypotheses(BaseModel):
+    """LLM reasoning output clearly bounded as hypotheses rather than absolute truths."""
+    bug_category: str
+    suggested_severity: str
+    suggested_priority: str
+    root_cause_hypotheses: List[str]
+    supporting_evidence: List[str]
+    affected_components: List[str]
+    device_browser_observations: List[str]
+    recommended_debugging_steps: List[str]
+    suggested_engineering_fixes: List[str]
+    confidence_score: float
+    uncertainty_notes: Optional[str] = None
+
+
+class AiEngineMetadata(BaseModel):
+    """Audit metadata specifying AI execution provider, model, and fallback state."""
+    provider: str
+    model: str
+    is_live_llm: bool
+    fallback_used: bool
+    analyzed_at: datetime
+
+
 class AiTriageResponse(BaseModel):
-    """AI synthesis of root cause, complexity, user friction, duplicates, and dev ticket."""
+    """Unified AI synthesis supporting backwards-compatible UI fields plus deep structured intelligence."""
     root_cause_hypothesis: str
     fix_complexity: str
     suggested_fix: str
@@ -134,6 +182,12 @@ class AiTriageResponse(BaseModel):
     potential_duplicates: List[DuplicateFeedbackMatch] = []
     dev_ticket_markdown: str
     analyzed_at: datetime
+    # New structured intelligence sections
+    tester_facts: Optional[TesterProvidedFacts] = None
+    heuristic_classification: Optional[HeuristicClassification] = None
+    gemini_hypotheses: Optional[GeminiHypotheses] = None
+    engine_metadata: Optional[AiEngineMetadata] = None
+    git_diff_patch: Optional[str] = None
 
 
 class FounderFeedbackDetailResponse(BaseModel):
@@ -171,6 +225,7 @@ class FounderFeedbackDetailResponse(BaseModel):
     video_duration_seconds: Optional[int] = None
     video_format: Optional[str] = None
     timestamped_notes: List[dict] = Field(default_factory=list)
+    ai_analysis_status: Optional[str] = "pending"
     ai_triage: Optional[AiTriageResponse] = None
     created_at: datetime
     updated_at: datetime
@@ -225,6 +280,72 @@ class AiExecutiveSynthesisResponse(BaseModel):
     synthesized_at: datetime
 
 
+class AIAnalysisJobStatusResponse(BaseModel):
+    """Status tracking for asynchronous individual feedback AI analysis."""
+    id: uuid.UUID
+    feedback_id: uuid.UUID
+    campaign_id: uuid.UUID
+    job_type: str
+    status: str
+    attempts: int
+    max_attempts: int
+    last_error: Optional[str] = None
+    scheduled_at: Optional[datetime] = None
+    lease_expires_at: Optional[datetime] = None
+    created_at: datetime
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+
+
+class DuplicateClusterItem(BaseModel):
+    """Identified cluster of similar or duplicate tester feedback submissions."""
+    cluster_title: str
+    reports_count: int
+    report_ids: List[str]
+    severities: List[Optional[str]] = []
+
+
+class RecurringIssueItem(BaseModel):
+    """Recurring failure pattern or defect detected across multiple testers."""
+    theme: str
+    headline: str
+    affected_count: int
+    nexus: str
+    recommended_fix: str
+
+
+class ProductRecommendationItem(BaseModel):
+    """Actionable product or engineering recommendation derived from feedback."""
+    title: str
+    category: str
+    description: str
+
+
+class CampaignAiSynthesisResponse(BaseModel):
+    """Complete campaign-wide intelligence snapshot with versioning and outdated status."""
+    id: uuid.UUID
+    campaign_id: uuid.UUID
+    version: int
+    is_outdated: bool
+    total_reports_analyzed: int
+    feedback_ids_snapshot: List[str]
+    release_readiness_score: int
+    release_readiness_verdict: str
+    critical_blocker: Optional[Dict[str, Any]] = None
+    top_prioritized_actions: List[Dict[str, Any]] = []
+    duplicate_clusters: List[DuplicateClusterItem] = []
+    recurring_issues: List[RecurringIssueItem] = []
+    device_browser_patterns: Optional[Dict[str, Any]] = None
+    severity_distribution: Optional[Dict[str, Any]] = None
+    recommendations: List[ProductRecommendationItem] = []
+    executive_summary_markdown: str
+    unified_pr_brief_markdown: str
+    provider: str
+    model: str
+    synthesized_at: datetime
+    created_at: datetime
+
+
 class AiCopilotReferencedFeedback(BaseModel):
     """Feedback item cited in an AI Co-Pilot query response."""
     id: uuid.UUID
@@ -237,6 +358,18 @@ class AiCopilotQueryRequest(BaseModel):
     """Payload for conversational founder query to the TryLo AI Co-Pilot."""
     query: str = Field(..., min_length=2, max_length=1000)
     campaign_id: Optional[uuid.UUID] = None
+
+    @field_validator("campaign_id", mode="before")
+    @classmethod
+    def validate_campaign_id(cls, v: Any) -> Optional[uuid.UUID]:
+        if not v or v in ("", "all", "null", "undefined"):
+            return None
+        if isinstance(v, uuid.UUID):
+            return v
+        try:
+            return uuid.UUID(str(v))
+        except (ValueError, TypeError):
+            return None
 
 
 class AiCopilotQueryResponse(BaseModel):

@@ -26,6 +26,8 @@ import {
 import {
   useExecutiveFeedbackSynthesis,
   useGenerateExecutiveFeedbackSynthesis,
+  useCampaignAiSynthesis,
+  useResynthesizeCampaignAi,
   useAiEngineStatus,
 } from '../../context/useFeedback';
 
@@ -40,6 +42,8 @@ export const AiExecutiveSummaryCard: React.FC<AiExecutiveSummaryCardProps> = ({
 }) => {
   const { data: synthesis, isLoading, isError, error } = useExecutiveFeedbackSynthesis(campaignId);
   const { mutate: runBatchSynthesis, isPending: isSynthesizing } = useGenerateExecutiveFeedbackSynthesis();
+  const { data: campaignSynthesis } = useCampaignAiSynthesis(campaignId);
+  const { mutate: resynthesizeCampaign, isPending: isResynthesizing } = useResynthesizeCampaignAi();
   const { data: engineStatus } = useAiEngineStatus();
 
   const [copiedType, setCopiedType] = useState<'brief' | 'pr' | 'patch' | null>(null);
@@ -145,7 +149,7 @@ export const AiExecutiveSummaryCard: React.FC<AiExecutiveSummaryCardProps> = ({
                 }`}
                 title={engineStatus?.notice}
               >
-                {engineStatus?.is_live_llm ? 'Gemini 1.5 Flash' : 'Free Local Engine'}
+                {engineStatus?.is_live_llm ? 'TryLo AI Engine' : 'Free Local Engine'}
               </span>
               {campaignTitle && (
                 <span className="text-xs font-medium text-[#52656B]">
@@ -161,14 +165,40 @@ export const AiExecutiveSummaryCard: React.FC<AiExecutiveSummaryCardProps> = ({
 
         <button
           type="button"
-          onClick={() => runBatchSynthesis(campaignId)}
-          disabled={isSynthesizing}
+          onClick={() => {
+            if (campaignId) {
+              resynthesizeCampaign(campaignId);
+            } else {
+              runBatchSynthesis(campaignId);
+            }
+          }}
+          disabled={isSynthesizing || isResynthesizing}
           className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-full text-xs font-bold bg-[#07545A] hover:bg-[#087C80] text-white transition-all cursor-pointer shadow-xs disabled:opacity-50 shrink-0 self-start sm:self-auto"
         >
-          <RefreshCw className={`h-3.5 w-3.5 ${isSynthesizing ? 'animate-spin' : ''}`} />
-          <span>{isSynthesizing ? 'Synthesizing All Reports...' : 'Re-synthesize All Submissions'}</span>
+          <RefreshCw className={`h-3.5 w-3.5 ${(isSynthesizing || isResynthesizing) ? 'animate-spin' : ''}`} />
+          <span>{(isSynthesizing || isResynthesizing) ? 'Synthesizing All Reports...' : 'Re-synthesize All Submissions'}</span>
         </button>
       </div>
+
+      {/* Outdated Intelligence Snapshot Notice */}
+      {campaignSynthesis?.is_outdated && (
+        <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+            <span>
+              <strong>Intelligence Snapshot Outdated:</strong> New tester feedback has been submitted since snapshot v{campaignSynthesis.version}.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => campaignId && resynthesizeCampaign(campaignId)}
+            disabled={isResynthesizing}
+            className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white transition-colors shrink-0 shadow-xs cursor-pointer disabled:opacity-50"
+          >
+            {isResynthesizing ? 'Resynthesizing...' : 'Resynthesize Campaign'}
+          </button>
+        </div>
+      )}
 
       {/* Release Readiness & Overview Cards */}
       <div className={`p-4 sm:p-5 rounded-2xl border ${verdictStyle.border} ${verdictStyle.bg} flex flex-col sm:flex-row sm:items-center justify-between gap-4`}>

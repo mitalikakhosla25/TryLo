@@ -214,7 +214,7 @@ Output strictly valid JSON with no markdown formatting:
                 clean_json = clean_json.rsplit("```", 1)[0]
         data = json.loads(clean_json.strip())
         data["feedback_id"] = submission.id
-        data["engine_used"] = "Google Gemini 1.5 Flash (Proof Sentinel)"
+        data["engine_used"] = "TryLo AI Engine (Proof Sentinel)"
         data["audited_at"] = datetime.now(timezone.utc)
         return data
     except Exception:

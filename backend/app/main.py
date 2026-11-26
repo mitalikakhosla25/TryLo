@@ -1,11 +1,16 @@
 """TryLo FastAPI Application Entry Point."""
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
+from app.services.ai_background_worker import (
+    recover_interrupted_jobs,
+    signal_worker_shutdown,
+)
 from app.api.health import router as health_router
 from app.api.auth import router as auth_router
 from app.api.profiles import router as profiles_router
@@ -28,6 +33,18 @@ logging.basicConfig(
 logger = logging.getLogger("trylo.api")
 
 
+async def _background_ai_recovery_loop():
+    """Lightweight periodic loop to sweep and recover any orphaned or due background jobs."""
+    while True:
+        try:
+            await asyncio.sleep(30.0)
+            recover_interrupted_jobs()
+        except asyncio.CancelledError:
+            break
+        except Exception as exc:
+            logger.warning("Error in background AI recovery sweep loop: %s", exc)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan context manager for startup and shutdown events."""
@@ -38,8 +55,21 @@ async def lifespan(app: FastAPI):
         logger.warning(
             "DATABASE_URL is not yet configured. Database health checks will return 503 until configured."
         )
+
+    # Startup recovery of any pending, retrying, or crashed AI jobs
+    try:
+        recovered = recover_interrupted_jobs()
+        logger.info("AI Background Worker initialized: %d jobs recovered/dispatched on startup.", recovered)
+    except Exception as exc:
+        logger.warning("Could not execute AI job startup recovery: %s", exc)
+
+    recovery_task = asyncio.create_task(_background_ai_recovery_loop())
+
     yield
+
     logger.info("Shutting down TryLo API service...")
+    recovery_task.cancel()
+    signal_worker_shutdown()
 
 
 app = FastAPI(

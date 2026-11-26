@@ -228,7 +228,7 @@ def _parse_llm_polished_response(text: str) -> Optional[Dict[str, Any]]:
                 "polished_expected_behavior": exp_m.group(1).strip() if exp_m else "",
                 "polished_actual_behavior": act_m.group(1).strip() if act_m else "",
                 "suggested_severity": sev_m.group(1).lower() if sev_m else "medium",
-                "engine_used": "Google Gemini 1.5 Flash",
+                "engine_used": "TryLo AI Engine",
             }
     except Exception:
         pass

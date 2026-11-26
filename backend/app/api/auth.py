@@ -3,7 +3,7 @@
 import logging
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 
 from app.core.config import settings
@@ -134,7 +134,8 @@ def login_user(
     7. Return sanitized UserResponse.
     """
     client_ip = request.client.host if request.client else "unknown"
-    rate_limit_key = f"{payload.email}:{client_ip}"
+    clean_email = payload.email.strip().lower()
+    rate_limit_key = f"{clean_email}:{client_ip}"
 
     if login_rate_limiter.is_rate_limited(rate_limit_key):
         raise HTTPException(
@@ -142,8 +143,8 @@ def login_user(
             detail="Too many failed login attempts. Please try again later.",
         )
 
-    # Query user by normalized email
-    user = db.scalar(select(User).where(User.email == payload.email))
+    # Query user by normalized email (case-insensitive)
+    user = db.scalar(select(User).where(func.lower(User.email) == clean_email))
 
     # Reject if user does not exist or password does not match
     if user is None or not verify_password(payload.password, user.password_hash):

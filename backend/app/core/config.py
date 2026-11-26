@@ -12,7 +12,7 @@ CANONICAL_DB_FILE = (BACKEND_DIR / "trylo.db").resolve()
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=(".env", "../.env"),
+        env_file=(str(BACKEND_DIR / ".env"), ".env", "../.env"),
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     CORS_ORIGINS: Union[List[str], str] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
     ]
 
     # Database Configuration - Defaults to canonical absolute SQLite path

@@ -360,7 +360,7 @@ Output strictly valid JSON with no markdown backticks, conforming to:
 
         data = json.loads(clean_json.strip())
         data["product_url"] = product_url
-        data["engine_used"] = "Google Gemini 1.5 Flash (Campaign Architect)"
+        data["engine_used"] = "TryLo AI Engine (Campaign Architect)"
         data["architected_at"] = datetime.now(timezone.utc)
         return data
     except Exception:

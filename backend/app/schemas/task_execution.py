@@ -224,6 +224,7 @@ class FeedbackSubmissionResponse(BaseModel):
     video_duration_seconds: Optional[int] = None
     video_format: Optional[str] = None
     timestamped_notes: List[dict] = Field(default_factory=list)
+    ai_analysis_status: Optional[str] = "pending"
     created_at: datetime
     updated_at: datetime
 
